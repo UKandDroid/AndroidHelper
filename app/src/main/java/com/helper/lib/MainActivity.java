@@ -40,14 +40,6 @@ public class MainActivity extends AppCompatActivity {
         layout.setBackground(R.id.edit_hello, R.drawable.abc_btn_check_material);
 
 
-        Utils.postDelayed( 2000, new Utils.UIThread() {
-            @Override
-            public void execute() {
-                layout.hideProgress();
-            }
-        });
-
-
         Utils uObj = new Utils();
 
      /*   layout.setOnClickListener(R.id.btn_hello, new View.OnClickListener() {
