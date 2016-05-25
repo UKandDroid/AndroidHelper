@@ -13,8 +13,8 @@ public class Flow {
     private CodeFlow code;
     private boolean bRunning;
     private HThread hThread ;
-    private List<EventSet> listEventSet = new ArrayList<EventSet>();
     private EventSet waitEventSet = null;
+    private List<EventSet> listEventSet = new ArrayList<EventSet>();
 
     public Flow(CodeFlow list){
         bRunning = true;
@@ -29,6 +29,16 @@ public class Flow {
     public void start(){
         bRunning = true;
     }
+
+
+    public void run(int iCodeStep){
+        hThread.run(iCodeStep);
+    }
+
+    public void runUI(int iCodeStep){
+        hThread.runUI(iCodeStep);
+    }
+
 
     // METHOD register for event
     public void registerEvents(int iStep, String events[]){
@@ -64,117 +74,125 @@ public class Flow {
         private Handler mUIHandler;
         HThread(final CodeFlow code){
             HandlerThread ht = new HandlerThread("BGThread");
+            ht.start();
             mHandler = new Handler(ht.getLooper(), this);
             mUIHandler = new Handler(Looper.getMainLooper(), this);
         }
 
         public void run(int iStep){
-            mHandler.sendEmptyMessage(iStep);
-        }
+            Message msg = Message.obtain();
+            msg.what = iStep;
+            msg.arg2 =  1;  // Success set to true
+            mHandler.sendMessage(msg);        }
 
         public void runUI(int iStep){
-            mUIHandler.sendEmptyMessage(iStep);
-        }
-
-        private void run(int iStep, int iExtra, Object obj){
             Message msg = Message.obtain();
             msg.what = iStep;
-            msg.arg1 = iExtra;
-            msg.obj = obj;
-            mHandler.sendMessage(msg);
-
-        }
-        private void runUI(int iStep, int iExtra, Object obj){
-            Message msg = Message.obtain();
-            msg.what = iStep;
-            msg.arg1 = iExtra;
-            msg.obj = obj;
+            msg.arg2 =  1;  // Success set to true
             mUIHandler.sendMessage(msg);
+        }
+
+        public void run(int iStep, boolean bSuccess, int iExtra, Object obj){
+            if(bRunning){
+                Message msg = Message.obtain();
+                msg.what = iStep;
+                msg.arg1 = iExtra;
+                msg.arg2 = bSuccess ? 1: 0;
+                msg.obj = obj;
+                mHandler.sendMessage(msg);
+            }
+        }
+
+        public void runUI(int iStep,  boolean bSuccess, int iExtra, Object obj){
+            if(bRunning){
+                Message msg = Message.obtain();
+                msg.what = iStep;
+                msg.arg1 = iExtra;
+                msg.arg2 = bSuccess ? 1: 0;
+                msg.obj = obj;
+                mUIHandler.sendMessage(msg);
+            }
         }
 
 
         @Override public boolean handleMessage(Message msg) {
-            code.code(msg.what, msg.arg1, (EventSet) msg.obj);
-            msg.recycle();
+            code.code(msg.what, msg.arg2 == 1,  msg.arg1,  msg.obj);
+//             msg.recycle();
             return true;
         }
     }
 
     // CLASS for event
     public class Event{
-        public static final int NOT_FIRED = 0;
-        public static final int FIRED_SUCCESS = 1;
-        public static final int FIRED_FAILURE = 2;
+        public static final int WAITING = 0;
+        public static final int SUCCESS = 1;
+        public static final int FAILURE = 2;
 
         public Object obj;
         public int iExtra;
-        public String sEvent, sTag;
-        public int iStatus = NOT_FIRED; // 0 - not fired, 1 - fired with success, 2- fired with failure
-
+        public String sEvent;
+        public int iStatus = WAITING; // 0 - waiting not fired yet, 1 - fired with success, 2- fired with failure
+        // CONSTRUCTOR
         public Event(String sId){ this.sEvent = sId; }
     }
 
     // INTERFACE for code execution on events
     public interface CodeFlow {
-        public void code(int iStep, int iExtra, EventSet eventSet);
+        public void code(int iStep, boolean bSuccess,  int iExtra, Object events);
     }
 
     // CLASS for event set
     public class EventSet{
-        public static final int WAITING = 0;
-        public static final int FIRED_SUCCESS = 1;
-        public static final int FIRED_FAILURE = 2;
-
-        private int iStep;
-        private int iStatus = WAITING; // Event status, waiting, success, non success
-        private int iEventCount;
+        private int iCodeStep;               // Code step to execute when event happens
+        private int iEventCount;             // How many event are for this event code to be triggered
         private boolean bEventFound;
-        private boolean bRunOnUI = false;
-        private List<String> mapEvent = new ArrayList<>();
-        private List<Event> listEvents = new ArrayList<>();
+        private boolean bRunOnUI = false;    // Code run on Background / UI thread
+        private int iSetStatus = Event.WAITING; // Event set status as a whole, waiting, success, non success
+        private List<Event> listEvents = new ArrayList<>();         //
 
         // CONSTRUCTOR
-        public EventSet(int iStep, String events[]){
-            this.iStep = iStep;
+        public EventSet(int iCodeStep, String events[]){
+            this.iCodeStep = iCodeStep;
             iEventCount = events.length;
             for(int i = 0; i < iEventCount; i++){
-                mapEvent.add(events[i]);
                 listEvents.add(new Event(events[i]));
             }
         }
 
         // METHOD
-        public void onEvent(String sEvent, Boolean bResult,  int iExtra, Object obj){
-            int iResult = 0; // result of events
+        public void onEvent(String sEvent, Boolean bResult, int iExtra, Object obj){
+            int iSuccess = 0; // result of events
             int iFired = 0;  // How many have been fired
             bEventFound = false;
-            for(int i=0; i < iEventCount; i++){
-                switch (listEvents.get(i).iStatus){
-                    case Event.FIRED_SUCCESS:
-                        iResult++;
-                    case Event.FIRED_FAILURE:
-                        iFired++;
-                        break;
-                }
 
-                if(sEvent.equals(mapEvent.get(i))){ // If event is found in this event list
+            for(int i = 0; i < iEventCount; i++){
+                Event event = listEvents.get(i);
+                if(sEvent.equals(event.sEvent)){ // If event is found in this event list
                     bEventFound = true;
-                    Event event = listEvents.get(i);
                     event.obj = obj;
                     event.iExtra = iExtra;
-                    event.iStatus = bResult ? FIRED_SUCCESS : FIRED_FAILURE;
+                    event.iStatus = bResult ? Event.SUCCESS : Event.FAILURE;
+                }
+
+                switch( event.iStatus ){
+                    case Event.SUCCESS:
+                        iSuccess++;
+                    case Event.FAILURE:
+                        iFired++;
+                        break;
                 }
             }
 
             if(bEventFound){                        // if event was found in this event list
                 if(iFired == iEventCount){          // if all the events has been fired
-                    int iCurStatus = (iResult == iEventCount)? FIRED_SUCCESS: FIRED_FAILURE;
-                    if(iCurStatus != iStatus){
-                        iStatus = iCurStatus;
+                    boolean bSuccess = (iSuccess == iEventCount);
+                    int iCurStatus =  bSuccess ? Event.SUCCESS : Event.FAILURE;
+                    if(iCurStatus != iSetStatus){      // If there is a change only then
+                        iSetStatus = iCurStatus;
                         if(bRunOnUI){
-                            hThread.runUI(iStep, 0, this);
+                            hThread.runUI(iCodeStep, bSuccess, 0, this);
                         } else {
-                            hThread.run(iStep, 0, this);
+                            hThread.run(iCodeStep, bSuccess, 0, this);
                         }
                     }
                 }
