@@ -35,7 +35,7 @@ public class Pool {
     }
 
     // METHOD release pool, ready for garbage collection
-    public void releasePool(){
+    public static void releasePool(){
         sPool = null;
     }
 }
