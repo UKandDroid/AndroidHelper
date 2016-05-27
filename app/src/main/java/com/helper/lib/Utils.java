@@ -1,4 +1,4 @@
-package blueband.com.Helper;
+package com.helper.lib;
 
 import android.content.Context;
 import android.content.res.Resources;
@@ -21,7 +21,7 @@ public class Utils {
     private String strTimerTag;
     private static Handler handler;          // Handler for background thread
     private static Handler handBg;
-    private static String LOG_TAG = blueband.com.Settings.LOG_TAG + "Helper_Utils";
+    private static String LOG_TAG = "Helper_Utils";
 
     static{
         handBg = new Handler(Looper.myLooper());
@@ -131,7 +131,6 @@ public class Utils {
             return dateSensor.getTime()/1000l;
         } catch (ParseException e) { e.printStackTrace();
         }
-        loge( "APIDate::getLinuxTime() Date Parsing error");
         return  0;
     }
     // Class create a HandlerThread, that uses message to execute code
@@ -171,9 +170,7 @@ public class Utils {
 
     }
     // METHOD for logging
-    private void log(String sLog){ if(blueband.com.Settings.LOG_DEBUG) { Log.d(LOG_TAG, sLog); } }
-    private static void loge(String sLog){ if(blueband.com.Settings.LOG_DEBUG) { Log.e(LOG_TAG, sLog); } }
-    private void logw(String sLog){ if(blueband.com.Settings.LOG_DEBUG) { Log.w(LOG_TAG, sLog); } }
+
 
 
 }

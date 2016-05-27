@@ -12,6 +12,8 @@ import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
+import com.helper.lib.Utils;
+
 /**
  * Created by Ubaid on 15/04/2016.
  */

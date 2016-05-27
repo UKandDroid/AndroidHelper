@@ -5,44 +5,52 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.Button;
-import android.widget.TextView;
-import android.widget.Toast;
+import android.widget.EditText;
 
 import com.helper.R;
 
 public class MainActivity extends AppCompatActivity {
-
+    Flow testFlow;
+    public static final int VERIFIED = 4;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        R.id Id = new R.id();
         setContentView(R.layout.activity_main);
+    }
 
-        Flow testFlow  = new Flow(new Flow.CodeFlow() {
-            @Override public void code(int iStep, boolean bSuccess, int iExtra, Object obj) {
-                switch (iStep){
-                    case 0:
-                        Log.d("Flow", "Code 0 executed "+ bSuccess);
-                        break;
-                    case 1:
-                        Log.d("Flow", "Code 1 executed "+ bSuccess);
-                        Toast.makeText(MainActivity.this, "Code executed ", Toast.LENGTH_SHORT).show();              break;
-                    case 2:
-                        Log.d("Flow", "Code 2 executed " + bSuccess );
-                        break;
-                }
+    Flow.Code code = new Flow.Code() {
+        @Override public void onAction(int iStep, boolean bSuccess, int iExtra, Object obj) {
+            switch (iStep){
+                case 0:
+                    EditText txt = ((EditText)(obj));
+                    testFlow.event("name", txt.getText().length() > 0);
+                    Log.d("Flow", "name length: "+ txt.getText().length());
+                    break;
+                case 1:
+                    txt = ((EditText)(obj));
+                    testFlow.event("email", txt.getText().length() > 0);
+                    Log.d("Flow", "email length: "+ txt.getText().length());
+                    break;
+                case 2:
+                    testFlow.event("agreed");
+                    Log.d("Flow", "Agreed Press " + bSuccess );
+                    break;
+                case VERIFIED:
+                    Log.d("Flow", "Verified: " + bSuccess );
+                    break;
             }
-        });
+        }
+    };
 
-        testFlow.waitForEvent(2, new String[]{"event_one", "event_two"});
-        testFlow.run(0);
-        testFlow.run(1);
-        testFlow.event("event_one");
-        testFlow.event("event_two");
-        testFlow.event("event_two", false);
-        testFlow.event("event_two", true);
-
+    @Override
+    protected void onPostResume() {
+        super.onPostResume();
+        R.id Id = new R.id();
+        testFlow = new Flow(code);
+        testFlow.registerEvents(VERIFIED,  new String[]{"name", "email", "agreed"});
+        testFlow.registerEventsUI(0, findViewById(Id.edit_name), Flow.Event.TEXT_CHANGE);
+        testFlow.registerEventsUI(1, findViewById(Id.edit_email), Flow.Event.TEXT_CHANGE);
+        testFlow.registerEventsUI(2, findViewById(Id.btn_hello), Flow.Event.ON_CLICK);
 
     }
 
@@ -66,5 +74,18 @@ public class MainActivity extends AppCompatActivity {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        testFlow.stop();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+
+
     }
 }
