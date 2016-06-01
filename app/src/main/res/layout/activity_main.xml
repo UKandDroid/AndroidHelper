@@ -33,7 +33,6 @@
             android:singleLine="true"
             />
 
-
         <Button
             android:id="@+id/btn_hello"
             android:text="Agree"

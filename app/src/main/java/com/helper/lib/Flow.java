@@ -9,13 +9,15 @@ import android.text.TextWatcher;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
+import android.widget.AdapterView;
 import android.widget.EditText;
+import android.widget.ListView;
 import android.widget.TextView;
 
 import java.util.ArrayList;
 import java.util.List;
 
-// Version 1.0.1
+// Version 1.0.3
 // CLASS for event based onAction execution
 public class Flow {
     private Code code;                                      // Call back for onAction to be executed
@@ -44,11 +46,23 @@ public class Flow {
 
     // METHODS run an action
     public void run(int iCodeStep){ hThread.run(iCodeStep); }
-    public void runUI(int iCodeStep){ hThread.run(iCodeStep, true); }
+    public void runOnUI(int iCodeStep){ hThread.run(iCodeStep, true); }
+    public void run(boolean bRunOnUI, int iCodeStep){ hThread.run(iCodeStep, bRunOnUI); }
+    public void runOnUI(int iCodeStep, int iArg, Object obj){ hThread.runUI(iCodeStep, true, iArg, obj);}
+    public void runOnUI(int iCodeStep, boolean bSuccess, int iArg, Object obj){ hThread.runUI(iCodeStep, bSuccess, iArg, obj);}
+
 
     // METHODS run action delayed
     public void runDelayed(int iCodeStep, long iTime){ hThread.mHandler.sendEmptyMessageDelayed(iCodeStep, iTime);}
     public void runDelayedUI(int iCodeStep, long iTime){ hThread.mHandlerUI.sendEmptyMessageDelayed(iCodeStep, iTime);}
+    public void runDelayed(boolean bRunOnUI, int iCodeStep, long iTime){
+        if(bRunOnUI){
+            hThread.mHandlerUI.sendEmptyMessageDelayed(iCodeStep, iTime);
+        } else {
+            hThread.mHandler.sendEmptyMessageDelayed(iCodeStep, iTime);
+        }
+    }
+
 
     // METHODS register for event
     public void registerEvents(int iStep, String events[]){ registerEvents(false, iStep, events); }
@@ -67,11 +81,10 @@ public class Flow {
     }
 
     // METHODS register UI events for Action
-    public void registerEventsUI(final int iStep, View view){ registerListener(false, iStep, view, Event.ON_CLICK); }
-    public void registerEventsUI(final int iStep, View view, int iEvent){ registerListener(false, iStep, view, iEvent); }
-    public void registerEventsUI(boolean bRunOnUI, int iStep, View view, int iEvent){
-        registerListener(bRunOnUI, iStep, view, iEvent);
-    }
+    public void registerUIEvent(final int iStep, View view){ registerListener(false, iStep, view, Event.ON_CLICK); }
+    public void registerUIEvent(final int iStep, View view, int iEvent){ registerListener(false, iStep, view, iEvent); }
+    public void registerUIEvent(boolean bRunOnUI, int iStep, View view){registerListener(bRunOnUI, iStep, view, Event.ON_CLICK);}
+    public void registerUIEvent(boolean bRunOnUI, int iStep, View view, int iEvent){ registerListener(bRunOnUI, iStep, view, iEvent);}
 
     // VIEW LISTENERS set event listeners for View objects
     private void registerListener(final boolean bRunOnUI, final int iStep, final View view, int iListener){
@@ -87,7 +100,7 @@ public class Flow {
                 });
                 break;
 
-            // Text entered in text field, triggered when text field loses focus or enter button is pressed
+            // Triggered when Text entered in text field, i.e when text field loses focus or enter button is pressed
             case Event.TEXT_ENTERED:
                 view.setOnFocusChangeListener(new View.OnFocusChangeListener() {
                     @Override
@@ -110,14 +123,27 @@ public class Flow {
                 });
                 break;
 
-            // Listener for trigger when text changes
+            // Triggered when text changes
             case Event.TEXT_CHANGE:
                 ((EditText)view).addTextChangedListener(new TextWatcher() {
-                    @Override public void afterTextChanged(Editable s) {}
-                    @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-                    @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                    @Override
+                    public void afterTextChanged(Editable s) {}
+                    @Override
+                    public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+                    @Override
+                    public void onTextChanged(CharSequence s, int start, int before, int count) {
                         if(bRunOnUI){ hThread.runUI(iStep, true, 0, view);
                         } else { hThread.run(iStep, true, 0, view); }
+                    }
+                });
+                break;
+
+            case Event.LIST_ITEM_SELECT:
+                ((ListView)view).setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                    @Override
+                    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                        if(bRunOnUI){ hThread.runUI(iStep, true, position, view);
+                        } else { hThread.run(iStep, true, position, view); }
                     }
                 });
                 break;
@@ -151,6 +177,7 @@ public class Flow {
         public static final int ON_CLICK = 3;
         public static final int TEXT_CHANGE = 4;
         public static final int TEXT_ENTERED = 5;
+        public static final int LIST_ITEM_SELECT = 6;
 
 
 
@@ -313,7 +340,8 @@ public class Flow {
             }
         }
 
-        @Override public boolean handleMessage(Message msg) {
+        @Override
+        public boolean handleMessage(Message msg) {
             final Object obj = msg.obj;
             code.onAction(msg.what, msg.arg2 == 1,  msg.arg1, obj);
             return true;

@@ -1,36 +1,44 @@
-package blueband.com.Helper;
+package com.helper.lib;
 
 import android.app.ProgressDialog;
 import android.content.Context;
+import android.os.Handler;
 import android.os.Looper;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
-import com.helper.lib.Utils;
-
 /**
  * Created by Ubaid on 15/04/2016.
  */
+// Version 1.0.2
 public class ViewHelper {
+
+    private Context context;
     private ViewGroup rootView;
     private int[] arId = new int[256];   // Store loaded arView arId, so they can checked against.
     private View[] arView = new View[256];// keeps reference of loaded views, so they are not loaded again..
     private RelativeLayout layoutProgress = null;
     private ProgressBar progressBar;
+    private static int iKbCount = 0;
     private ProgressDialog progressDialog;
+    private boolean bKeyboardVisible = false;
+    private RelativeLayout layoutKbDetect = null;
+
     // CONSTRUCTORS
     public ViewHelper() {}
     public ViewHelper(View v){
-        rootView = (ViewGroup)v;
+        setRootView(v);
     }
     public void setRootView(View v){
         rootView = (ViewGroup)v;
+        context = rootView.getContext();
     }
     // METHODS - returns arView based on type
     public TextView textView(int id){ return (TextView)getView(id); }
@@ -137,6 +145,54 @@ public class ViewHelper {
             arView[index] = rootView.findViewById(id);
         }
         return arView[index];
+    }
+
+    // METHOD returns if keyboard is visible
+    public  boolean isKeyboardVisible(){
+        if(layoutKbDetect == null){ throw new NullPointerException(); }
+        return bKeyboardVisible;
+    }
+
+    // METHOD - sets up a full screen view, change of the view size means change in keyboard state.
+    public void setKeyboardListener(){
+        if(layoutKbDetect == null){
+            layoutKbDetect = new RelativeLayout(context);
+            layoutKbDetect.setLayoutParams(new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            layoutKbDetect.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
+                @Override
+                public void onLayoutChange(View view, int i, int i1, int i2, int i3, int i4, int i5, int i6, int i7) {
+                    iKbCount++; // first two keyboard counts should be ignored
+                    bKeyboardVisible = !bKeyboardVisible;
+                }
+            });
+            rootView.addView(layoutKbDetect);
+        }
+    }
+
+    // METHOD - runs code on main thread, use for updating UI from non-UI thread
+    public static void runOnUI(final Utils.ThreadCode code){
+        Handler mainHandler = new Handler(Looper.getMainLooper());
+        mainHandler.post( new Runnable() { @Override
+        public void run() { code.execute();}});
+    }
+    // METHOD - executes delayed code on Main thread
+    public static void runOnUIDelayed(long iTime, final Utils.ThreadCode code){
+        final Handler handler = new Handler(Looper.getMainLooper());
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                code.execute();
+            }
+        }, iTime);
+    }
+    public void showKeyboard(){
+        InputMethodManager imm = (InputMethodManager)context.getSystemService(Context.INPUT_METHOD_SERVICE);
+        imm.showSoftInput(rootView, 0);
+    }
+
+    public void hideKeyboard(){
+        InputMethodManager imm = (InputMethodManager)context.getSystemService(Context.INPUT_METHOD_SERVICE);
+        imm.hideSoftInputFromWindow(rootView.getWindowToken(), 0);
     }
 
 }
