@@ -31,9 +31,9 @@ public class MainActivity extends AppCompatActivity {
         R.id Id = new R.id();
         testFlow = new Flow(code);
         testFlow.registerEvents(VERIFIED,  new String[]{"name", "email", "agreed"});
-        testFlow.registerEventsUI(0, findViewById(Id.edit_name), Flow.Event.TEXT_CHANGE);
-        testFlow.registerEventsUI(1, findViewById(Id.edit_email), Flow.Event.TEXT_CHANGE);
-        testFlow.registerEventsUI(2, findViewById(Id.btn_hello), Flow.Event.ON_CLICK);
+        testFlow.registerUIEvent(0, findViewById(Id.edit_name), Flow.Event.TEXT_CHANGE);
+        testFlow.registerUIEvent(1, findViewById(Id.edit_email), Flow.Event.TEXT_CHANGE);
+        testFlow.registerUIEvent(2, findViewById(Id.btn_hello), Flow.Event.ON_CLICK);
         vhelp.setKeyboardListener();
 
     }
