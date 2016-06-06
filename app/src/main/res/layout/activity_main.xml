@@ -19,7 +19,7 @@
 
         <EditText
             android:id="@+id/edit_name"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:imeOptions="actionDone"
             android:singleLine="true"
@@ -27,7 +27,7 @@
 
         <EditText
             android:id="@+id/edit_email"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:imeOptions="actionDone"
             android:singleLine="true"
@@ -40,4 +40,12 @@
             android:layout_height="wrap_content" />
 
     </LinearLayout>
+
+   <ListView
+       android:visibility="invisible"
+       android:id="@+id/list_coffe"
+       android:layout_width="match_parent"
+       android:layout_height="wrap_content">
+
+   </ListView>
 </RelativeLayout>

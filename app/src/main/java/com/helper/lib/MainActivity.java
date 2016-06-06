@@ -1,16 +1,27 @@
 package com.helper.lib;
 
+import android.app.DatePickerDialog;
 import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.DatePicker;
 import android.widget.EditText;
+import android.widget.ListView;
 
 import com.helper.R;
+
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 
 public class MainActivity extends AppCompatActivity {
     Flow testFlow;
@@ -20,7 +31,9 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        vhelp = new ViewHelper(findViewById(android.R.id.content));
+
+
+        Math.floor(-4.7);
     }
 
 
@@ -31,10 +44,9 @@ public class MainActivity extends AppCompatActivity {
         R.id Id = new R.id();
         testFlow = new Flow(code);
         testFlow.registerEvents(VERIFIED,  new String[]{"name", "email", "agreed"});
-        testFlow.registerUIEvent(0, findViewById(Id.edit_name), Flow.Event.TEXT_CHANGE);
+        testFlow.registerUIEvent(0, findViewById(Id.edit_name), Flow.Event.TEXT_ENTERED);
         testFlow.registerUIEvent(1, findViewById(Id.edit_email), Flow.Event.TEXT_CHANGE);
         testFlow.registerUIEvent(2, findViewById(Id.btn_hello), Flow.Event.ON_CLICK);
-        vhelp.setKeyboardListener();
 
     }
 
@@ -78,8 +90,7 @@ public class MainActivity extends AppCompatActivity {
             switch (iStep){
                 case 0:
                     EditText txt = ((EditText)(obj));
-                    testFlow.event("name", txt.getText().length() > 0);
-                    Log.d("Flow", "name length: "+ txt.getText().length());
+                    Log.d("Flow", "Text Entered. ");
                     break;
                 case 1:
                     txt = ((EditText)(obj));

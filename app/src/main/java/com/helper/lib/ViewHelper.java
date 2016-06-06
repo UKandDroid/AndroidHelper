@@ -17,7 +17,7 @@ import android.widget.TextView;
 /**
  * Created by Ubaid on 15/04/2016.
  */
-// Version 1.0.2
+// Version 1.0.5
 public class ViewHelper {
 
     private Context context;
@@ -49,7 +49,7 @@ public class ViewHelper {
         getView(id).setBackgroundResource(resource);
     }
     // METHOD - sets visibility of view to Visible
-    public void visibilityShow(int id){
+    public void setVisibility(int id){
         getView(id).setVisibility(View.VISIBLE);
     }
     // METHOD - sets visibility of view to InVisible
@@ -108,7 +108,9 @@ public class ViewHelper {
 
     // METHOD - shows progress bar
     public void showProgress(Context context, String sMessage){
-        progressDialog = new ProgressDialog(context);
+        if(progressDialog == null){
+            progressDialog = new ProgressDialog(context);
+        }
         progressDialog.setMessage(sMessage);
         progressDialog.setIndeterminate(true);
         progressDialog.show();
@@ -158,22 +160,39 @@ public class ViewHelper {
         if(layoutKbDetect == null){
             layoutKbDetect = new RelativeLayout(context);
             layoutKbDetect.setLayoutParams(new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT));
-            layoutKbDetect.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
-                @Override
-                public void onLayoutChange(View view, int i, int i1, int i2, int i3, int i4, int i5, int i6, int i7) {
-                    iKbCount++; // first two keyboard counts should be ignored
-                    bKeyboardVisible = !bKeyboardVisible;
-                }
-            });
-            rootView.addView(layoutKbDetect);
         }
+        layoutKbDetect.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
+            @Override public void onLayoutChange(View view, int i, int i1, int i2, int i3, int i4, int i5, int i6, int i7) {
+                iKbCount++; // first two keyboard counts should be ignored
+                bKeyboardVisible = !bKeyboardVisible;
+            }
+        });
+        rootView.addView(layoutKbDetect);
+    }
+
+    // METHOD - run action when keyboard is hidden, works only for text field, when its focused
+    public void keyboardHideActionForText(final Flow flow, final boolean bRunOnUI, final int iAction, final Object obj){
+        if(layoutKbDetect == null){
+            layoutKbDetect = new RelativeLayout(context);
+            layoutKbDetect.setLayoutParams(new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        }
+        layoutKbDetect.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
+            @Override public void onLayoutChange(View view, int i, int i1, int i2, int i3, int i4, int i5, int i6, int i7) {
+                bKeyboardVisible = !bKeyboardVisible;
+                if (((EditText) obj).isFocused() && !bKeyboardVisible) { // if text field is focused and keyboard is hidden run action
+                    flow.run(bRunOnUI, iAction);
+                }
+            }
+        });
+        rootView.addView(layoutKbDetect);
+
     }
 
     // METHOD - runs code on main thread, use for updating UI from non-UI thread
     public static void runOnUI(final Utils.ThreadCode code){
         Handler mainHandler = new Handler(Looper.getMainLooper());
         mainHandler.post( new Runnable() { @Override
-        public void run() { code.execute();}});
+                                           public void run() { code.execute();}});
     }
     // METHOD - executes delayed code on Main thread
     public static void runOnUIDelayed(long iTime, final Utils.ThreadCode code){
@@ -184,6 +203,11 @@ public class ViewHelper {
                 code.execute();
             }
         }, iTime);
+    }
+
+    // METHOD set keyboard state, as keyboard listener only detects change, so initial status must be set for accuracy
+    public void setKeyboardState(boolean bVisible){
+        bKeyboardVisible = bVisible;
     }
     public void showKeyboard(){
         InputMethodManager imm = (InputMethodManager)context.getSystemService(Context.INPUT_METHOD_SERVICE);

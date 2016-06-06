@@ -17,7 +17,7 @@ import android.widget.TextView;
 import java.util.ArrayList;
 import java.util.List;
 
-// Version 1.0.3
+// Version 1.0.5
 // CLASS for event based onAction execution
 public class Flow {
     private Code code;                                      // Call back for onAction to be executed
@@ -45,26 +45,26 @@ public class Flow {
     }
 
     // METHODS run an action
-    public void run(int iCodeStep){ hThread.run(iCodeStep); }
-    public void runOnUI(int iCodeStep){ hThread.run(iCodeStep, true); }
-    public void run(boolean bRunOnUI, int iCodeStep){ hThread.run(iCodeStep, bRunOnUI); }
-    public void runOnUI(int iCodeStep, int iArg, Object obj){ hThread.runUI(iCodeStep, true, iArg, obj);}
-    public void runOnUI(int iCodeStep, boolean bSuccess, int iArg, Object obj){ hThread.runUI(iCodeStep, bSuccess, iArg, obj);}
-
+    public void run(int iAction){ hThread.run(iAction); }
+    public void runOnUI(int iAction){ hThread.run(iAction, true); }
+    public void run(boolean bRunOnUI, int iAction){ hThread.run(iAction, bRunOnUI); }
+    public void runOnUI(int iAction, int iArg, Object obj){ hThread.runUI(iAction, true, iArg, obj);}
+    public void runOnUI(int iAction, boolean bSuccess, int iArg, Object obj){ hThread.runUI(iAction, bSuccess, iArg, obj);}
+    public void runRepeat(int iAction, long iDelay){ hThread.runRepeat(false, iAction, iDelay); }
+    public void runRepeatOnUI(int iAction, long iDelay){ hThread.runRepeat(true, iAction, iDelay); }
 
     // METHODS run action delayed
-    public void runDelayed(int iCodeStep, long iTime){ hThread.mHandler.sendEmptyMessageDelayed(iCodeStep, iTime);}
-    public void runDelayedUI(int iCodeStep, long iTime){ hThread.mHandlerUI.sendEmptyMessageDelayed(iCodeStep, iTime);}
+    public void runDelayed(int iAction, long iTime){ hThread.mHandler.sendEmptyMessageDelayed(iAction, iTime);}
+    public void runDelayedOnUI(int iAction, long iTime){ hThread.mUiHandler.sendEmptyMessageDelayed(iAction, iTime);}
     public void runDelayed(boolean bRunOnUI, int iCodeStep, long iTime){
         if(bRunOnUI){
-            hThread.mHandlerUI.sendEmptyMessageDelayed(iCodeStep, iTime);
+            hThread.mUiHandler.sendEmptyMessageDelayed(iCodeStep, iTime);
         } else {
             hThread.mHandler.sendEmptyMessageDelayed(iCodeStep, iTime);
         }
     }
 
-
-    // METHODS register for event
+    // METHODS register for events, Registered events are permanent, unlike waitForEvents
     public void registerEvents(int iStep, String events[]){ registerEvents(false, iStep, events); }
     public void registerEvents(boolean bRunOnUI, int iStep, String events[]){
         Action act = new Action(iStep, events);
@@ -77,7 +77,7 @@ public class Flow {
     public void waitForEvents(boolean bRunOnUI, int iAction, String events[]){
         waitAction = new Action(iAction, events);
         waitAction.bRunOnUI = bRunOnUI;
-        waitAction.bClearFired = true;                  // waitForEvents is fired only once, release after fired
+        waitAction.bFireOnce = true;                  // waitForEvents is fired only once, and is released after fired
     }
 
     // METHODS register UI events for Action
@@ -85,70 +85,6 @@ public class Flow {
     public void registerUIEvent(final int iStep, View view, int iEvent){ registerListener(false, iStep, view, iEvent); }
     public void registerUIEvent(boolean bRunOnUI, int iStep, View view){registerListener(bRunOnUI, iStep, view, Event.ON_CLICK);}
     public void registerUIEvent(boolean bRunOnUI, int iStep, View view, int iEvent){ registerListener(bRunOnUI, iStep, view, iEvent);}
-
-    // VIEW LISTENERS set event listeners for View objects
-    private void registerListener(final boolean bRunOnUI, final int iStep, final View view, int iListener){
-        switch (iListener){
-            // triggered listener when view is clicked
-            case Event.ON_CLICK:
-                view.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        if(bRunOnUI){ hThread.runUI(iStep, true, 0, view);
-                        }  else {hThread.run(iStep, true, 0, view); }
-                    }
-                });
-                break;
-
-            // Triggered when Text entered in text field, i.e when text field loses focus or enter button is pressed
-            case Event.TEXT_ENTERED:
-                view.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-                    @Override
-                    public void onFocusChange(View v, boolean hasFocus) {
-                        if (!hasFocus) {
-                            if(bRunOnUI){ hThread.runUI(iStep, true, 0, view);
-                            }  else { hThread.run(iStep, true, 0, view); }
-                        }}});
-
-                ((EditText)view).setOnEditorActionListener(new TextView.OnEditorActionListener() {
-                    @Override
-                    public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-                        if (actionId == EditorInfo.IME_ACTION_DONE) {
-                            if(bRunOnUI){ hThread.runUI(iStep, true, 0, view);
-                            }  else { hThread.run(iStep, true, 0, view); }
-                            return true;
-                        }
-                        return false;
-                    }
-                });
-                break;
-
-            // Triggered when text changes
-            case Event.TEXT_CHANGE:
-                ((EditText)view).addTextChangedListener(new TextWatcher() {
-                    @Override
-                    public void afterTextChanged(Editable s) {}
-                    @Override
-                    public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-                    @Override
-                    public void onTextChanged(CharSequence s, int start, int before, int count) {
-                        if(bRunOnUI){ hThread.runUI(iStep, true, 0, view);
-                        } else { hThread.run(iStep, true, 0, view); }
-                    }
-                });
-                break;
-
-            case Event.LIST_ITEM_SELECT:
-                ((ListView)view).setOnItemClickListener(new AdapterView.OnItemClickListener() {
-                    @Override
-                    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                        if(bRunOnUI){ hThread.runUI(iStep, true, position, view);
-                        } else { hThread.run(iStep, true, position, view); }
-                    }
-                });
-                break;
-        }
-    }
 
     // METHODS to send event
     public void event(String sEvent){ event(sEvent, true, 0, null); }
@@ -164,8 +100,14 @@ public class Flow {
         }
     }
 
+    // METHOD cancel a runDelay or RunRepeated
+    public void cancelRun(int iAction){
+        hThread.mHandler.removeMessages(iAction);
+        hThread.mUiHandler.removeMessages(iAction);
+    }
+
     // INTERFACE for code execution on events
-    public interface Code { public void onAction(int iAction, boolean bSuccess, int iExtra, Object events); }
+    public interface Code { public void onAction(int iAction, boolean bSuccess, int iExtra, Object data); }
 
     // CLASS for event Pool
     public static class Event{
@@ -178,8 +120,6 @@ public class Flow {
         public static final int TEXT_CHANGE = 4;
         public static final int TEXT_ENTERED = 5;
         public static final int LIST_ITEM_SELECT = 6;
-
-
 
         public Object obj;
         public int iExtra;
@@ -235,7 +175,7 @@ public class Flow {
         private int iEventCount;                 // How many event are for this action code to be triggered
         //   private boolean bEventFound;
         private boolean bRunOnUI = false;        // Code run on Background / UI thread
-        public boolean bClearFired = false;      // Clear Action once fired, used for wait action
+        public boolean bFireOnce = false;      // Clear Action once fired, used for wait action
         private int iSetStatus = Event.WAITING;  // Event set status as a whole, waiting, success, non success
         private List<Event> listEvents = new ArrayList<>();         // List to store events needed for this action
 
@@ -287,11 +227,11 @@ public class Flow {
                     if(iCurStatus != iSetStatus){    // If there is a change in action status only then run code
                         iSetStatus = iCurStatus;
                         if(bRunOnUI){
-                            hThread.runUI(iCodeStep, bSuccess, 0, this);
+                            hThread.runUI(iCodeStep, bSuccess, 0, this.listEvents);
                         } else {
-                            hThread.run(iCodeStep, bSuccess, 0, this);
+                            hThread.run(iCodeStep, bSuccess, 0, this.listEvents);
                         }
-                        if(bClearFired) {
+                        if(bFireOnce) {
                             recycle();                  // Recycle if its flagged for it
                         }
                     }
@@ -303,19 +243,32 @@ public class Flow {
     // CLASS for thread handler
     public class HThread implements Handler.Callback {
         private Handler mHandler;
-        private Handler mHandlerUI;
+        private Handler mUiHandler;
         HThread(){
-            iThreadCount++;
-            HandlerThread ht = new HandlerThread("BGThread"+ Integer.toString(iThreadCount));
+            HandlerThread ht = new HandlerThread("BGThread_"+ Integer.toString(++iThreadCount));
             ht.start();
             mHandler = new Handler(ht.getLooper(), this);
-            mHandlerUI = new Handler(Looper.getMainLooper(), this);
+            mUiHandler = new Handler(Looper.getMainLooper(), this);
         }
 
         public void run(int iStep){ run(iStep, false);}
         public void run(int iStep, boolean bRunUI){
             if(bRunUI){ runUI(iStep, true, 0, null); }
             else { run(iStep, true, 0, null); }
+        }
+
+        public void runRepeat(boolean bRunOnUI, int iStep, long iDelay){
+            if(bRunning){
+                Message msg = Message.obtain();
+                msg.what = iStep;
+                msg.arg1 = (int)iDelay;                               // As arg1 is integer
+                msg.arg2 = bRunOnUI ? 4 : 3;
+                if(bRunOnUI) {
+                    mUiHandler.sendMessage(msg);
+                } else {
+                    mHandler.sendMessage(msg);
+                }
+            }
         }
 
         public void run(int iStep, boolean bSuccess, int iExtra, Object obj){
@@ -336,22 +289,107 @@ public class Flow {
                 msg.arg1 = iExtra;
                 msg.arg2 = bSuccess ? 1: 0;
                 msg.obj = obj;
-                mHandlerUI.sendMessage(msg);
+                mUiHandler.sendMessage(msg);
             }
         }
 
         @Override
         public boolean handleMessage(Message msg) {
-            final Object obj = msg.obj;
-            code.onAction(msg.what, msg.arg2 == 1,  msg.arg1, obj);
+            switch (msg.arg2){                                        // If its a repeat message, call it again
+                case 3:
+                    Message msg2 = Message.obtain();
+                    msg2.what = msg.what;
+                    msg2.arg1 = msg.arg1;
+                    msg2.arg2 = msg.arg2;
+                    mHandler.sendMessageDelayed(msg2, (long)msg.arg1); break;
+                case 4:
+                    msg2 = Message.obtain();
+                    msg2.what = msg.what;
+                    msg2.arg1 = msg.arg1;
+                    msg2.arg2 = msg.arg2;
+                    mUiHandler.sendMessageDelayed(msg2, (long)msg.arg1); ;
+                    break;
+            }
+            code.onAction(msg.what, msg.arg2 == 1,  msg.arg1, msg.obj);
             return true;
         }
 
         public void stop(){
+            mHandler.removeCallbacksAndMessages(null);
+            mUiHandler.removeCallbacksAndMessages(null);
             mHandler.getLooper().quit();
         }
     }
 
+    // VIEW LISTENERS set event listeners for View objects
+    private void registerListener(final boolean bRunOnUI, final int iAction, final View view, int iListener){
+        switch (iListener){
+            // triggered listener when view is clicked
+            case Event.ON_CLICK:
+                view.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        if(bRunOnUI){ hThread.runUI(iAction, true, 0, view);
+                        }  else {hThread.run(iAction, true, 0, view); }
+                    }
+                });
+                break;
+
+            // Triggered when Text entered in text field, i.e when text field loses focus, enter button is pressed or keyboard is closed
+            case Event.TEXT_ENTERED:
+                view.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+                    @Override public void onFocusChange(View v, boolean hasFocus) {
+                        if (!hasFocus) {
+                            if(bRunOnUI){ hThread.runUI(iAction, true, 0, view);
+                            }  else { hThread.run(iAction, true, 0, view); }
+                        } else {
+                            if(view.getTag() == null){
+                               ViewHelper vh = new ViewHelper(view.getRootView());
+                                vh.keyboardHideActionForText(Flow.this, bRunOnUI, iAction, view);
+                                vh.setKeyboardState(true);  // On focus keyboard should be visible
+                                view.setTag(true);
+                            }
+                        }
+                    }});
+
+                ((EditText)view).setOnEditorActionListener(new TextView.OnEditorActionListener() {
+                    @Override public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                        if (actionId == EditorInfo.IME_ACTION_DONE) {
+                            if(bRunOnUI){ hThread.runUI(iAction, true, 0, view);
+                            }  else { hThread.run(iAction, true, 0, view); }
+                            return true;
+                        }
+                        return false;
+                    }
+                });
+                break;
+
+            // Triggered when text changes
+            case Event.TEXT_CHANGE:
+                ((EditText)view).addTextChangedListener(new TextWatcher() {
+                    @Override
+                    public void afterTextChanged(Editable s) {}
+                    @Override
+                    public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+                    @Override
+                    public void onTextChanged(CharSequence s, int start, int before, int count) {
+                        if(bRunOnUI){ hThread.runUI(iAction, true, 0, view);
+                        } else { hThread.run(iAction, true, 0, view); }
+                    }
+                });
+                break;
+
+            case Event.LIST_ITEM_SELECT:
+                ((ListView)view).setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                    @Override
+                    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                        if(bRunOnUI){ hThread.runUI(iAction, true, position, view);
+                        } else { hThread.run(iAction, true, position, view); }
+                    }
+                });
+                break;
+        }
+    }
 
 }
 
