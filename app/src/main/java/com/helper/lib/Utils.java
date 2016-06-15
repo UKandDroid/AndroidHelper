@@ -26,7 +26,7 @@ public class Utils {
     static{
         handBg = new Handler(Looper.myLooper());
     }
-    // INTERFACE - callback for code run on UI thread
+    // INTERFACE - callback for actions run on UI thread
     public interface ThreadCode {
         public void execute();
     }
@@ -43,13 +43,13 @@ public class Utils {
         int px = Math.round(dp * (displayMetrics.xdpi / DisplayMetrics.DENSITY_DEFAULT));
         return px;
     }
-    // METHOD - runs code on main thread, use for updating UI from non-UI thread
+    // METHOD - runs actions on main thread, use for updating UI from non-UI thread
     public static void updateUI(final ThreadCode code){
         Handler mainHandler = new Handler(Looper.getMainLooper());
         mainHandler.post( new Runnable() { @Override
         public void run() { code.execute();}});
     }
-    // METHOD - executes delayed code on Main thread
+    // METHOD - executes delayed actions on Main thread
     public static void updateDelayedUI(long iTime, final ThreadCode code){
         final Handler handler = new Handler(Looper.getMainLooper());
         handler.postDelayed(new Runnable() {
@@ -133,7 +133,7 @@ public class Utils {
         }
         return  0;
     }
-    // Class create a HandlerThread, that uses message to execute code
+    // Class create a HandlerThread, that uses message to execute actions
     public static class HelperThread{
         private static int iNumCreated = 0;
         private Handler handler;
@@ -150,11 +150,11 @@ public class Utils {
                 }
             });
         }
-        // METHOD runs the thread code,
+        // METHOD runs the thread actions,
         public void run(){
             handler.sendEmptyMessage(1);
         }
-        // METHOD runs the thread code,
+        // METHOD runs the thread actions,
         public void runDelayed( long timeInMillis){
             handler.sendEmptyMessageDelayed(1, timeInMillis);
         }

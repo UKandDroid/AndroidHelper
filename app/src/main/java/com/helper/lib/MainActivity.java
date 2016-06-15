@@ -1,39 +1,41 @@
 package com.helper.lib;
 
-import android.app.DatePickerDialog;
-import android.content.Context;
-import android.content.Intent;
-import android.net.Uri;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.WindowManager;
-import android.view.inputmethod.InputMethodManager;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
-import android.widget.DatePicker;
+import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ListView;
+import android.widget.Toast;
 
 import com.helper.R;
-
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
 
 public class MainActivity extends AppCompatActivity {
     Flow testFlow;
     ViewHelper vhelp;
     public static final int VERIFIED = 4;
+    private static final int FLAG_SUCCESS = 0x00000001;
+    private static final int FLAG_RUNonUI = 0x00000002;
+    private static final int FLAG_REPEAT = 0x00000004;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        int i =0;
 
+        vhelp = new ViewHelper(findViewById(android.R.id.content));
+        Button btn = (Button)findViewById(R.id.btn_hello);
+        Button.OnClickListener listener = new View.OnClickListener() {
+            @Override public void onClick(View v) {
+                Toast.makeText(MainActivity.this, "Button pressed", Toast.LENGTH_SHORT).show();
+            }};
 
-        Math.floor(-4.7);
+        btn.setOnClickListener(listener);
+        listener = null;
+
     }
 
 
@@ -41,13 +43,13 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onPostResume() {
         super.onPostResume();
-        R.id Id = new R.id();
-        testFlow = new Flow(code);
+     /*   R.id Id = new R.id();
+        testFlow = new Flow(actions);
         testFlow.registerEvents(VERIFIED,  new String[]{"name", "email", "agreed"});
         testFlow.registerUIEvent(0, findViewById(Id.edit_name), Flow.Event.TEXT_ENTERED);
         testFlow.registerUIEvent(1, findViewById(Id.edit_email), Flow.Event.TEXT_CHANGE);
         testFlow.registerUIEvent(2, findViewById(Id.btn_hello), Flow.Event.ON_CLICK);
-
+*/
     }
 
     @Override
@@ -85,7 +87,7 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    Flow.Code code = new Flow.Code() {
+    Flow.Actions actions = new Flow.Actions() {
         @Override public void onAction(int iStep, boolean bSuccess, int iExtra, Object obj) {
             switch (iStep){
                 case 0:

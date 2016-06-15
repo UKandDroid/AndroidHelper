@@ -17,7 +17,7 @@ import android.widget.TextView;
 /**
  * Created by Ubaid on 15/04/2016.
  */
-// Version 1.0.5
+// Version 1.0.8
 public class ViewHelper {
 
     private Context context;
@@ -40,6 +40,9 @@ public class ViewHelper {
         rootView = (ViewGroup)v;
         context = rootView.getContext();
     }
+    public ViewGroup getRootView(){
+        return rootView;
+    }
     // METHODS - returns arView based on type
     public TextView textView(int id){ return (TextView)getView(id); }
     public EditText editText(int id){ return (EditText)getView(id); }
@@ -49,44 +52,66 @@ public class ViewHelper {
         getView(id).setBackgroundResource(resource);
     }
     // METHOD - sets visibility of view to Visible
-    public void setVisibility(int id){
+    public void setVisible(int id){
         getView(id).setVisibility(View.VISIBLE);
     }
-    // METHOD - sets visibility of view to InVisible
-    public void visibilityHide(int id){
+    public void setInvisible(int id){
         getView(id).setVisibility(View.INVISIBLE);
     }
-    // METHOD - sets visibility of view to InVisible
-    public void visibilityGone(int id){
+    public void setGone(int id){
         getView(id).setVisibility(View.GONE);
     }
-    // METHOD - sets visibility
     public void setVisibility(int id, int visibility){
         getView(id).setVisibility(visibility);
     }
+    public void setClickable(int id, boolean bTrue){ getView(id).setClickable(bTrue); }
+
     // METHOD - sets text for Button, TextView, EditText
-    public void setViewText(final int id, final String sText){
+    public void setText(final int id, final String sText){
+        final View view = getView(id);
         if(Looper.myLooper() == Looper.getMainLooper()) {  // if current thread is main thread
-            final View view = getView(id);
+            ((TextView) view).setText(sText);
+        } else {
+            new Handler(Looper.getMainLooper()).post(new Runnable() {
+                @Override
+                public void run() {
+                    ((TextView) view).setText(sText);// Update it on main thread
+                }});
+        }
+    }
+    // METHOD - sets text  and Text color for Button, TextView, EditText
+    public void setText(final int id, final int iColor, final String sText ){
+        final View view = getView(id);
+        if(Looper.myLooper() == Looper.getMainLooper()) {  // if current thread is main thread
+            ((TextView) view).setTextColor(iColor);
             ((TextView) view).setText(sText);
         } else {                                           // Update it on main thread
-            Utils.updateUI(new Utils.ThreadCode() {
+            new Handler(Looper.getMainLooper()).post(new Runnable() {
                 @Override
-                public void execute() {
-                    final View view = getView(id);
-                    ((TextView) view).setText(sText);
+                public void run() {
+                    ((TextView) view).setText(sText);// Update it on main thread
+                    ((TextView) view).setTextColor(iColor);
+                }});
+        }
+    }
+    // METHOD - sets Text color for Button, TextView, EditText
+    public void setTextColor(final int id, final int iColor ){
+        final View view = getView(id);
+        if(Looper.myLooper() == Looper.getMainLooper()) {  // if current thread is main thread
+            ((TextView) view).setTextColor(iColor);
+        } else {                                           // Update it on main thread
+            new Handler(Looper.getMainLooper()).post(new Runnable() {
+                @Override
+                public void run() {
+                    ((TextView) view).setTextColor(iColor);
                 }});
         }
     }
     // METHOD - returns text for Button, TextView, EditText
     public String getViewText(int id){
         View view = getView(id);
-        if(view instanceof TextView) { // Button, EditText extends TextView
-            return ((TextView) view).getText().toString();
-        }
-        return "Wrong view type";
+        return ((TextView) view).getText().toString();
     }
-
     // METHOD - shows progress bar
     public void showProgress(Context context){
         if(layoutProgress == null){
@@ -162,7 +187,8 @@ public class ViewHelper {
             layoutKbDetect.setLayoutParams(new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT));
         }
         layoutKbDetect.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
-            @Override public void onLayoutChange(View view, int i, int i1, int i2, int i3, int i4, int i5, int i6, int i7) {
+            @Override
+            public void onLayoutChange(View view, int i, int i1, int i2, int i3, int i4, int i5, int i6, int i7) {
                 iKbCount++; // first two keyboard counts should be ignored
                 bKeyboardVisible = !bKeyboardVisible;
             }
@@ -170,31 +196,17 @@ public class ViewHelper {
         rootView.addView(layoutKbDetect);
     }
 
-    // METHOD - run action when keyboard is hidden, works only for text field, when its focused
-    public void keyboardHideActionForText(final Flow flow, final boolean bRunOnUI, final int iAction, final Object obj){
-        if(layoutKbDetect == null){
-            layoutKbDetect = new RelativeLayout(context);
-            layoutKbDetect.setLayoutParams(new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT));
-        }
-        layoutKbDetect.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
-            @Override public void onLayoutChange(View view, int i, int i1, int i2, int i3, int i4, int i5, int i6, int i7) {
-                bKeyboardVisible = !bKeyboardVisible;
-                if (((EditText) obj).isFocused() && !bKeyboardVisible) { // if text field is focused and keyboard is hidden run action
-                    flow.run(bRunOnUI, iAction);
-                }
-            }
-        });
-        rootView.addView(layoutKbDetect);
-
-    }
-
-    // METHOD - runs code on main thread, use for updating UI from non-UI thread
+    // METHOD - runs actions on main thread, use for updating UI from non-UI thread
     public static void runOnUI(final Utils.ThreadCode code){
         Handler mainHandler = new Handler(Looper.getMainLooper());
-        mainHandler.post( new Runnable() { @Override
-                                           public void run() { code.execute();}});
+        mainHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                code.execute();
+            }
+        });
     }
-    // METHOD - executes delayed code on Main thread
+    // METHOD - executes delayed actions on Main thread
     public static void runOnUIDelayed(long iTime, final Utils.ThreadCode code){
         final Handler handler = new Handler(Looper.getMainLooper());
         handler.postDelayed(new Runnable() {
@@ -219,4 +231,15 @@ public class ViewHelper {
         imm.hideSoftInputFromWindow(rootView.getWindowToken(), 0);
     }
 
+    // METHOD release resources
+    public void stop(){
+        context = null;
+        rootView = null;
+        arId = null;
+        arView = null;
+        layoutProgress = null;
+        progressBar = null;
+        progressDialog = null;
+        layoutKbDetect = null;
+    }
 }
