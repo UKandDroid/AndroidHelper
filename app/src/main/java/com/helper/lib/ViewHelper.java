@@ -196,7 +196,7 @@ public class ViewHelper {
         rootView.addView(layoutKbDetect);
     }
 
-    // METHOD - runs actions on main thread, use for updating UI from non-UI thread
+    // METHOD - runs actionCode on main thread, use for updating UI from non-UI thread
     public static void runOnUI(final Utils.ThreadCode code){
         Handler mainHandler = new Handler(Looper.getMainLooper());
         mainHandler.post(new Runnable() {
@@ -206,7 +206,7 @@ public class ViewHelper {
             }
         });
     }
-    // METHOD - executes delayed actions on Main thread
+    // METHOD - executes delayed actionCode on Main thread
     public static void runOnUIDelayed(long iTime, final Utils.ThreadCode code){
         final Handler handler = new Handler(Looper.getMainLooper());
         handler.postDelayed(new Runnable() {

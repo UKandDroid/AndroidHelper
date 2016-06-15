@@ -5,20 +5,16 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.Toast;
 
 import com.helper.R;
 
 public class MainActivity extends AppCompatActivity {
     Flow testFlow;
     ViewHelper vhelp;
+    Anim animation = new Anim();
     public static final int VERIFIED = 4;
-    private static final int FLAG_SUCCESS = 0x00000001;
-    private static final int FLAG_RUNonUI = 0x00000002;
-    private static final int FLAG_REPEAT = 0x00000004;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -28,14 +24,12 @@ public class MainActivity extends AppCompatActivity {
 
         vhelp = new ViewHelper(findViewById(android.R.id.content));
         Button btn = (Button)findViewById(R.id.btn_hello);
-        Button.OnClickListener listener = new View.OnClickListener() {
-            @Override public void onClick(View v) {
-                Toast.makeText(MainActivity.this, "Button pressed", Toast.LENGTH_SHORT).show();
-            }};
 
-        btn.setOnClickListener(listener);
-        listener = null;
+        animation.setView(btn);
+        animation.addAnimation(Anim.ROTATE, 0, 90, 2000);
+        animation.addAnimation(Anim.ROTATE, 90, 0, 2000);
 
+        animation.start();
     }
 
 
@@ -44,7 +38,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onPostResume() {
         super.onPostResume();
      /*   R.id Id = new R.id();
-        testFlow = new Flow(actions);
+        testFlow = new Flow(actionCode);
         testFlow.registerEvents(VERIFIED,  new String[]{"name", "email", "agreed"});
         testFlow.registerUIEvent(0, findViewById(Id.edit_name), Flow.Event.TEXT_ENTERED);
         testFlow.registerUIEvent(1, findViewById(Id.edit_email), Flow.Event.TEXT_CHANGE);
@@ -77,7 +71,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        testFlow.stop();
+        animation.stop();
+      //  testFlow.stop();
     }
 
     @Override
@@ -87,7 +82,7 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    Flow.Actions actions = new Flow.Actions() {
+    Flow.ActionCode actionCode = new Flow.ActionCode() {
         @Override public void onAction(int iStep, boolean bSuccess, int iExtra, Object obj) {
             switch (iStep){
                 case 0:

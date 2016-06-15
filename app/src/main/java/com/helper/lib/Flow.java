@@ -24,7 +24,7 @@ import java.util.List;
 // CLASS for event based onAction execution
 
 public class Flow {
-    private Actions actions;                                      // Call back for onAction to be executed
+    private ActionCode actionCode;                                      // Call back for onAction to be executed
     private boolean bRunning;
     private HThread hThread ;
     private Action waitAction = null;
@@ -36,14 +36,14 @@ public class Flow {
     private RelativeLayout layoutKbDetect = null;
     private static final String LOG_TAG = "Flow";
     private static final int LOG_LEVEL = 4;
-    private List<Action> listActions = new ArrayList<Action>();  // List of registered actions
+    private List<Action> listActions = new ArrayList<Action>();  // List of registered actionCode
     private static final int FLAG_SUCCESS = 0x00000001;
     private static final int FLAG_RUNonUI = 0x00000002;
     private static final int FLAG_REPEAT  = 0x00000004;
 
-    public Flow(Actions actionsCallback){
+    public Flow(ActionCode actionCodeCallback){
         bRunning = true;
-        actions = actionsCallback;
+        actionCode = actionCodeCallback;
         hThread = new HThread();
     }
 
@@ -133,8 +133,8 @@ public class Flow {
         hThread.mUiHandler.removeMessages(iAction);
     }
 
-    // INTERFACE for actions execution on events
-    public interface Actions { public void onAction(int iAction, boolean bSuccess, int iExtra, Object data); }
+    // INTERFACE for actionCode execution on events
+    public interface ActionCode { public void onAction(int iAction, boolean bSuccess, int iExtra, Object data); }
 
     // CLASS for event Pool
     public static class Event{
@@ -198,10 +198,10 @@ public class Flow {
 
     // CLASS for events for action, when all events occur action is triggered
     public class Action {
-        private int iCodeStep;                   // Actions step to execute for this action
-        private int iEventCount;                 // How many event are for this action actions to be triggered
+        private int iCodeStep;                   // ActionCode step to execute for this action
+        private int iEventCount;                 // How many event are for this action actionCode to be triggered
         //   private boolean bEventFound;
-        private boolean bRunOnUI = false;        // Actions run on Background / UI thread
+        private boolean bRunOnUI = false;        // ActionCode run on Background / UI thread
         public boolean bFireOnce = false;      // Clear Action once fired, used for wait action
         private int iSetStatus = Event.WAITING;  // Event set status as a whole, waiting, success, non success
         private List<Event> listEvents = new ArrayList<>();         // List to store events needed for this action
@@ -215,7 +215,7 @@ public class Flow {
             }
         }
 
-        // METHOD recycles events and clears actions
+        // METHOD recycles events and clears actionCode
         public void recycle(){
             int iSize = listEvents.size();
             for(int i = 0; i < iSize ; i++ ){ listEvents.get(i).recycle();}
@@ -223,7 +223,7 @@ public class Flow {
             waitAction = null;
         }
 
-        // METHOD searches all actions, if any associated with this event
+        // METHOD searches all actionCode, if any associated with this event
         public void onEvent(String sEvent, Boolean bResult, int iExtra, Object obj){
             int iFired = 0;                     // How many have been fired
             int iSuccess = 0;                   // How many has been successful
@@ -342,9 +342,9 @@ public class Flow {
                     mHandler.removeMessages(msg.what);      // Clear any pending messages
                     mHandler.sendMessageDelayed(msg2, (long)msg.arg1);
                 }
-                actions.onAction(msg.what, getFlag(msg.arg2, FLAG_SUCCESS), getExtraInt(msg.arg2), msg.obj);
+                actionCode.onAction(msg.what, getFlag(msg.arg2, FLAG_SUCCESS), getExtraInt(msg.arg2), msg.obj);
             } else {
-                actions.onAction(msg.what, msg.arg2 == 1,  msg.arg1, msg.obj);
+                actionCode.onAction(msg.what, msg.arg2 == 1,  msg.arg1, msg.obj);
             }
             return true;
         }
