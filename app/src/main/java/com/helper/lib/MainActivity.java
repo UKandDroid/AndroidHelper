@@ -1,5 +1,6 @@
 package com.helper.lib;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -10,9 +11,9 @@ import android.widget.EditText;
 
 import com.helper.R;
 
-public class MainActivity extends AppCompatActivity {
+
+public class MainActivity extends AppCompatActivity  {
     Flow testFlow;
-    ViewHelper vhelp;
     Anim animation = new Anim();
     public static final int VERIFIED = 4;
 
@@ -20,16 +21,10 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        int i =0;
 
-        vhelp = new ViewHelper(findViewById(android.R.id.content));
-        Button btn = (Button)findViewById(R.id.btn_hello);
 
-        animation.setView(btn);
-        animation.addAnimation(Anim.ROTATE, 0, 90, 2000);
-        animation.addAnimation(Anim.ROTATE, 90, 0, 2000);
 
-        animation.start();
+
     }
 
 
@@ -71,8 +66,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        animation.stop();
-      //  testFlow.stop();
+        //   animation.stop();
+        //  testFlow.stop();
     }
 
     @Override
@@ -104,4 +99,6 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     };
+
+
 }

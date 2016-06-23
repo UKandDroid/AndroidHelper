@@ -4,6 +4,7 @@ import android.view.View;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.AccelerateInterpolator;
 import android.view.animation.Animation;
+import android.view.animation.AnimationSet;
 import android.view.animation.AnticipateInterpolator;
 import android.view.animation.AnticipateOvershootInterpolator;
 import android.view.animation.BounceInterpolator;
@@ -20,12 +21,14 @@ import java.util.List;
 /**
  * Created by Ubaid on 15/06/2016.
  */
+// Version 1.0.1
 public class Anim {
-    public static final int ROTATE = 0;
-    public static final int SCALE_X = 1;
-    public static final int SCALE_Y = 2;
-    public static final int TRANSLATE_X = 3;
-    public static final int TRANSLATE_Y = 4;
+    public static final int TYPE_SCALE = 0;
+    public static final int TYPE_ROTATE = 1;
+    public static final int TYPE_SCALE_X = 2;
+    public static final int TYPE_SCALE_Y = 3;
+    public static final int TYPE_TRANSLATE_X = 4;
+    public static final int TYPE_TRANSLATE_Y = 5;
 
     public static final int INTER_CYCLE = 0;
     public static final int INTER_LINEAR = 1;
@@ -39,7 +42,7 @@ public class Anim {
 
     private View view;
     private Flow flowAnimation;
-    private Animation animator;
+    private AnimationSet animationSet;
     private int iDefaultInter = INTER_ACC_DECELERATE;
     private List<Long> listStartTime = new ArrayList<>();
     private List<Long> listDuration = new ArrayList<>();
@@ -66,24 +69,29 @@ public class Anim {
     }
 
     public void addAnimation(int iType, int iInterpolator, float iStart, float iEnd,  long iDuration, long iStartTime){
+       Animation animator = null ;
         switch (iType){
-            case SCALE_X:
+            case TYPE_SCALE:
+                animator = new ScaleAnimation(iStart, iEnd, iStart, iEnd, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
+                break;
+
+            case TYPE_SCALE_X:
                 animator = new ScaleAnimation(iStart, iEnd, 1.0f, 1.0f, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
                 break;
 
-            case SCALE_Y:
+            case TYPE_SCALE_Y:
                 animator = new ScaleAnimation(1.0f, 1.0f, iStart, iEnd, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
                 break;
 
-            case ROTATE:
+            case TYPE_ROTATE:
                 animator = new RotateAnimation(iStart, iEnd, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
                 break;
 
-            case TRANSLATE_X:
+            case TYPE_TRANSLATE_X:
                 animator = new TranslateAnimation(iStart, iEnd, 0, 0);
                 break;
 
-            case TRANSLATE_Y:
+            case TYPE_TRANSLATE_Y:
                 animator = new TranslateAnimation(0, 0, iStart, iEnd);
                 break;
         }
@@ -107,7 +115,10 @@ public class Anim {
         listAnimation.add(animator);
     }
 
+    // METHOD starts animation for the views
     public void start(){
+        animationSet = new AnimationSet(false);
+        animationSet.setFillAfter(true);
         flowAnimation = new Flow(actionCode);
         for(int i=0; i < listStartTime.size(); i++){
             flowAnimation.runDelayed(i, listStartTime.get(i));
@@ -115,15 +126,19 @@ public class Anim {
     }
 
     Flow.ActionCode actionCode = new Flow.ActionCode() {
-        @Override public void onAction(int iAction, boolean bSuccess, int iExtra, Object data) {
+        @Override
+        public void onAction(int iAction, boolean bSuccess, int iExtra, Object data) {
             Animation anim =  listAnimation.get(iAction);
-            view.setAnimation(anim);
-            anim.start();
+            animationSet.addAnimation(anim);
+            view.setAnimation(animationSet);
+            animationSet.start();
+
         }
     } ;
 
     public void stop(){
         flowAnimation.stop();
+        animationSet.cancel();
         int iCount = listAnimation.size();
         if(view != null){ view.clearAnimation(); }
         for(int i =0; i < iCount; i++){

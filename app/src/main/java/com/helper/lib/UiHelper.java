@@ -17,8 +17,8 @@ import android.widget.TextView;
 /**
  * Created by Ubaid on 15/04/2016.
  */
-// Version 1.0.8
-public class ViewHelper {
+// Version 1.1.0
+public class UiHelper {
 
     private Context context;
     private ViewGroup rootView;
@@ -32,8 +32,8 @@ public class ViewHelper {
     private RelativeLayout layoutKbDetect = null;
 
     // CONSTRUCTORS
-    public ViewHelper() {}
-    public ViewHelper(View v){
+    public UiHelper() {}
+    public UiHelper(View v){
         setRootView(v);
     }
     public void setRootView(View v){
@@ -196,7 +196,7 @@ public class ViewHelper {
         rootView.addView(layoutKbDetect);
     }
 
-    // METHOD - runs actionCode on main thread, use for updating UI from non-UI thread
+    // METHOD - runs code on main thread, use for updating UI from non-UI thread
     public static void runOnUI(final Utils.ThreadCode code){
         Handler mainHandler = new Handler(Looper.getMainLooper());
         mainHandler.post(new Runnable() {
@@ -206,8 +206,8 @@ public class ViewHelper {
             }
         });
     }
-    // METHOD - executes delayed actionCode on Main thread
-    public static void runOnUIDelayed(long iTime, final Utils.ThreadCode code){
+    // METHOD - executes delayed code on Main thread
+    public static void runDelayedOnUI(long iTime, final Utils.ThreadCode code){
         final Handler handler = new Handler(Looper.getMainLooper());
         handler.postDelayed(new Runnable() {
             @Override
