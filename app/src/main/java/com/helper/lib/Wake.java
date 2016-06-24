@@ -52,9 +52,9 @@ public class Wake extends BroadcastReceiver {
         for(int i = 0; i < iSize; i++ ){
             if(!(iTime > listTime.get(i)) ){
                 bAdd = false;
-                listTime.add(i-1, iTime);
-                listAction.add(i-1, iAction);
-                listRepeat.add(i-1, bRepeat ? timeMillis: 0L);
+                listTime.add(i, iTime);
+                listAction.add(i, iAction);
+                listRepeat.add(i, bRepeat ? timeMillis: 0L);
                 break;}}
 
         if(bAdd){

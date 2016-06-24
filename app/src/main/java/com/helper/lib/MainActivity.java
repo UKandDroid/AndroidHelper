@@ -25,8 +25,8 @@ public class MainActivity extends AppCompatActivity {
         });
         Log.w("Wake", "Setting the timer");
         wake.runDelayed(1, 6 * 1000L);
-        wake.runDelayed(2, 12 * 1000L, true);
-
+        wake.runDelayed(3, 18 * 1000L);
+        wake.runRepeat(2, 12 * 1000L);
     }
 
 
