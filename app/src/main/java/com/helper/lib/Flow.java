@@ -24,7 +24,7 @@ import java.util.List;
 // CLASS for event based onAction execution
 
 public class Flow {
-    private ActionCode actionCode;                                      // Call back for onAction to be executed
+    private Code actionCode;                                      // Call back for onAction to be executed
     private boolean bRunning;
     private HThread hThread ;
     private Action waitAction = null;
@@ -41,7 +41,7 @@ public class Flow {
     private static final int FLAG_RUNonUI = 0x00000002;
     private static final int FLAG_REPEAT  = 0x00000004;
 
-    public Flow(ActionCode actionCodeCallback){
+    public Flow(Code actionCodeCallback){
         bRunning = true;
         actionCode = actionCodeCallback;
         hThread = new HThread();
@@ -134,7 +134,7 @@ public class Flow {
     }
 
     // INTERFACE for actionCode execution on events
-    public interface ActionCode { public void onAction(int iAction, boolean bSuccess, int iExtra, Object data); }
+    public interface Code { public void onAction(int iAction, boolean bSuccess, int iExtra, Object data); }
 
     // CLASS for event Pool
     public static class Event{
@@ -198,10 +198,10 @@ public class Flow {
 
     // CLASS for events for action, when all events occur action is triggered
     public class Action {
-        private int iCodeStep;                   // ActionCode step to execute for this action
+        private int iCodeStep;                   // Code step to execute for this action
         private int iEventCount;                 // How many event are for this action actionCode to be triggered
         //   private boolean bEventFound;
-        private boolean bRunOnUI = false;        // ActionCode run on Background / UI thread
+        private boolean bRunOnUI = false;        // Code run on Background / UI thread
         public boolean bFireOnce = false;      // Clear Action once fired, used for wait action
         private int iSetStatus = Event.WAITING;  // Event set status as a whole, waiting, success, non success
         private List<Event> listEvents = new ArrayList<>();         // List to store events needed for this action

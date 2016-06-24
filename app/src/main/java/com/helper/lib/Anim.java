@@ -125,7 +125,7 @@ public class Anim {
         }
     }
 
-    Flow.ActionCode actionCode = new Flow.ActionCode() {
+    Flow.Code actionCode = new Flow.Code() {
         @Override
         public void onAction(int iAction, boolean bSuccess, int iExtra, Object data) {
             Animation anim =  listAnimation.get(iAction);

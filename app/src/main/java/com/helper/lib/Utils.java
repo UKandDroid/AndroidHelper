@@ -2,6 +2,9 @@ package com.helper.lib;
 
 import android.content.Context;
 import android.content.res.Resources;
+import android.media.Ringtone;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
@@ -15,18 +18,20 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 
-// CLASS Utility class for various functions
+/**
+ * Created by Ubaid on 22/04/2016.
+ */
 public class Utils {
     private long iStartTime;                 // Timer variable
     private String strTimerTag;
     private static Handler handler;          // Handler for background thread
     private static Handler handBg;
-    private static String LOG_TAG = "Helper_Utils";
+    private static String LOG_TAG =  "Helper_Utils";
 
     static{
         handBg = new Handler(Looper.myLooper());
     }
-    // INTERFACE - callback for actionCode run on UI thread
+    // INTERFACE - callback for code run on UI thread
     public interface ThreadCode {
         public void execute();
     }
@@ -43,13 +48,13 @@ public class Utils {
         int px = Math.round(dp * (displayMetrics.xdpi / DisplayMetrics.DENSITY_DEFAULT));
         return px;
     }
-    // METHOD - runs actionCode on main thread, use for updating UI from non-UI thread
+    // METHOD - runs code on main thread, use for updating UI from non-UI thread
     public static void updateUI(final ThreadCode code){
         Handler mainHandler = new Handler(Looper.getMainLooper());
         mainHandler.post( new Runnable() { @Override
-        public void run() { code.execute();}});
+                                           public void run() { code.execute();}});
     }
-    // METHOD - executes delayed actionCode on Main thread
+    // METHOD - executes delayed code on Main thread
     public static void updateDelayedUI(long iTime, final ThreadCode code){
         final Handler handler = new Handler(Looper.getMainLooper());
         handler.postDelayed(new Runnable() {
@@ -84,7 +89,6 @@ public class Utils {
         handBg.removeCallbacks(runCode);
     }
 
-
     // METHOD - sleep thread
     public void sleep(long millis){
         try {
@@ -107,40 +111,74 @@ public class Utils {
     }
 
     // DATE Conversion methods
-    public static String getLocalTime(long linuxTime){
-        Date utcTime = new Date(linuxTime*1000);
+    public static String getLocalTime(long unixTime){
+        Date utcTime = new Date(unixTime);
         SimpleDateFormat outputFmt = new SimpleDateFormat("ddMMyyyy-HHmmss");
+        return outputFmt.format(utcTime);
+    }
+
+    // DATE Conversion methods
+    public static String getEventTime(long unixTime){
+        Date utcTime = new Date(unixTime);
+        SimpleDateFormat outputFmt = new SimpleDateFormat("HH:mm:ss");
         return outputFmt.format(utcTime);
     }
 
     public static String getUTCDay(int iDay) {
         Calendar calendar = Calendar.getInstance();
-        calendar.add(Calendar.DATE, iDay + 1);
+        calendar.add(Calendar.DATE, iDay + 1 );
         //  calendar.setTimeZone(TimeZone.getTimeZone("UTC"));
         calendar.setTime(calendar.getTime());
         Date UTCTime = calendar.getTime();
-        SimpleDateFormat outputFmt = new SimpleDateFormat("ddMMyyyy-000000");
+        SimpleDateFormat outputFmt = new SimpleDateFormat("ddMMyyyy-HHmmss");
         return outputFmt.format(UTCTime);
     }
 
-    public static long getLinuxTime(String sDateTime){
-        SimpleDateFormat utcFmt = new SimpleDateFormat("ddMMyyyy-HHmmss");
+    public static String getChartsScreenDay(int iDay) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.add(Calendar.DATE, iDay );
+        //  calendar.setTimeZone(TimeZone.getTimeZone("UTC"));
+        calendar.setTime(calendar.getTime());
+        Date UTCTime = calendar.getTime();
+        SimpleDateFormat outputFmt = new SimpleDateFormat("EEEE, dd MMM yyyy");
+        return outputFmt.format(UTCTime);
+    }
+
+    public static void playSound(Context context){
+        try {
+            Uri notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+            Ringtone r = RingtoneManager.getRingtone(context, notification);
+            r.play();
+        } catch (Exception e) { e.printStackTrace(); }
+    }
+
+    public static long getUnixTime(String sDateTime){
+        SimpleDateFormat utcFmt = new SimpleDateFormat("ddMMyyyy");
         Date dateSensor = null;
         try {
             dateSensor = utcFmt.parse(sDateTime);
-            return dateSensor.getTime()/1000l;
+            return dateSensor.getTime();
         } catch (ParseException e) { e.printStackTrace();
         }
+        loge( "APIDate::getUnixTime() Date Parsing error");
         return  0;
     }
-    // Class create a HandlerThread, that uses message to execute actionCode
-    public static class HelperThread{
+
+    public static String getDayName(long iDate) {
+        SimpleDateFormat sdf = new SimpleDateFormat("EEEE");
+        Date d = new Date(iDate);
+        return sdf.format(d);
+    }
+
+    // Class create a HandlerThread, that uses message to execute code
+    public static class HelperThread {
         private static int iNumCreated = 0;
         private Handler handler;
         private ThreadCode threadCode;
-        public HelperThread(ThreadCode code){
-            threadCode= code;
-            HandlerThread ht = new HandlerThread("HelperThread"+ Integer.toString(iNumCreated++));
+
+        public HelperThread(ThreadCode code) {
+            threadCode = code;
+            HandlerThread ht = new HandlerThread("HelperThread" + Integer.toString(iNumCreated++));
             ht.start();
             handler = new Handler(ht.getLooper(), new Handler.Callback() {
                 @Override
@@ -150,11 +188,14 @@ public class Utils {
                 }
             });
         }
-        // METHOD runs the thread actionCode,
+
+
+
+        // METHOD runs the thread code,
         public void run(){
             handler.sendEmptyMessage(1);
         }
-        // METHOD runs the thread actionCode,
+        // METHOD runs the thread code,
         public void runDelayed( long timeInMillis){
             handler.sendEmptyMessageDelayed(1, timeInMillis);
         }
@@ -170,7 +211,9 @@ public class Utils {
 
     }
     // METHOD for logging
-
+    private void log(String sLog){  { Log.d(LOG_TAG, sLog); } }
+    private static void loge(String sLog){  { Log.e(LOG_TAG, sLog); } }
+    private void logw(String sLog){  { Log.w(LOG_TAG, sLog); } }
 
 
 }

@@ -17,7 +17,7 @@ import android.widget.TextView;
 /**
  * Created by Ubaid on 15/04/2016.
  */
-// Version 1.1.0
+// Version 1.1.1
 public class UiHelper {
 
     private Context context;
@@ -30,6 +30,7 @@ public class UiHelper {
     private ProgressDialog progressDialog;
     private boolean bKeyboardVisible = false;
     private RelativeLayout layoutKbDetect = null;
+    public interface ThreadCode { public void execute(); }
 
     // CONSTRUCTORS
     public UiHelper() {}
@@ -197,7 +198,7 @@ public class UiHelper {
     }
 
     // METHOD - runs code on main thread, use for updating UI from non-UI thread
-    public static void runOnUI(final Utils.ThreadCode code){
+    public static void runOnUI(final ThreadCode code){
         Handler mainHandler = new Handler(Looper.getMainLooper());
         mainHandler.post(new Runnable() {
             @Override
@@ -207,7 +208,7 @@ public class UiHelper {
         });
     }
     // METHOD - executes delayed code on Main thread
-    public static void runDelayedOnUI(long iTime, final Utils.ThreadCode code){
+    public static void runDelayedOnUI(long iTime, final ThreadCode code){
         final Handler handler = new Handler(Looper.getMainLooper());
         handler.postDelayed(new Runnable() {
             @Override
