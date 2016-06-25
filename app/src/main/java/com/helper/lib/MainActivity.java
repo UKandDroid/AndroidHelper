@@ -18,17 +18,16 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        wake = new Wake(this, new Flow.Code() {
+        wake =  Wake.init(this, new Flow.Code() {
             @Override public void onAction(int iAction, boolean bSuccess, int iExtra, Object data) {
                 Log.d("Wake", "Action: "+ iAction);
             }
         });
         Log.w("Wake", "Setting the timer");
-        wake.runDelayed(1, 6 * 1000L);
-        wake.runDelayed(3, 18 * 1000L);
-        wake.runRepeat(2, 12 * 1000L);
+        wake.runDelayed(7, 30 * 1000L);
+        wake.runDelayed(8, 35 * 1000L);
+        wake.runDelayed(9, 40 * 1000L);
     }
-
 
 
     @Override
