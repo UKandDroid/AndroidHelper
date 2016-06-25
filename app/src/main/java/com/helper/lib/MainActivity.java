@@ -23,28 +23,28 @@ public class MainActivity extends AppCompatActivity {
                 Log.d("Wake", "Action: "+ iAction);
             }
         });
+        int iAction = wake.pendingCount();
         Log.w("Wake", "Setting the timer");
-        wake.runDelayed(7, 30 * 1000L);
-        wake.runDelayed(8, 35 * 1000L);
-        wake.runDelayed(9, 40 * 1000L);
+        wake.runDelayed(++iAction, -10 * 1000L);
+        wake.runDelayed(++iAction, -10 * 1000L);
+        wake.runDelayed(++iAction, -10 * 1000L);
+        wake.runDelayed(++iAction, 35 * 1000L);
+        wake.runDelayed(++iAction, 40 * 1000L);
     }
 
 
-    @Override
-    protected void onPostResume() {
+    @Override protected void onPostResume() {
         super.onPostResume();
 
     }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
+    @Override public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_main, menu);
         return true;
     }
 
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
+    @Override public boolean onOptionsItemSelected(MenuItem item) {
 
         int id = item.getItemId();
 
@@ -56,8 +56,7 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    @Override
-    protected void onPause() {
+    @Override protected void onPause() {
         super.onPause();
 
     }
