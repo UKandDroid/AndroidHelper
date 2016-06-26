@@ -20,7 +20,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         wake =  Wake.init(this, new Flow.Code() {
             @Override public void onAction(int iAction, boolean bSuccess, int iExtra, Object data) {
-                Log.w("Wake", "TIMER Action : "+ iAction);
+                Log.w("Wake", "                      Action: "+ iAction);
             }
         });
         int iAction = wake.pendingCount();

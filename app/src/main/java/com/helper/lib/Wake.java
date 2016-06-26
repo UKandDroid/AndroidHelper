@@ -21,7 +21,7 @@ import java.util.List;
 
 // Class to keep CPU awake, or awake at certain time
 public class Wake extends BroadcastReceiver {
-    private int iCurAction = 0;
+    private int iCurAction = -1;
     private long iCurActionTime = 0;
     private static Wake instance;
     private AlarmManager alarmMgr;
@@ -48,15 +48,19 @@ public class Wake extends BroadcastReceiver {
     }
     // METHOD to initialise the class, as class is singleton
     public static Wake init(Context con, Flow.Code flowCode){
-        if(instance == null){
-            instance = new Wake();
-            context = con;
-            actionCode = flowCode;
-            context.registerReceiver(new Wake(), new IntentFilter(ALARM_INTENT));
-            PowerManager pm = (PowerManager)context.getSystemService(Context.POWER_SERVICE);
-            wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK , "Wake");
-            loadPendingActions();
-        }
+        context = con;
+        instance = new Wake();
+        actionCode = flowCode;
+
+        context.registerReceiver(new Wake(), new IntentFilter(ALARM_INTENT));
+        PowerManager pm = (PowerManager)context.getSystemService(Context.POWER_SERVICE);
+        wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK , "Wake");
+        listAction.clear();
+        listActionTime.clear();
+        listRepeatTime.clear();
+        instance.iCurAction = -1;                                      // So same event can be loaded again, incase the app closed
+        loadPendingActions();
+        instance.setNextTimer();
         return instance;
     }
 
@@ -96,7 +100,7 @@ public class Wake extends BroadcastReceiver {
         int iSize = listActionTime.size();
         boolean bNewAction = false;
         // If we have a action in list, and its not same as old one
-        if(iSize > 0 && iCurAction != listAction.get(0) && iCurActionTime != listActionTime.get(0))
+        if(iSize > 0 && (iCurAction != listAction.get(0) || iCurActionTime != listActionTime.get(0)))
             bNewAction = true;
 
         if(bNewAction) {
@@ -108,7 +112,7 @@ public class Wake extends BroadcastReceiver {
             alarmIntent = PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
             alarmMgr = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
             alarmMgr.setExact(AlarmManager.RTC_WAKEUP, iCurActionTime, alarmIntent);
-            Log.d("Wake", "Run Action: " +iCurAction + " @ "+ sdf.format(new Date(iCurActionTime)));
+            Log.d("Wake", "Run: " +iCurAction + " @ "+ sdf.format(new Date(iCurActionTime)));
         }
     }
 
@@ -129,7 +133,7 @@ public class Wake extends BroadcastReceiver {
                     listAction.remove(i);
                     listActionTime.remove(i);
                     listRepeatTime.remove(i);
-                    }}
+                }}
         }
     }
 
