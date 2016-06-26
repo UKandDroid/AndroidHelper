@@ -20,16 +20,15 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         wake =  Wake.init(this, new Flow.Code() {
             @Override public void onAction(int iAction, boolean bSuccess, int iExtra, Object data) {
-                Log.d("Wake", "Action: "+ iAction);
+                Log.w("Wake", "WAKE Action : "+ iAction);
             }
         });
         int iAction = wake.pendingCount();
-        Log.w("Wake", "Setting the timer");
-        wake.runDelayed(++iAction, -10 * 1000L);
-        wake.runDelayed(++iAction, -10 * 1000L);
-        wake.runDelayed(++iAction, -10 * 1000L);
-        wake.runDelayed(++iAction, 35 * 1000L);
-        wake.runDelayed(++iAction, 40 * 1000L);
+
+        wake.runDelayed(++iAction, 15 * 1000L);
+        wake.runDelayed(++iAction, 20 * 1000L);
+        wake.runDelayed(++iAction, 25 * 1000L);
+
     }
 
 

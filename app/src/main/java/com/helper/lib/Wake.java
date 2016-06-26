@@ -10,7 +10,9 @@ import android.content.SharedPreferences;
 import android.os.PowerManager;
 import android.util.Log;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -20,6 +22,7 @@ import java.util.List;
 // Class to keep CPU awake, or awake at certain time
 public class Wake extends BroadcastReceiver {
     private int iCurAction = 0;
+    private long iCurActionTime = 0;
     private static Wake instance;
     private AlarmManager alarmMgr;
     private static Context context;
@@ -92,13 +95,15 @@ public class Wake extends BroadcastReceiver {
     // METHOD is called, when a timer goes off, to set next timer
     private synchronized void setNextTimer(){
         if(listTime.size() > 0) {
+            SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
             iCurAction = listAction.get(0);
-            long iTime = listTime.get(0);
+            iCurActionTime = listTime.get(0);
             Intent intent = new Intent(ALARM_INTENT);
             intent.putExtra("action", iCurAction);
             alarmIntent = PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
             alarmMgr = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-            alarmMgr.setExact(AlarmManager.RTC_WAKEUP, iTime, alarmIntent);
+            alarmMgr.setExact(AlarmManager.RTC_WAKEUP, iCurActionTime, alarmIntent);
+            Log.d("Wake", "Run Action: " +iCurAction + " @ "+ sdf.format(new Date(iCurActionTime)));
         }
     }
 
