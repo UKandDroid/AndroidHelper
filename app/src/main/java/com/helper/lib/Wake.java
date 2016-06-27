@@ -1,5 +1,6 @@
 package com.helper.lib;
 
+import android.annotation.TargetApi;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
@@ -7,6 +8,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.os.Build;
 import android.os.PowerManager;
 import android.util.Log;
 
@@ -32,7 +34,9 @@ public class Wake extends BroadcastReceiver {
     private static List<Long> listActionTime = new ArrayList<>();
     private static List<Long> listRepeatTime = new ArrayList<>();
     private static List<Integer> listAction = new ArrayList<>();
+    private SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
     private static final String ALARM_INTENT = "com.lib.receiver.Wake";
+    private static int API_VERSION = android.os.Build.VERSION.SDK_INT;
 
     // CONSTRUCTOR to be called by Intent service, Don't use, instead used init() to initialize the class
     public Wake(){}
@@ -51,14 +55,15 @@ public class Wake extends BroadcastReceiver {
         context = con;
         instance = new Wake();
         actionCode = flowCode;
+        listAction.clear();
+        listActionTime.clear();
+        listRepeatTime.clear();
+        instance.iCurAction = -1;                                      // So same event can be loaded again, in-case static variable is still same
 
         context.registerReceiver(new Wake(), new IntentFilter(ALARM_INTENT));
         PowerManager pm = (PowerManager)context.getSystemService(Context.POWER_SERVICE);
         wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK , "Wake");
-        listAction.clear();
-        listActionTime.clear();
-        listRepeatTime.clear();
-        instance.iCurAction = -1;                                      // So same event can be loaded again, incase the app closed
+
         loadPendingActions();
         instance.setNextTimer();
         return instance;
@@ -95,6 +100,7 @@ public class Wake extends BroadcastReceiver {
         setNextTimer();
     }
 
+    @TargetApi(23)
     // METHOD is called, when a timer goes off, to set next timer
     private synchronized void setNextTimer(){
         int iSize = listActionTime.size();
@@ -104,7 +110,6 @@ public class Wake extends BroadcastReceiver {
             bNewAction = true;
 
         if(bNewAction) {
-            SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
             iCurAction = listAction.get(0);
             iCurActionTime = listActionTime.get(0);
             Intent intent = new Intent(ALARM_INTENT);
@@ -112,7 +117,13 @@ public class Wake extends BroadcastReceiver {
             alarmIntent = PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
             alarmMgr = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
             alarmMgr.setExact(AlarmManager.RTC_WAKEUP, iCurActionTime, alarmIntent);
-            Log.d("Wake", "Run: " +iCurAction + " @ "+ sdf.format(new Date(iCurActionTime)));
+
+            if (API_VERSION >= Build.VERSION_CODES.M){       // In marshmallow, use this as setExact will be blocked
+                alarmMgr.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, iCurActionTime, alarmIntent);
+            } else{
+                alarmMgr.setExact(AlarmManager.RTC_WAKEUP, iCurActionTime, alarmIntent);
+            }
+            Log.d("Wake", "Run Action: " +iCurAction + " > "+ sdf.format(new Date(iCurActionTime)));
         }
     }
 
@@ -123,35 +134,52 @@ public class Wake extends BroadcastReceiver {
                 AlarmManager mgr = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
                 mgr.cancel(alarmIntent);
                 if(listActionTime.size() > 0){
-                    listAction.remove(0);
-                    listActionTime.remove(0);
-                    listRepeatTime.remove(0);
+                    removeAction(0);
                     setNextTimer();}}
         } else {                   // Remove action from the list
             for(int i=0; i< listAction.size(); i++){
                 if(iAction == listAction.get(i)){
-                    listAction.remove(i);
-                    listActionTime.remove(i);
-                    listRepeatTime.remove(i);
+                    removeAction(i);
                 }}
         }
     }
 
     // RECEIVER called when wake up timer is fired
     @Override public void onReceive(Context con, Intent intent) {
-        context = con;
+        boolean bNextNow = false;
+        Log.w("Wake", "Exe Action: "+ intent.getIntExtra("action", 0) + " > " + sdf.format(new Date()));
+
         if(actionCode != null)
             actionCode.onAction(intent.getIntExtra("action", 0), true, 0, null);
 
-        if(listActionTime.size() > 0){
+        removeAction(0);
+        saveActions();
+
+        if(listAction.size() > 0){
             if(listRepeatTime.get(0)> 0){ runDelayed(listAction.get(0), listRepeatTime.get(0), true); } // its a repeat message, add it again
-            listActionTime.remove(0);
-            listAction.remove(0);
-            listRepeatTime.remove(0);
-            saveActions();                                                                        // Save tasks to prefs, incase the app restarts
-            setNextTimer();
+
+            long iNextActionTime = listActionTime.get(0);
+            if(iNextActionTime < System.currentTimeMillis()+1000L){                                // If next action is already late or time is less then 1 second, run it now
+                intent = new Intent(ALARM_INTENT);
+                iCurAction = listAction.get(0);
+                intent.putExtra("action", iCurAction);
+                bNextNow = true;
+            }
+
+            if(bNextNow)
+                onReceive(con, intent);
+            else
+                setNextTimer();
         }
     }
+
+    // METHOD removes an Action from lists
+    private static void removeAction(int iIndex){
+        listActionTime.remove(iIndex);
+        listAction.remove(iIndex);
+        listRepeatTime.remove(iIndex);
+    }
+
 
     // METHOD cancels any pending alarms
     public void cancelPending(){
@@ -166,10 +194,9 @@ public class Wake extends BroadcastReceiver {
 
     // Stop the Wake class completely
     public void stop(){
-        listRepeatTime.clear();
         listAction.clear();
         listActionTime.clear();
-        saveActions();
+        listRepeatTime.clear();
         cancelPending();
         instance = null;
     }
