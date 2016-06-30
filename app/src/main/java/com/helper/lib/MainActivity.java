@@ -24,7 +24,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         View v = findViewById(R.id.btn_hello);
         Anim valueAnim = new Anim(v);
-       valueAnim.addValueAnimator(1, Anim.INTER_LINEAR, 1, 10, 1000, 0);
+       /* valueAnim.addValueAnimator(1, Anim.INTER_LINEAR, 1, 10, 1000, 0);
         valueAnim.addValueAnimator(2, Anim.INTER_LINEAR, 1, 10, 1000, 2000);
         valueAnim.setValueChangeListener(new Flow.Code() {
             @Override
@@ -32,12 +32,11 @@ public class MainActivity extends AppCompatActivity {
                 Log.d("Android Helper", "Action: " + iAction + "  Anim Value: " + iExtra);
             }
         });
-
-
-
-        valueAnim.addAnimation(Anim.TYPE_ROTATE, Anim.INTER_LINEAR, 0, -90, 1000);
-         valueAnim.addAnimation(Anim.TYPE_ROTATE, Anim.INTER_LINEAR, 0, 90, 1000, 0);
-
+*/
+        valueAnim.addAnimation(Anim.TYPE_ROTATE, Anim.INTER_LINEAR, 0, 90, 1000, 0);
+        valueAnim.addAnimation(Anim.TYPE_TRANSLATE_X, Anim.INTER_LINEAR, 0, 100, 1000, 0);
+        valueAnim.addAnimation(Anim.TYPE_ROTATE, Anim.INTER_LINEAR, 90, 0, 1000, 1100);
+        valueAnim.addAnimation(Anim.TYPE_TRANSLATE_X, Anim.INTER_LINEAR, 100, 0, 1000, 1100);
 
         valueAnim.start();
     }

@@ -180,11 +180,17 @@ public class Anim {
                         }}});
                 valueAnim.start();
             } else {
-                Animation anim =  (Animation)listAnimation.get(iAction).anim;
+                Animation anim = (Animation)listAnimation.get(iAction).anim;
+                List<Animation> setAnim = animationSet.getAnimations();   // Remove completed animations from animation set
+                animationSet = new AnimationSet(false);                   // By creating a new set and add only those animations
+                animationSet.setFillAfter(true);                          // that are not ended yet
+                for(int i=0; i< setAnim.size(); i++){
+                    if(!setAnim.get(i).hasEnded())
+                        animationSet.addAnimation(setAnim.get(i));
+                }
                 animationSet.addAnimation(anim);
                 view.clearAnimation();
                 view.setAnimation(animationSet);
-                animationSet.setFillAfter(true);
                 animationSet.start();
             }
         }} ;
