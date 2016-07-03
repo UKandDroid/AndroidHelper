@@ -33,7 +33,6 @@ public class Anim {
     public static final String TYPE_TRANSLATE_X = "trans_x";
     public static final String TYPE_TRANSLATE_Y = "trans_y";
 
-
     public static final String INTER_CYCLE = "cycle";
     public static final String INTER_LINEAR = "linear";
     public static final String INTER_BOUNCE = "bounce";
@@ -46,8 +45,9 @@ public class Anim {
     private static String LOG_TAG = "Anim";
 
     private View view;
+    private float pivotX = 0.5f;                    // Animation bug, if view has been translated, pivot 0.5 does not work
     private Flow flowAnimation;
-    private AnimationSet animationSet;
+    private AnimationSet animationSet = new AnimationSet(false);
     private String iDefaultInter = INTER_ACC_DECELERATE;
     private Flow.Code valueChangeList;
     private List<AnimData> listAnimation = new ArrayList<>();
@@ -104,14 +104,16 @@ public class Anim {
                 break;
 
             case TYPE_ROTATE:
-                animator = new RotateAnimation(iStart, iEnd, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
+                animator = new RotateAnimation(iStart, iEnd, Animation.RELATIVE_TO_SELF, pivotX, Animation.RELATIVE_TO_SELF, 0.5f);
                 break;
 
             case TYPE_TRANSLATE_X:
+                pivotX = 1.0f;
                 animator = new TranslateAnimation(iStart, iEnd, 0, 0);
                 break;
 
             case TYPE_TRANSLATE_Y:
+                pivotX = 1.0f;
                 animator = new TranslateAnimation(0, 0, iStart, iEnd);
                 break;
 
@@ -134,8 +136,9 @@ public class Anim {
                 case INTER_ANTICIPATE_OVERSHOOT: ((ValueAnimator)animator).setInterpolator(new AnticipateOvershootInterpolator()); break;
             }
         } else {
-            ((Animation)animator).setFillAfter(true);
             ((Animation)animator).setDuration(iDuration);
+            ((Animation)animator).setStartOffset(iStartTime);
+
             switch (iInterpolator){
                 case INTER_CYCLE: ((Animation)animator).setInterpolator(new CycleInterpolator(1)); break;
                 case INTER_LINEAR: ((Animation)animator).setInterpolator(new LinearInterpolator()); break;
@@ -155,21 +158,32 @@ public class Anim {
         anim.iAction = iValueAction;
         anim.bValueAnim = bValueAnimation;
         anim.iStartTime = iStartTime;
+
         listAnimation.add(anim);
+
+        if(!bValueAnimation)
+            animationSet.addAnimation((Animation)animator);
+
     }
     // METHOD starts animation for the views
     public void start(){
-        animationSet = new AnimationSet(false);
         flowAnimation = new Flow(actionCode);
         for(int i=0; i < listAnimation.size(); i++){
             AnimData animData = listAnimation.get(i);
-            flowAnimation.runDelayedOnUI(i, animData.bValueAnim, 0, listAnimation.get(i).iStartTime);
+            if(animData.bValueAnim){
+                flowAnimation.runDelayedOnUI(i, animData.bValueAnim, 0, listAnimation.get(i).iStartTime);
+            }
         }
+
+        view.clearAnimation();
+        view.setAnimation(animationSet);
+        animationSet.start();
+        animationSet.setFillAfter(true);
+
     }
 
     Flow.Code actionCode = new Flow.Code() {
         @Override public void onAction(int iAction, boolean bSuccess, int iExtra, Object data) {
-            if(bSuccess){
                 final ValueAnimator valueAnim = (ValueAnimator)listAnimation.get(iAction).anim;
                 final int iValueAction = listAnimation.get(iAction).iAction;
                 valueAnim.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
@@ -179,20 +193,6 @@ public class Anim {
                             valueChangeList.onAction(iValueAction, true, value, null);
                         }}});
                 valueAnim.start();
-            } else {
-                Animation anim = (Animation)listAnimation.get(iAction).anim;
-                List<Animation> setAnim = animationSet.getAnimations();   // Remove completed animations from animation set
-                animationSet = new AnimationSet(false);                   // By creating a new set and add only those animations
-                animationSet.setFillAfter(true);                          // that are not ended yet
-                for(int i=0; i< setAnim.size(); i++){
-                    if(!setAnim.get(i).hasEnded())
-                        animationSet.addAnimation(setAnim.get(i));
-                }
-                animationSet.addAnimation(anim);
-                view.clearAnimation();
-                view.setAnimation(animationSet);
-                animationSet.start();
-            }
         }} ;
 
     public void stop(){

@@ -36,8 +36,8 @@
         <Button
             android:id="@+id/btn_hello"
             android:text="Agree"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
+            android:layout_width="100dp"
+            android:layout_height="50dp" />
 
     </LinearLayout>
 

@@ -24,19 +24,27 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         View v = findViewById(R.id.btn_hello);
         Anim valueAnim = new Anim(v);
-       /* valueAnim.addValueAnimator(1, Anim.INTER_LINEAR, 1, 10, 1000, 0);
-        valueAnim.addValueAnimator(2, Anim.INTER_LINEAR, 1, 10, 1000, 2000);
-        valueAnim.setValueChangeListener(new Flow.Code() {
-            @Override
-            public void onAction(int iAction, boolean bSuccess, int iExtra, Object data) {
-                Log.d("Android Helper", "Action: " + iAction + "  Anim Value: " + iExtra);
-            }
-        });
+     /*
+        final   Animation anim1 = new TranslateAnimation(0, 100, 0, 0);
+        final RotateAnimation anim2 = new RotateAnimation(0,90, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
+        anim1.setDuration(1000);
+        anim2.setDuration(1000);
+        anim2.setStartOffset(1000);
+        anim1.setInterpolator(new LinearInterpolator());
+        anim2.setInterpolator(new LinearInterpolator());
+
+        final AnimationSet animSet = new AnimationSet(false);
+        v.clearAnimation();
+        animSet.addAnimation(anim2);
+        animSet.addAnimation(anim1);
+        v.setAnimation(animSet);
+        animSet.start();
+
+        animSet.setFillAfter(true);
 */
-        valueAnim.addAnimation(Anim.TYPE_ROTATE, Anim.INTER_LINEAR, 0, 90, 1000, 0);
-        valueAnim.addAnimation(Anim.TYPE_TRANSLATE_X, Anim.INTER_LINEAR, 0, 100, 1000, 0);
-        valueAnim.addAnimation(Anim.TYPE_ROTATE, Anim.INTER_LINEAR, 90, 0, 1000, 1100);
-        valueAnim.addAnimation(Anim.TYPE_TRANSLATE_X, Anim.INTER_LINEAR, 100, 0, 1000, 1100);
+        valueAnim.addAnimation(Anim.TYPE_SCALE, Anim.INTER_LINEAR, 1.0f, 1.2f, 1000, 0 );
+         valueAnim.addAnimation(Anim.TYPE_TRANSLATE_X, Anim.INTER_LINEAR, 0, 100, 1000, 0);
+        valueAnim.addAnimation(Anim.TYPE_ROTATE, Anim.INTER_LINEAR, 0, 90, 1000);
 
         valueAnim.start();
     }
