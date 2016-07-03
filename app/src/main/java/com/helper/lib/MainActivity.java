@@ -25,8 +25,8 @@ public class MainActivity extends AppCompatActivity {
         View v = findViewById(R.id.btn_hello);
         Anim valueAnim = new Anim(v);
      /*
-        final   Animation anim1 = new TranslateAnimation(0, 100, 0, 0);
-        final RotateAnimation anim2 = new RotateAnimation(0,90, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
+        final Animation anim1 = new TranslateAnimation(0, 100, 0, 0);
+        final RotateAnimation anim2 = new RotateAnimation(0, 90, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
         anim1.setDuration(1000);
         anim2.setDuration(1000);
         anim2.setStartOffset(1000);
@@ -42,9 +42,9 @@ public class MainActivity extends AppCompatActivity {
 
         animSet.setFillAfter(true);
 */
-        valueAnim.addAnimation(Anim.TYPE_SCALE, Anim.INTER_LINEAR, 1.0f, 1.2f, 1000, 0 );
-         valueAnim.addAnimation(Anim.TYPE_TRANSLATE_X, Anim.INTER_LINEAR, 0, 100, 1000, 0);
-        valueAnim.addAnimation(Anim.TYPE_ROTATE, Anim.INTER_LINEAR, 0, 90, 1000);
+        valueAnim.addAnimation(Anim.TYPE_ROTATE, Anim.INTER_LINEAR, 0, 90, 1000,0);
+        valueAnim.addAnimation(Anim.TYPE_TRANSLATE_X, Anim.INTER_LINEAR, 0, 200, 1000, 0);
+
 
         valueAnim.start();
     }
