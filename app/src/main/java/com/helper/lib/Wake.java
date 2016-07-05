@@ -38,9 +38,9 @@ public class Wake extends BroadcastReceiver {
     private static List<Long> listRepeatTime = new ArrayList<>();
 
     private SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
-    private static final String ALARM_INTENT = "com.lib.receiver.Wake";
+    private static String ALARM_INTENT = ".receiver.Wake";
     private static int API_VERSION = Build.VERSION.SDK_INT;
-    private static String LOG_TAG =  "Wake";
+    private static String LOG_TAG = "BE_Wake";
 
     // CONSTRUCTOR to be called by Intent service, Don't use, instead use init() to initialize the class
     public Wake(){}
@@ -57,6 +57,7 @@ public class Wake extends BroadcastReceiver {
     // METHOD to initialise the class, as class is singleton
     public static Wake init(Context con, Flow.Code flowCode){
         context = con;
+        ALARM_INTENT = context.getPackageName() + ALARM_INTENT;
         instance = new Wake();
         actionCode = flowCode;
         listTag.clear();
@@ -142,7 +143,7 @@ public class Wake extends BroadcastReceiver {
             } else{
                 alarmMgr.setExact(AlarmManager.RTC_WAKEUP, iCurActionTime, alarmIntent);
             }
-            Log.d(LOG_TAG, "Set Timer " + sTag + " ("+ iCurAction + ") > "+ sdf.format(new Date(iCurActionTime)) + (listRepeatTime.get(0)> 0 ? " - Repeat" : "") );
+            Log.d(LOG_TAG, "Set Timer " + sTag + " ("+ iCurAction + ") >  "+ sdf.format(new Date(iCurActionTime)) + (listRepeatTime.get(0)> 0 ? " - Repeat" : "") );
         }
     }
 
@@ -160,7 +161,7 @@ public class Wake extends BroadcastReceiver {
             for(int i=0; i< listAction.size(); i++){
                 if(iAction == listAction.get(i)){
                     removeAction(i);
-                    Log.w(LOG_TAG, "Cancelled Action: " + iAction);
+                    Log.w(LOG_TAG, "Cancelled Timer " + listTag.get(i)+"("+iAction+")");
                 }}
         }
     }

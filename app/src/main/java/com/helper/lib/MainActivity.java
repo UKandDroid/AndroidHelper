@@ -29,7 +29,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         wake.runDelayed(1, 1000L*10, "one");
-      //  wake.runRepeat(2, 1000L*20, "two");
+        wake.runRepeat(2, 1000L*20, "two");
     }
 
 
