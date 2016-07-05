@@ -32,15 +32,17 @@ public class Wake extends BroadcastReceiver {
     private PendingIntent alarmIntent;
     private static Flow.Code actionCode;
     private static PowerManager.WakeLock wakeLock;
+    private static List<String> listTag = new ArrayList<>();
+    private static List<Integer> listAction = new ArrayList<>();
     private static List<Long> listActionTime = new ArrayList<>();
     private static List<Long> listRepeatTime = new ArrayList<>();
-    private static List<Integer> listAction = new ArrayList<>();
+
     private SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
     private static final String ALARM_INTENT = "com.lib.receiver.Wake";
     private static int API_VERSION = Build.VERSION.SDK_INT;
     private static String LOG_TAG =  "Wake";
 
-    // CONSTRUCTOR to be called by Intent service, Don't use, instead used init() to initialize the class
+    // CONSTRUCTOR to be called by Intent service, Don't use, instead use init() to initialize the class
     public Wake(){}
 
     // METHOD to get instance of the class, as class is singleton
@@ -57,6 +59,7 @@ public class Wake extends BroadcastReceiver {
         context = con;
         instance = new Wake();
         actionCode = flowCode;
+        listTag.clear();
         listAction.clear();
         listActionTime.clear();
         listRepeatTime.clear();
@@ -78,10 +81,11 @@ public class Wake extends BroadcastReceiver {
 
     // METHOD Wake CPU up, and sends action to be execute, Note, this only waits for one Action, new call will override last Action
     // NOTE: the resolution for delayed call is 5 second, anything smaller then that will be called after 5 seconds
-    public void runRepeat(int iAction, long timeMillis) {runDelayed(iAction, timeMillis, true); }
-    public void runDelayed(int iAction, long timeMillis) { runDelayed(iAction, timeMillis, false);}
-    private void runDelayed(int iAction,  long timeMillis, boolean bRepeat) {
-  //      Log.w(LOG_TAG, "runDelayed Action: " + iAction + (bRepeat? " Repeat " :""));
+    public void runRepeat(int iAction, long timeMillis) {runDelayed(iAction, timeMillis, true, ""); }
+    public void runDelayed(int iAction, long timeMillis) { runDelayed(iAction, timeMillis, false, "");}
+    public void runRepeat(int iAction, long timeMillis, String sTag) {runDelayed(iAction, timeMillis, true, sTag); }
+    public void runDelayed(int iAction, long timeMillis, String sTag) { runDelayed(iAction, timeMillis, false, sTag);}
+    private void runDelayed(int iAction,  long timeMillis, boolean bRepeat, String sTag) {
         boolean bAdd = true;
         long iTime = System.currentTimeMillis() + timeMillis;
         int iSize = listAction.size();
@@ -95,14 +99,16 @@ public class Wake extends BroadcastReceiver {
         for(int i = 0; i < iSize; i++ ){
             if(iTime < listActionTime.get(i)){
                 bAdd = false;
-                listActionTime.add(i, iTime);
+                listTag.add(i, sTag);
                 listAction.add(i, iAction);
+                listActionTime.add(i, iTime);
                 listRepeatTime.add(i, bRepeat ? timeMillis : 0L);
                 break;}}
 
         if(bAdd){
-            listActionTime.add(iTime);
+            listTag.add(sTag);
             listAction.add(iAction);
+            listActionTime.add(iTime);
             listRepeatTime.add(bRepeat ? timeMillis : 0L);
         }
 
@@ -115,6 +121,7 @@ public class Wake extends BroadcastReceiver {
     private synchronized void setNextTimer(){
         boolean bNewAction = false;
         int iSize = listAction.size();
+
         // If we have a action in list, and its not same as old one
         if(iSize > 0 && (iCurAction != listAction.get(0) || iCurActionTime != listActionTime.get(0)))
             bNewAction = true;
@@ -122,8 +129,10 @@ public class Wake extends BroadcastReceiver {
         if(bNewAction) {
             iCurAction = listAction.get(0);
             iCurActionTime = listActionTime.get(0);
+            String sTag = listTag.get(0);
             Intent intent = new Intent(ALARM_INTENT);
             intent.putExtra("action", iCurAction);
+            intent.putExtra("tag", sTag);
             alarmIntent = PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
             alarmMgr = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
             alarmMgr.setExact(AlarmManager.RTC_WAKEUP, iCurActionTime, alarmIntent);
@@ -133,7 +142,7 @@ public class Wake extends BroadcastReceiver {
             } else{
                 alarmMgr.setExact(AlarmManager.RTC_WAKEUP, iCurActionTime, alarmIntent);
             }
-            Log.d(LOG_TAG, "Run Action: " +iCurAction + " > "+ sdf.format(new Date(iCurActionTime)) + (listRepeatTime.get(0)> 0 ? " Repeat" : "") );
+            Log.d(LOG_TAG, "Set Timer " + sTag + " ("+ iCurAction + ") > "+ sdf.format(new Date(iCurActionTime)) + (listRepeatTime.get(0)> 0 ? " - Repeat" : "") );
         }
     }
 
@@ -144,7 +153,7 @@ public class Wake extends BroadcastReceiver {
             if(alarmIntent != null) {
                 AlarmManager mgr = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
                 mgr.cancel(alarmIntent);
-                if(listActionTime.size() > 0){
+                if(listAction.size() > 0){
                     removeAction(0);
                     setNextTimer();}}
         } else {                   // Remove action from the list
@@ -159,24 +168,25 @@ public class Wake extends BroadcastReceiver {
     // RECEIVER called when wake up timer is fired
     @Override public void onReceive(Context con, Intent intent) {
         boolean bNextNow = false;
-        Log.w(LOG_TAG, "Exe Action: " + intent.getIntExtra("action", 0) + " > " + sdf.format(new Date()));
+        Log.w(LOG_TAG, "Exe Timer " + intent.getStringExtra("tag") + " (" + intent.getIntExtra("action", 0) + ") :  " + sdf.format(new Date()));
 
         if(actionCode != null)
-            actionCode.onAction(intent.getIntExtra("action", 0), true, 0, null);
+            actionCode.onAction(intent.getIntExtra("action", 0), true, 0, intent.getStringExtra("tag"));
+
+        if(listRepeatTime.get(0)> 0){                                       // its a repeat message, add it again
+            runDelayed(listAction.get(0), listRepeatTime.get(0), true, intent.getStringExtra("tag"));
+        }  else {
+            removeAction(0);
+            saveActions();
+        }
 
         if(listAction.size() > 0){
-            if(listRepeatTime.get(0)> 0){       // its a repeat message, add it again
-                runDelayed(listAction.get(0), listRepeatTime.get(0), true);
-            }  else {
-                removeAction(0);
-                saveActions();
-            }
-
             long iNextActionTime = listActionTime.get(0);
-            if(iNextActionTime < System.currentTimeMillis()+1000L){                                // If next action is already late or time is less then 1 second, run it now
-                intent = new Intent(ALARM_INTENT);
+            if(iNextActionTime < System.currentTimeMillis() + 1000L){         // If next action is already late or time is less then 1 second,
+                intent = new Intent(ALARM_INTENT);                            // run it now, as sleep wake minimum resolution is 5 seconds
                 iCurAction = listAction.get(0);
                 intent.putExtra("action", iCurAction);
+                intent.putExtra("tag", listTag.get(0));
                 bNextNow = true;
             }
 
@@ -189,9 +199,10 @@ public class Wake extends BroadcastReceiver {
 
     // METHOD removes an Action from lists
     private static void removeAction(int iIndex){
-        listActionTime.remove(iIndex);
+        listTag.remove(iIndex);
         listAction.remove(iIndex);
         listRepeatTime.remove(iIndex);
+        listActionTime.remove(iIndex);
     }
 
 
@@ -208,34 +219,39 @@ public class Wake extends BroadcastReceiver {
 
     // Stop the Wake class completely
     public void stop(){
+        listTag.clear();
         listAction.clear();
         listActionTime.clear();
         listRepeatTime.clear();
+        listTag.clear();
         cancelPending();
         instance = null;
     }
 
     // METHOD saves list to prefs, in case the app restarts
     private static void saveActions(){
-        String sTime = "", sRepeat = "", sAction = "";
+        String sTime = "", sRepeat = "", sAction = "", sTag ="";
         SharedPreferences sharedPref = context.getSharedPreferences("WakeListener", Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = sharedPref.edit();
 
-        int iSize = listActionTime.size();
+        int iSize = listAction.size();
         for(int i=0; i < iSize; i++){
+            sTag += listTag.get(i);
+            sAction += listAction.get(i).toString();
             sTime += listActionTime.get(i).toString();
             sRepeat += listRepeatTime.get(i).toString();
-            sAction += listAction.get(i).toString();
             if(i < iSize-1){
                 sTime += ",";
                 sRepeat += ",";
                 sAction += ",";
+                sTag += "\n";
             }
         }
 
         editor.putString("time", sTime);
         editor.putString("repeat", sRepeat);
         editor.putString("action", sAction);
+        editor.putString("tag", sTag);
         editor.apply();
     }
 
@@ -245,18 +261,27 @@ public class Wake extends BroadcastReceiver {
         String sTime = sharedPref.getString("time", "");
         String sRepeat = sharedPref.getString("repeat", "");
         String sAction = sharedPref.getString("action", "");
+        String sTag = sharedPref.getString("tag", "");
 
         if(!sTime.equals("")){
+            String arrTag[] = sTag.split("\n");
             String arrTime[] = sTime.split(",");
             String arrRepeat[] = sRepeat.split(",");
             String arrAction[] = sAction.split(",");
             Log.e(LOG_TAG, arrTime.length + " Pending actions loaded.");
 
             for(int i=0; i < arrTime.length; i++){
+                listTag.add(arrTag[i]);
+                listAction.add(Integer.parseInt(arrAction[i]));
                 listActionTime.add(Long.parseLong(arrTime[i]));
                 listRepeatTime.add(Long.parseLong(arrRepeat[i]));
-                listAction.add(Integer.parseInt(arrAction[i]));
             }}
     }
 
+    // CLASS to hold wake event details
+    class WakeEvent{
+        int iAction;
+        String sTag;
+        long iActionTime, iRepeatTime;
+    }
 }

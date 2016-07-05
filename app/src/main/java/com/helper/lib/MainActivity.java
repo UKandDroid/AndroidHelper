@@ -23,13 +23,13 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         View v = findViewById(R.id.btn_hello);
-        Anim anim1 = new Anim(v);
-        anim1.addAnimation(Anim.TYPE_TRANSLATE_X, Anim.INTER_LINEAR, 0, 200, 3000, 1000);
-        anim1.addAnimation(Anim.TYPE_ROTATE, Anim.INTER_LINEAR, 0, 360, 3000, 1000);
-        anim1.addAnimation(Anim.TYPE_TRANSLATE_X, Anim.INTER_LINEAR, 0, 200, 1000, 0);
+        Wake wake = Wake.init(this, new Flow.Code() {
+            @Override public void onAction(int iAction, boolean bSuccess, int iExtra, Object data) {
 
-        anim1.start();
-
+            }
+        });
+        wake.runDelayed(1, 1000L*10, "one");
+      //  wake.runRepeat(2, 1000L*20, "two");
     }
 
 
