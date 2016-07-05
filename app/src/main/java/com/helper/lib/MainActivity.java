@@ -23,30 +23,13 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         View v = findViewById(R.id.btn_hello);
-        Anim valueAnim = new Anim(v);
-     /*
-        final Animation anim1 = new TranslateAnimation(0, 100, 0, 0);
-        final RotateAnimation anim2 = new RotateAnimation(0, 90, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
-        anim1.setDuration(1000);
-        anim2.setDuration(1000);
-        anim2.setStartOffset(1000);
-        anim1.setInterpolator(new LinearInterpolator());
-        anim2.setInterpolator(new LinearInterpolator());
+        Anim anim1 = new Anim(v);
+        anim1.addAnimation(Anim.TYPE_TRANSLATE_X, Anim.INTER_LINEAR, 0, 200, 3000, 1000);
+        anim1.addAnimation(Anim.TYPE_ROTATE, Anim.INTER_LINEAR, 0, 360, 3000, 1000);
+        anim1.addAnimation(Anim.TYPE_TRANSLATE_X, Anim.INTER_LINEAR, 0, 200, 1000, 0);
 
-        final AnimationSet animSet = new AnimationSet(false);
-        v.clearAnimation();
-        animSet.addAnimation(anim2);
-        animSet.addAnimation(anim1);
-        v.setAnimation(animSet);
-        animSet.start();
+        anim1.start();
 
-        animSet.setFillAfter(true);
-*/
-        valueAnim.addAnimation(Anim.TYPE_ROTATE, Anim.INTER_LINEAR, 0, 90, 1000,0);
-        valueAnim.addAnimation(Anim.TYPE_TRANSLATE_X, Anim.INTER_LINEAR, 0, 200, 1000, 0);
-
-
-        valueAnim.start();
     }
 
 

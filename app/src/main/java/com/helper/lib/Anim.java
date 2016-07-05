@@ -1,7 +1,6 @@
 package com.helper.lib;
 
 import android.animation.ValueAnimator;
-import android.content.Context;
 import android.util.DisplayMetrics;
 import android.view.View;
 import android.view.animation.AccelerateDecelerateInterpolator;
@@ -47,15 +46,16 @@ public class Anim {
     private static String LOG_TAG = "Anim";
 
     private View view;
-    private float pivotX = 0.5f, pivotY =0.5f;                    // Animation bug, if view has been translated, pivot 0.5 does not work
-    private float width, height;
-    private float moveX =0, moveY =0;
     private Flow flowAnimation;
+    private float pivotX = 0.5f, pivotY =0.5f;                    // Animation bug, if view has been translated, pivot 0.5 does not work
+    private float moveX =0, moveY =0;
     private AnimationSet animationSet = new AnimationSet(false);
     private String iDefaultInter = INTER_ACC_DECELERATE;
     private Flow.Code valueChangeList;
     private List<AnimData> listAnimData = new ArrayList<>();
-    private boolean bLayoutChangeCalled = false;
+    private boolean bViewCreated = false;
+    private boolean bStarted = false;
+    private long iStartDelay = 0;
 
     public Anim(){}
     public Anim(View v){ setView(v);}
@@ -63,10 +63,13 @@ public class Anim {
     public void setView(View v){
         view = v;
         v.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
-            @Override public void onLayoutChange(View v, int left, int top, int right, int bottom, int oldLeft, int oldTop, int oldRight, int oldBottom) {
-                if (!bLayoutChangeCalled) {
-                    flowAnimation.runOnUI(-1);                              // Load animations
-                    bLayoutChangeCalled = true;
+            @Override
+            public void onLayoutChange(View v, int left, int top, int right, int bottom, int oldLeft, int oldTop, int oldRight, int oldBottom) {
+                if (!bViewCreated) {
+                    bViewCreated = true;
+                    if (bStarted) {
+                        flowAnimation.runOnUI(-1);
+                    }
                 }
             }
         });
@@ -128,17 +131,16 @@ public class Anim {
         }
 
         AnimData anim = new AnimData();
-        anim.iDuration = iDuration;
-        anim.iStart = iStart;
         anim.iEnd = iEnd;
         anim.sType = sType;
+        anim.anim = animator;
+        anim.iStart = iStart;
+        anim.iDuration = iDuration;
+        anim.iAction = iValueAction;
         anim.iAction = iValueAction;
         anim.sInterpolator = sInterpolator;
-        anim.anim = animator;
-        anim.iAction = iValueAction;
         anim.bValueAnim = bValueAnimation;
         anim.iStartTime = iStartTime;
-
         listAnimData.add(anim);
     }
 
@@ -204,7 +206,18 @@ public class Anim {
                 flowAnimation.runDelayedOnUI(i, animData.bValueAnim, 0, listAnimData.get(i).iStartTime);
             }
         }
+
+        if(!bStarted && bViewCreated){
+            flowAnimation.runDelayed(-1, iStartDelay);
+        }
+        bStarted = true;
     }
+
+    public void startDelayed(long iDelay){
+        iStartDelay = iDelay;
+        start();
+    }
+
 
     Flow.Code actionCode = new Flow.Code() {
         @Override public void onAction(int iAction, boolean bSuccess, int iExtra, Object data) {
@@ -221,7 +234,7 @@ public class Anim {
                     valueAnim.start();
                     break;
 
-                case -1:                // load animation bit late so we have view width and height
+                case -1: case -2:                // load animation bit late so we have view width and height
                     for(int i=0; i < listAnimData.size(); i++){
                         AnimData animData = listAnimData.get(i);
                         if(!animData.bValueAnim){
