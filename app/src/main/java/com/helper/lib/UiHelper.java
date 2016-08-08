@@ -1,7 +1,8 @@
-package com.helper.lib;
+package com.connect.app.utils;
 
 import android.app.ProgressDialog;
 import android.content.Context;
+import android.graphics.Typeface;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.Gravity;
@@ -9,15 +10,18 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
+import blueband.com.Helper.Utils;
+
 /**
  * Created by Ubaid on 15/04/2016.
  */
-// Version 1.1.1
+// Version 1.1.0
 public class UiHelper {
 
     private Context context;
@@ -30,7 +34,6 @@ public class UiHelper {
     private ProgressDialog progressDialog;
     private boolean bKeyboardVisible = false;
     private RelativeLayout layoutKbDetect = null;
-    public interface ThreadCode { public void execute(); }
 
     // CONSTRUCTORS
     public UiHelper() {}
@@ -46,8 +49,10 @@ public class UiHelper {
     }
     // METHODS - returns arView based on type
     public TextView textView(int id){ return (TextView)getView(id); }
+    public CheckBox checkBox(int id){ return (CheckBox)getView(id); }
     public EditText editText(int id){ return (EditText)getView(id); }
     public Button button(int id){ return (Button)getView(id);}
+
     // METHOD - sets Background for a arView
     public void setBackground(int id, int resource){
         getView(id).setBackgroundResource(resource);
@@ -68,17 +73,17 @@ public class UiHelper {
     public void setClickable(int id, boolean bTrue){ getView(id).setClickable(bTrue); }
 
     // METHOD - sets text for Button, TextView, EditText
-    public void setText(final int id, final String sText){
+    public TextView setText(final int id, final String sText){
         final View view = getView(id);
         if(Looper.myLooper() == Looper.getMainLooper()) {  // if current thread is main thread
             ((TextView) view).setText(sText);
         } else {
             new Handler(Looper.getMainLooper()).post(new Runnable() {
-                @Override
-                public void run() {
+                @Override public void run() {
                     ((TextView) view).setText(sText);// Update it on main thread
                 }});
         }
+        return (TextView)view;
     }
     // METHOD - sets text  and Text color for Button, TextView, EditText
     public void setText(final int id, final int iColor, final String sText ){
@@ -88,8 +93,7 @@ public class UiHelper {
             ((TextView) view).setText(sText);
         } else {                                           // Update it on main thread
             new Handler(Looper.getMainLooper()).post(new Runnable() {
-                @Override
-                public void run() {
+                @Override public void run() {
                     ((TextView) view).setText(sText);// Update it on main thread
                     ((TextView) view).setTextColor(iColor);
                 }});
@@ -102,9 +106,21 @@ public class UiHelper {
             ((TextView) view).setTextColor(iColor);
         } else {                                           // Update it on main thread
             new Handler(Looper.getMainLooper()).post(new Runnable() {
-                @Override
-                public void run() {
+                @Override public void run() {
                     ((TextView) view).setTextColor(iColor);
+                }});
+        }
+    }
+    // METHOD - sets Text color for Button, TextView, EditText
+    public void setTextBold(final int id, final boolean bTrue ){
+        final View view = getView(id);
+        if(Looper.myLooper() == Looper.getMainLooper()) {  // if current thread is main thread
+            ((TextView) view).setTypeface(null, bTrue ? Typeface.BOLD : Typeface.NORMAL);
+
+        } else {                                           // Update it on main thread
+            new Handler(Looper.getMainLooper()).post(new Runnable() {
+                @Override public void run() {
+                    ((TextView) view).setTypeface(null, bTrue ? Typeface.BOLD : Typeface.NORMAL);
                 }});
         }
     }
@@ -153,8 +169,9 @@ public class UiHelper {
         }
     }
     // METHOD - sets onClickListener
-    public void setOnClickListener(int id, View.OnClickListener listener){
+    public View.OnClickListener setOnClickListener(int id, View.OnClickListener listener){
         getView(id).setOnClickListener(listener);
+        return  listener;
     }
     // METHOD - sets Tag for a arView
     public void setTag(int id, String tag){
@@ -166,7 +183,7 @@ public class UiHelper {
     }
 
     // METHOD - Returns view either from saved arView or by findViewById() method
-    private View getView(int id){
+    public View getView(int id){
         short index = (short)(id & 0xFF);
         if(arId[index] != id) {
             arId[index] = id;
@@ -198,7 +215,7 @@ public class UiHelper {
     }
 
     // METHOD - runs code on main thread, use for updating UI from non-UI thread
-    public static void runOnUI(final ThreadCode code){
+    public static void runOnUI(final Utils.ThreadCode code){
         Handler mainHandler = new Handler(Looper.getMainLooper());
         mainHandler.post(new Runnable() {
             @Override
@@ -208,7 +225,7 @@ public class UiHelper {
         });
     }
     // METHOD - executes delayed code on Main thread
-    public static void runDelayedOnUI(long iTime, final ThreadCode code){
+    public static void runDelayedOnUI(long iTime, final Utils.ThreadCode code){
         final Handler handler = new Handler(Looper.getMainLooper());
         handler.postDelayed(new Runnable() {
             @Override

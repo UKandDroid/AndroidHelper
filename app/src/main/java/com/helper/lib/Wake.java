@@ -1,4 +1,4 @@
-package com.helper.lib;
+package blueband.com.Helper;
 
 import android.annotation.TargetApi;
 import android.app.AlarmManager;
@@ -10,7 +10,6 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.PowerManager;
-import android.util.Log;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -40,14 +39,15 @@ public class Wake extends BroadcastReceiver {
     private SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
     private static String ALARM_INTENT = ".receiver.Wake";
     private static int API_VERSION = Build.VERSION.SDK_INT;
-    private static String LOG_TAG = "BE_Wake";
-
+    private static String LOG_TAG =  "BE_Wake";
+    private static Logger log = new Logger(LOG_TAG);
     // CONSTRUCTOR to be called by Intent service, Don't use, instead use init() to initialize the class
     public Wake(){}
 
     // METHOD to get instance of the class, as class is singleton
     public Wake instance(){
         if(instance == null){ throw  new RuntimeException("Class not initialised, use init(Context, Flow.Code )");}
+        log.saveToFile();
         return instance;
     }
 
@@ -70,7 +70,7 @@ public class Wake extends BroadcastReceiver {
         PowerManager pm = (PowerManager)context.getSystemService(Context.POWER_SERVICE);
         wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK , "Wake");
 
-        loadPendingActions();
+       // loadPendingActions();
         instance.setNextTimer();
         return instance;
     }
@@ -143,33 +143,36 @@ public class Wake extends BroadcastReceiver {
             } else{
                 alarmMgr.setExact(AlarmManager.RTC_WAKEUP, iCurActionTime, alarmIntent);
             }
-            Log.d(LOG_TAG, "Set Timer " + sTag + " ("+ iCurAction + ") >  "+ sdf.format(new Date(iCurActionTime)) + (listRepeatTime.get(0)> 0 ? " - Repeat" : "") );
+            log.d( "Set Timer " + sTag + " ("+ iCurAction + ") >  "+ sdf.format(new Date(iCurActionTime)) + (listRepeatTime.get(0)> 0 ? " - Repeat" : "") );
         }
     }
 
     // METHOD cancels an action Run
-    public void cancelRun(int iAction){
-        if(iAction == iCurAction){   // its the current pending action, cancel it and set the next one
-            Log.w(LOG_TAG, "Cancelled Action: "+ iAction );
-            if(alarmIntent != null) {
-                AlarmManager mgr = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-                mgr.cancel(alarmIntent);
-                if(listAction.size() > 0){
-                    removeAction(0);
-                    setNextTimer();}}
-        } else {                   // Remove action from the list
-            for(int i=0; i< listAction.size(); i++){
-                if(iAction == listAction.get(i)){
-                    removeAction(i);
-                    Log.w(LOG_TAG, "Cancelled Timer " + listTag.get(i)+"("+iAction+")");
-                }}
-        }
+    public synchronized void cancelRun(int iAction){
+        try{
+            if(iAction == iCurAction){   // its the current pending action, cancel it and set the next one
+                if(alarmIntent != null) {
+                    AlarmManager mgr = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+                    mgr.cancel(alarmIntent);
+                    if(listAction.size() > 0){
+                        log.w( "Cancelled Timer: "+  listTag.get(0) + " ("+ iCurAction + ") " );
+                        removeAction(0);
+                        setNextTimer();}}
+            } else {                   // Remove action from the list
+                for(int i=0; i < listAction.size(); i++){
+                    if(iAction == listAction.get(i)){
+                        log.w( "Cancelled Timer " + listTag.get(i)+" ("+iAction+")");
+                        removeAction(i);
+                        i = 0;
+                    }}
+            }
+        }catch (Exception e){e.printStackTrace();}
     }
 
     // RECEIVER called when wake up timer is fired
     @Override public void onReceive(Context con, Intent intent) {
         boolean bNextNow = false;
-        Log.w(LOG_TAG, "Exe Timer " + intent.getStringExtra("tag") + " (" + intent.getIntExtra("action", 0) + ") :  " + sdf.format(new Date()));
+        log.w( "Exe Timer " + intent.getStringExtra("tag") + " (" + intent.getIntExtra("action", 0) + ") :  " + sdf.format(new Date()));
 
         if(actionCode != null)
             actionCode.onAction(intent.getIntExtra("action", 0), true, 0, intent.getStringExtra("tag"));
@@ -209,7 +212,7 @@ public class Wake extends BroadcastReceiver {
 
     // METHOD cancels any pending alarms
     public void cancelPending(){
-        Log.d(LOG_TAG, "Cancel Pending");
+        log.d( "Cancel Pending");
         if(alarmIntent == null) {
             Intent intent = new Intent(context, Wake.class);
             alarmIntent = PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_CANCEL_CURRENT);
@@ -232,10 +235,10 @@ public class Wake extends BroadcastReceiver {
     // METHOD saves list to prefs, in case the app restarts
     private static void saveActions(){
         String sTime = "", sRepeat = "", sAction = "", sTag ="";
-        SharedPreferences sharedPref = context.getSharedPreferences("WakeListener", Context.MODE_PRIVATE);
+        SharedPreferences sharedPref = context.getSharedPreferences(context.getPackageName()+"WakeListener", Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = sharedPref.edit();
-
         int iSize = listAction.size();
+
         for(int i=0; i < iSize; i++){
             sTag += listTag.get(i);
             sAction += listAction.get(i).toString();
@@ -269,7 +272,7 @@ public class Wake extends BroadcastReceiver {
             String arrTime[] = sTime.split(",");
             String arrRepeat[] = sRepeat.split(",");
             String arrAction[] = sAction.split(",");
-            Log.e(LOG_TAG, arrTime.length + " Pending actions loaded.");
+            log.e( arrTime.length + " Pending actions loaded.");
 
             for(int i=0; i < arrTime.length; i++){
                 listTag.add(arrTag[i]);
@@ -279,10 +282,4 @@ public class Wake extends BroadcastReceiver {
             }}
     }
 
-    // CLASS to hold wake event details
-    class WakeEvent{
-        int iAction;
-        String sTag;
-        long iActionTime, iRepeatTime;
-    }
 }
