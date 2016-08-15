@@ -1,4 +1,4 @@
-package blueband.com.Helper;
+package com.helper.lib;
 
 import android.annotation.TargetApi;
 import android.app.AlarmManager;

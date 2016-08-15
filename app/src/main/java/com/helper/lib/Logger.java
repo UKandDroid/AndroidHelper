@@ -1,4 +1,4 @@
-package blueband.com.Helper;
+package com.helper.lib;
 
 import android.os.Environment;
 import android.util.Log;
@@ -15,8 +15,7 @@ import java.io.RandomAccessFile;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-import blueband.com.Settings;
-
+// VERSION 1.1.0
 /**
  * Created by Ubaid on 29/06/2016.
  */
@@ -24,7 +23,7 @@ public class Logger {
     private String LOG_TAG = "";
     private boolean bSaveToFile = false;
     private static FileOutputStream stream ;
-    private int logLevel = Settings.LOG_LEVEL;
+    private int logLevel = 3;
     private static String FILE_NAME = "Nudge.html";
     private static String DIRECTORY = "/Android/BlueBand/";
     private static final String END = "</font>";

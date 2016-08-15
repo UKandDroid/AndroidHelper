@@ -1,10 +1,12 @@
-package com.connect.app.utils;
+package com.helper.lib;
 
 import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.res.Resources;
 import android.graphics.Typeface;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.DisplayMetrics;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,18 +18,16 @@ import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
-import blueband.com.Helper.Utils;
-
 /**
  * Created by Ubaid on 15/04/2016.
  */
-// Version 1.1.0
+// Version 1.1.1
 public class UiHelper {
 
     private Context context;
     private ViewGroup rootView;
-    private int[] arId = new int[256];   // Store loaded arView arId, so they can checked against.
-    private View[] arView = new View[256];// keeps reference of loaded views, so they are not loaded again..
+    private int[] arId = new int[256];      // Store loaded arView arId, so they can checked against.
+    private View[] arView = new View[256];  // keeps reference of loaded views, so they are not loaded again..
     private RelativeLayout layoutProgress = null;
     private ProgressBar progressBar;
     private static int iKbCount = 0;
@@ -85,6 +85,22 @@ public class UiHelper {
         }
         return (TextView)view;
     }
+
+    // METHOD - sets text for Button, TextView, EditText
+    public TextView setHint(final int id, final String sText){
+        final View view = getView(id);
+        if(Looper.myLooper() == Looper.getMainLooper()) {  // if current thread is main thread
+            ((TextView) view).setHint(sText);
+        } else {
+            new Handler(Looper.getMainLooper()).post(new Runnable() {
+                @Override public void run() {
+                    ((TextView) view).setHint(sText);// Update it on main thread
+                }});
+        }
+        return (TextView)view;
+    }
+
+
     // METHOD - sets text  and Text color for Button, TextView, EditText
     public void setText(final int id, final int iColor, final String sText ){
         final View view = getView(id);
@@ -259,5 +275,20 @@ public class UiHelper {
         progressBar = null;
         progressDialog = null;
         layoutKbDetect = null;
+    }
+
+    // METHOD - Convert pixels to dp
+    public static int pxToDp(Context con, int iPixels){
+        DisplayMetrics displayMetrics = con.getResources().getDisplayMetrics();
+        int dp = Math.round(iPixels / (displayMetrics.xdpi / DisplayMetrics.DENSITY_DEFAULT));
+        return dp;
+    }
+
+    // METHOD - Convert dp to pixels
+    public static int dpToPx(Context con, int dp){
+        Resources r =  con.getResources();
+        DisplayMetrics displayMetrics = r.getDisplayMetrics();
+        int px = Math.round(dp * (displayMetrics.xdpi / DisplayMetrics.DENSITY_DEFAULT));
+        return px;
     }
 }

@@ -1,4 +1,4 @@
-package blueband.com.Helper;
+package com.helper.lib;
 
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -22,19 +22,20 @@ import android.widget.TextView;
 import java.util.ArrayList;
 import java.util.List;
 
-// Version 1.0.8
-// CLASS for event based onAction execution
 
+// VERSION 1.0.9
+// CLASS Flow
 public class Flow {
     private Code code;                                      // Call back for onAction to be executed
     private boolean bRunning;
     private HThread hThread;
+    private int iKeybCount = 0;
+    private EditText selText;                               // Selected text filed, used for EditText text enter
+    private ViewGroup keybViewRoot;
     private Action waitAction = null;
     private static int iThreadCount = 0;
-    private boolean bKeyboardVisible = false;
-    private int iKeybCount = 0;
-    private ViewGroup keybViewRoot;
     private boolean bTextEntered = false;
+    private boolean bKeyboardVisible = false;
     private RelativeLayout layoutKbDetect = null;
     private static final String LOG_TAG = "Flow";
     private static final int LOG_LEVEL = 4;
@@ -59,16 +60,23 @@ public class Flow {
     }
 
     public void stop() {
-        for (int i = 0; i < listActions.size(); i++) {
-            listActions.get(i).recycle();
-        }
-        hThread.stop();
-        listActions = null;
-        waitAction = null;
-        Event.releasePool();
+        try {
+            bRunning = false;
+            for (int i = 0; i < listActions.size(); i++) {
+                listActions.get(i).recycle();
+            }
+            hThread.stop();
+            listActions = null;
+            waitAction = null;
+            Event.releasePool();
+
+            if (keybViewRoot != null && layoutKbDetect != null)
+                keybViewRoot.removeView(layoutKbDetect);
+        } catch (Exception e) {}
     }
 
     // METHODS run an action
+
     public void run(int iAction) {
         hThread.run(iAction);
     }
@@ -186,6 +194,8 @@ public class Flow {
     }
 
     public void event(String sEvent, boolean bSuccess, int iExtra, Object obj) {
+        if (!bRunning) return;
+
         if (waitAction != null) {
             waitAction.onEvent(sEvent, bSuccess, iExtra, obj);
         }
@@ -197,6 +207,7 @@ public class Flow {
 
     // METHOD cancel a runDelay or RunRepeated
     public void cancelRun(int iAction) {
+        if (!bRunning) return;
         hThread.mHandler.removeMessages(iAction);
         hThread.mUiHandler.removeMessages(iAction);
     }
@@ -271,12 +282,12 @@ public class Flow {
 
     // CLASS for events for action, when all events occur action is triggered
     public class Action {
-        private int iCodeStep;                   // Code step to execute for this action
-        private int iEventCount;                 // How many event are for this action code to be triggered
+        private int iCodeStep;                                      // Code step to execute for this action
+        private int iEventCount;                                    // How many event are for this action code to be triggered
         //   private boolean bEventFound;
-        private boolean bRunOnUI = false;        // Code run on Background / UI thread
-        public boolean bFireOnce = false;      // Clear Action once fired, used for wait action
-        private int iSetStatus = Event.WAITING;  // Event set status as a whole, waiting, success, non success
+        private boolean bRunOnUI = false;                           // Code run on Background / UI thread
+        public boolean bFireOnce = false;                           // Clear Action once fired, used for wait action
+        private int iSetStatus = Event.WAITING;                     // Event set status as a whole, waiting, success, non success
         private List<Event> listEvents = new ArrayList<>();         // List to store events needed for this action
 
         // CONSTRUCTOR
@@ -284,7 +295,7 @@ public class Flow {
             this.iCodeStep = iCodeStep;
             iEventCount = events.length;
             for (int i = 0; i < iEventCount; i++) {
-                listEvents.add(Event.obtain(events[i]));           // get events from events pool
+                listEvents.add(Event.obtain(events[i]));            // get events from events pool
             }
         }
 
@@ -482,38 +493,50 @@ public class Flow {
 
             // Triggered when Text entered in text field, i.e when text field loses focus, enter button is pressed or keyboard is closed
             case Event.TEXT_ENTERED:
+                if(view.getWidth() != 0){                                                           // If view is created, set it up else wati
+                    keyboardHideActionForText(Flow.this, bRunOnUI, iAction, view);
+                    view.setTag(iAction);
+                    selText = (EditText) view;
+                }
                 view.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-                    @Override
-                    public void onFocusChange(View v, boolean hasFocus) {
+                    @Override public void onFocusChange(View v, boolean hasFocus) {
+                        String sFieldName = v.getResources().getResourceName(v.getId());
+                        sFieldName = sFieldName.split("/")[1];
                         if (!hasFocus) {
-                            log(4, "Text field lost focus");
+                            log(4,  sFieldName + " field lost focus " );
                             if (!bTextEntered) {  // If Event has not already been triggered by closing the keyboard
+                                logw(4, "Text ENTERED on Lost focus");
                                 bTextEntered = true;
-                                if (bRunOnUI) { hThread.runOnUI(iAction, true, 0, view);
-                                } else { hThread.run(iAction, true, 1, view); }
+                                if (bRunOnUI) {
+                                    hThread.runOnUI(iAction, true, 0, view);
+                                } else {
+                                    hThread.run(iAction, true, 1, view);
+                                }
                             }
                         } else {
+                            selText = (EditText) v;
                             bTextEntered = false;
-                            log(4, "Text field got focus");
+                            log(4, sFieldName + " field lost focus ");
                             if (view.getTag() == null) {
                                 keyboardHideActionForText(Flow.this, bRunOnUI, iAction, view);
-                                view.setTag(true);
+                                view.setTag(iAction);
                             }
-                        }
-                    }
-                });
+                        }}});
 
                 ((EditText) view).setOnEditorActionListener(new TextView.OnEditorActionListener() {
                     @Override
                     public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
                         if (actionId == EditorInfo.IME_ACTION_DONE) {
-                            if (bRunOnUI) { hThread.runOnUI(iAction, true, 0, view);
-                            } else { hThread.run(iAction, true, 3, view);}
-                            return false;
+                            logw(4, "Text ENTERED on KB Done");
+                            if (bRunOnUI) {
+                                hThread.runOnUI(iAction, true, 0, view);
+                            } else {
+                                hThread.run(iAction, true, 3, view);
+                            }
+                            bTextEntered = true;
                         }
                         return false;
-                    }
-                });
+                    }});
                 break;
 
             // Triggered when text changes
@@ -566,10 +589,12 @@ public class Flow {
         }
     }
 
+
     // METHOD - run action when keyboard is hidden, works only for text field, when its focused
     public void keyboardHideActionForText(final Flow flow, final boolean bRunOnUI, final int iAction, final Object obj) {
-        if (layoutKbDetect == null || layoutKbDetect.getParent() == null) {                         // if its not already setup
-            iKeybCount = 0;
+
+        if (layoutKbDetect == null || layoutKbDetect.getParent() == null) {
+            iKeybCount = 0;                                                                         // if its not already setup
             keybViewRoot = (ViewGroup) ((View) obj).getRootView();
             if (layoutKbDetect == null) {
                 layoutKbDetect = new RelativeLayout(((View) obj).getContext());
@@ -580,15 +605,20 @@ public class Flow {
                 public void onLayoutChange(View view, int i, int i1, int i2, int i3, int i4, int i5, int i6, int i7) {
                     if (++iKeybCount > 1) {                                                         // Ignore first Two calls, layout is called twice when keyboard is first displayed
                         bKeyboardVisible = !bKeyboardVisible;
-                        log(4, "Keyboard " + (bKeyboardVisible ? "" : ""));
-                        if (((EditText) obj).isFocused() && !bKeyboardVisible) {                    // if text field is focused and keyboard is hidden run action
-                            log(4, "Text ENTERED ");
+                        log(4, "Keyboard " + (bKeyboardVisible ? "open" : "close"));
+                        if (selText.isFocused() && !bKeyboardVisible) {                             // if text field is focused and keyboard is hidden run action
+                            logw(4, "Text ENTERED on KB Hidden ");
                             bTextEntered = true;
                             if (bRunOnUI) {
-                                flow.runOnUI(iAction, 2, obj);
+                                flow.runOnUI((Integer) selText.getTag(), 2, selText);
                             } else {
-                                flow.run(iAction, 2, obj);
-                            }}}}});
+                                flow.run((Integer) selText.getTag(), 2, selText);
+                            }
+                        }
+                    }
+                }
+            });
+
             keybViewRoot.addView(layoutKbDetect);
         }
     }
