@@ -94,6 +94,7 @@ public class Wake extends BroadcastReceiver {
             for(int i=0; i< iSize; i++){                            // If it does, remove it, so there is always one repeating alarm
                 if(listAction.get(i) == iAction) {                   // for a action
                     removeAction(i);
+                    i = 0;
                     iSize = listActionTime.size();
                 }}}
 

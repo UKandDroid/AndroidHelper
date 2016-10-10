@@ -1,5 +1,6 @@
 package com.helper.lib;
 
+import android.content.Context;
 import android.os.Environment;
 import android.util.Log;
 
@@ -15,15 +16,16 @@ import java.io.RandomAccessFile;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-// VERSION 1.1.0
 /**
  * Created by Ubaid on 29/06/2016.
  */
 public class Logger {
     private String LOG_TAG = "";
+    private static Context context;
     private boolean bSaveToFile = false;
     private static FileOutputStream stream ;
     private int logLevel = 3;
+    private boolean INTERNAL_STORAGE = true;
     private static String FILE_NAME = "Nudge.html";
     private static String DIRECTORY = "/Android/BlueBand/";
     private static final String END = "</font>";
@@ -51,18 +53,21 @@ public class Logger {
         if(iLevel <= logLevel) { Log.w(LOG_TAG, sLog); } }
 
     public Logger(String sLogTag){ LOG_TAG = sLogTag;}
-
+    public static void initialise(Context con){ context = con;}
     public void saveToFile(){
         bSaveToFile = true;
         if(stream == null){
-            File dir = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + DIRECTORY);
-            if(!dir.exists()) dir.mkdirs();
-            File file = new File(dir, FILE_NAME);
-
             try {
-                if(!file.exists())
-                    file.createNewFile();
-                stream = new FileOutputStream(file, true );
+                if(INTERNAL_STORAGE) {
+                    stream = context.openFileOutput(FILE_NAME, Context.MODE_APPEND);
+                } else {
+                    File dir = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + DIRECTORY);
+                    if(!dir.exists()) dir.mkdirs();
+                    File file = new File(dir, FILE_NAME);
+                    if(!file.exists())
+                        file.createNewFile();
+                    stream = new FileOutputStream(file, true );
+                }
             } catch (Exception e) { e.printStackTrace();}
         }
     }
@@ -79,16 +84,21 @@ public class Logger {
     }
 
     public StringBuilder getLogFileData(){
-        File dir = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + DIRECTORY);
-        File file = new File(dir, FILE_NAME);
+        File file;
         StringBuilder sb = new StringBuilder();
+
+        if(INTERNAL_STORAGE){
+            file = context.getFileStreamPath(FILE_NAME);
+        } else {
+            File dir = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + DIRECTORY);
+            file = new File(dir, FILE_NAME);
+        }
 
         if(!file.exists())
             return null;
 
-
         try {
-           BufferedReader in = new BufferedReader(new InputStreamReader(new ReverseLineInputStream(file)));
+            BufferedReader in = new BufferedReader(new InputStreamReader(new ReverseLineInputStream(file)));
             while(sb.length() < 1024*1024) {        // Read only 1MB
                 String line = in.readLine();
                 if (line == null) { break; }
@@ -105,20 +115,27 @@ public class Logger {
     }
 
     public boolean deleteLog(){
-        File dir = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + DIRECTORY);
-        File file = new File(dir, FILE_NAME);
-        PrintWriter writer = null;
-        try {
-            writer = new PrintWriter(file);
-            writer.print("");
-            writer.close();
-        } catch (FileNotFoundException e) { e.printStackTrace();}
-
+        if(INTERNAL_STORAGE){
+            File dir = context.getFilesDir();
+            File file = new File(dir, FILE_NAME);
+            file.delete();                                                                          // Delete old file
+            stream = null;
+            saveToFile();                                                                           // Create new one
+        } else {
+            File dir = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + DIRECTORY);
+            File file = new File(dir, FILE_NAME);
+            PrintWriter writer = null;
+            try {
+                writer = new PrintWriter(file);
+                writer.print("");
+                writer.close();
+            } catch (FileNotFoundException e) { e.printStackTrace();}
+        }
         return true;
     }
 
 
-// Class to read Log file from End
+    // Class to read Log file from End
     public class ReverseLineInputStream extends InputStream {
 
         RandomAccessFile in;
