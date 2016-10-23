@@ -36,6 +36,7 @@
         <Button
             android:id="@+id/btn_hello"
             android:text="Agree"
+            android:onClick="onClick"
             android:layout_width="100dp"
             android:layout_height="50dp" />
 

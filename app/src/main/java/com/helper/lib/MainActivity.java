@@ -14,22 +14,21 @@ import com.helper.R;
 
 
 public class MainActivity extends AppCompatActivity {
-    Flow testFlow;
     Wake wake;
-    public static final int VERIFIED = 4;
+    public boolean bFlip = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         View v = findViewById(R.id.btn_hello);
-        Wake wake = Wake.init(this, new Flow.Code() {
+        wake = Wake.init(this, new Flow.Code() {
             @Override public void onAction(int iAction, boolean bSuccess, int iExtra, Object data) {
 
             }
         });
-        wake.runDelayed(1, 1000L*10, "one");
-        wake.runRepeat(2, 1000L*20, "two");
+        wake.runRepeat(1, 1000L*20, "one");
+        wake.runRepeat(2, 1000L*18, "two");
     }
 
 
@@ -68,6 +67,13 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    public void onClick(View v){
+        if(bFlip)
+            wake.runRepeat(1, 10* 1000L, "one");
+        else
+            wake.runRepeat(1, 20* 1000L, "one");
+        bFlip = !bFlip;
+    }
 
 
 }
