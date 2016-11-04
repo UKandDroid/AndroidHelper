@@ -23,14 +23,14 @@ import java.util.List;
 
 // Class to keep CPU awake, or awake at certain time
 public class Wake extends BroadcastReceiver {
-    private int iCurAction = -1;
-    private long iCurActionTime = 0;
+
     private static Wake instance;
     private AlarmManager alarmMgr;
     private static Context context;
     private PendingIntent alarmIntent;
     private static Flow.Code actionCode;
-    private static long FIVE_SECONDS = 5000l;
+    private static int iCurAction = -1;
+    private static long iCurActionTime = 0;
     private static PowerManager.WakeLock wakeLock;
     private static List<String> listTag = new ArrayList<>();
     private static List<Integer> listAction = new ArrayList<>();
@@ -40,9 +40,8 @@ public class Wake extends BroadcastReceiver {
     private SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
     private static String ALARM_INTENT = ".receiver.Wake";
     private static int API_VERSION = Build.VERSION.SDK_INT;
-    private static String LOG_TAG =  "BE_Wake";
+    private static String LOG_TAG =  "BE_WakeTimer";
     private static Logger log = new Logger(LOG_TAG);
-
     // CONSTRUCTOR to be called by Intent service, Don't use, instead use init() to initialize the class
     public Wake(){}
 
@@ -93,11 +92,10 @@ public class Wake extends BroadcastReceiver {
         long iTime = System.currentTimeMillis() + timeMillis;
         int iSize = listAction.size();
         if(bRepeat){                                                // If its a repeating alarm, check it already does not exist
-            for(int i=0; i < iSize; i++){                            // If it does, remove it, so there is always one repeating alarm
-                if(listAction.get(i) == iAction) {                   // for a action
+            for(int i=0; i< iSize; i++){                            // If it does, remove it, so there is always one repeating alarm
+                if(listAction.get(i) == iAction) {                  // for a action
                     removeAction(i);
-                    i--;
-                    iSize--;
+                    iSize = listActionTime.size();
                 }}}
 
         for(int i = 0; i < iSize; i++ ){
@@ -176,11 +174,12 @@ public class Wake extends BroadcastReceiver {
     @Override public void onReceive(Context con, Intent intent) {
         boolean bNextNow = false;
         log.w( "Exe Timer " + intent.getStringExtra("tag") + " (" + intent.getIntExtra("action", 0) + ") :  " + sdf.format(new Date()));
-
+        iCurAction = -1;                                                                            // Set -1, so we cannot cancel current action in execution code
+                                                                                                    //  as its the action being executed
         if(actionCode != null)
             actionCode.onAction(intent.getIntExtra("action", 0), true, 0, intent.getStringExtra("tag"));
 
-        if(listRepeatTime.get(0)> 0){                                                               // its a repeat message, add it again
+        if(listRepeatTime.get(0)> 0){                                       // its a repeat message, add it again
             runDelayed(listAction.get(0), listRepeatTime.get(0), true, intent.getStringExtra("tag"));
         }  else {
             removeAction(0);
@@ -189,9 +188,8 @@ public class Wake extends BroadcastReceiver {
 
         if(listAction.size() > 0){
             long iNextActionTime = listActionTime.get(0);
-            if(iNextActionTime < System.currentTimeMillis() + FIVE_SECONDS){                        // If next action is already late or time is less then 5 seconds,
-               log.e("Exec next timer now");
-                intent = new Intent(ALARM_INTENT);                                                  // run it now, as sleep wake minimum resolution is 5 seconds
+            if(iNextActionTime < System.currentTimeMillis() + 1000L){         // If next action is already late or time is less then 1 second,
+                intent = new Intent(ALARM_INTENT);                            // run it now, as sleep wake minimum resolution is 5 seconds
                 iCurAction = listAction.get(0);
                 intent.putExtra("action", iCurAction);
                 intent.putExtra("tag", listTag.get(0));
