@@ -2,19 +2,15 @@ package com.helper.lib;
 
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.animation.Animation;
-import android.view.animation.AnimationSet;
-import android.view.animation.RotateAnimation;
 
 import com.helper.R;
 
 
 public class MainActivity extends AppCompatActivity {
-    Wake wake;
+    WakeTimer wake;
     public boolean bFlip = true;
 
     @Override
@@ -22,7 +18,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         View v = findViewById(R.id.btn_hello);
-        wake = Wake.init(this, new Flow.Code() {
+        wake = WakeTimer.init(this, new Flow.Code() {
             @Override public void onAction(int iAction, boolean bSuccess, int iExtra, Object data) {
 
             }

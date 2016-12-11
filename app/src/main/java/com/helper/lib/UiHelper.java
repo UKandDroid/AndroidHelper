@@ -7,6 +7,7 @@ import android.graphics.Typeface;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -21,7 +22,7 @@ import android.widget.TextView;
 /**
  * Created by Ubaid on 15/04/2016.
  */
-// Version 1.1.1
+// Version 1.1.3
 public class UiHelper {
 
     private Context context;
@@ -34,6 +35,7 @@ public class UiHelper {
     private ProgressDialog progressDialog;
     private boolean bKeyboardVisible = false;
     private RelativeLayout layoutKbDetect = null;
+    private static final String LOG_TAG = "ViewHelper";
 
     // CONSTRUCTORS
     public UiHelper() {}
@@ -140,6 +142,12 @@ public class UiHelper {
                 }});
         }
     }
+    // METHOD - Checks/Un checks a box
+    public void setChecked(final int id, boolean bCheck){
+        CheckBox  checkBox = (CheckBox) getView(id);
+        checkBox.setChecked(bCheck);
+    }
+
     // METHOD - returns text for Button, TextView, EditText
     public String getViewText(int id){
         View view = getView(id);
@@ -223,7 +231,7 @@ public class UiHelper {
         layoutKbDetect.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
             @Override
             public void onLayoutChange(View view, int i, int i1, int i2, int i3, int i4, int i5, int i6, int i7) {
-                iKbCount++; // first two keyboard counts should be ignored
+                if(++iKbCount>1)                                                                    // first two calls should be ignored
                 bKeyboardVisible = !bKeyboardVisible;
             }
         });
@@ -251,22 +259,33 @@ public class UiHelper {
         }, iTime);
     }
 
-    // METHOD set keyboard state, as keyboard listener only detects change, so initial status must be set for accuracy
+    // METHOD set keyboard state, as keyboard listener only detects change, so initial status could be set if required
     public void setKeyboardState(boolean bVisible){
         bKeyboardVisible = bVisible;
     }
-    public void showKeyboard(){
-        InputMethodManager imm = (InputMethodManager)context.getSystemService(Context.INPUT_METHOD_SERVICE);
-        imm.showSoftInput(rootView, 0);
+
+    public void showKeyboard(){ showKeyboard(rootView); }
+    public void showKeyboard(View v){
+        if(rootView != null){
+            InputMethodManager imm = (InputMethodManager)context.getSystemService(Context.INPUT_METHOD_SERVICE);
+            imm.showSoftInput(v, 0);
+        } else {
+            Log.e(LOG_TAG, "Show Keyboard ERROR, rootView/supplied view is null");
+        }
     }
 
-    public void hideKeyboard(){
-        InputMethodManager imm = (InputMethodManager)context.getSystemService(Context.INPUT_METHOD_SERVICE);
-        imm.hideSoftInputFromWindow(rootView.getWindowToken(), 0);
+    public void hideKeyboard(){ hideKeyboard(rootView); }
+    public void hideKeyboard(View v){
+        if(v != null){
+            InputMethodManager imm = (InputMethodManager)context.getSystemService(Context.INPUT_METHOD_SERVICE);
+            imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
+        } else {
+            Log.e(LOG_TAG, "Hide keyboard ERROR, rootView/supplied view is null");
+        }
     }
 
     // METHOD release resources
-    public void stop(){
+    public void release(){
         context = null;
         rootView = null;
         arId = null;
