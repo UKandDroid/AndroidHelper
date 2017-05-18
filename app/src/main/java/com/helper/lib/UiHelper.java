@@ -19,10 +19,10 @@ import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
-/**
- * Created by Ubaid on 15/04/2016.
- */
-// Version 1.1.3
+
+// Version 1.1.4
+// Changed getText to getText, added setText(ID, integer)
+// Added setTextColorRes, sets text color from resource
 public class UiHelper {
 
     private Context context;
@@ -56,8 +56,15 @@ public class UiHelper {
     public Button button(int id){ return (Button)getView(id);}
 
     // METHOD - sets Background for a arView
-    public void setBackground(int id, int resource){
-        getView(id).setBackgroundResource(resource);
+    public void setBackground(final int id, final int resource){
+        if(Looper.myLooper() == Looper.getMainLooper()) {  // if current thread is main thread
+            getView(id).setBackgroundResource(resource);
+        } else {
+            new Handler(Looper.getMainLooper()).post(new Runnable() {
+                @Override public void run() {
+                    getView(id).setBackgroundResource(resource);
+                }});
+        }
     }
     // METHOD - sets visibility of view to Visible
     public void setVisible(int id){
@@ -77,12 +84,26 @@ public class UiHelper {
     // METHOD - sets text for Button, TextView, EditText
     public TextView setText(final int id, final String sText){
         final View view = getView(id);
-        if(Looper.myLooper() == Looper.getMainLooper()) {  // if current thread is main thread
+        if(Looper.myLooper() == Looper.getMainLooper()) {   // if current thread is main thread
             ((TextView) view).setText(sText);
         } else {
             new Handler(Looper.getMainLooper()).post(new Runnable() {
                 @Override public void run() {
-                    ((TextView) view).setText(sText);// Update it on main thread
+                    ((TextView) view).setText(sText);       // Update it on main thread
+                }});
+        }
+        return (TextView)view;
+    }
+
+    // METHOD - sets text for Button, TextView, EditText
+    public TextView setText(final int id, final int iText){
+        final View view = getView(id);
+        if(Looper.myLooper() == Looper.getMainLooper()) {   // if current thread is main thread
+            ((TextView) view).setText(Integer.toString(iText));
+        } else {
+            new Handler(Looper.getMainLooper()).post(new Runnable() {
+                @Override public void run() {
+                    ((TextView) view).setText(Integer.toString(iText));       // Update it on main thread
                 }});
         }
         return (TextView)view;
@@ -117,6 +138,7 @@ public class UiHelper {
                 }});
         }
     }
+
     // METHOD - sets Text color for Button, TextView, EditText
     public void setTextColor(final int id, final int iColor ){
         final View view = getView(id);
@@ -129,6 +151,21 @@ public class UiHelper {
                 }});
         }
     }
+
+    // METHOD - sets Text color for Button, TextView, EditText from resource
+    public void setTextColorRes(final int id, final int colorId ){
+        final int iColor =  getColor(colorId);
+        final View view = getView(id);
+        if(Looper.myLooper() == Looper.getMainLooper()) {  // if current thread is main thread
+            ((TextView) view).setTextColor(iColor);
+        } else {                                           // Update it on main thread
+            new Handler(Looper.getMainLooper()).post(new Runnable() {
+                @Override public void run() {
+                    ((TextView) view).setTextColor(iColor);
+                }});
+        }
+    }
+
     // METHOD - sets Text color for Button, TextView, EditText
     public void setTextBold(final int id, final boolean bTrue ){
         final View view = getView(id);
@@ -148,8 +185,13 @@ public class UiHelper {
         checkBox.setChecked(bCheck);
     }
 
+    // METHOD returns color from resource id
+    public int getColor(int rID){
+        return  context.getResources().getColor(rID);
+    }
+
     // METHOD - returns text for Button, TextView, EditText
-    public String getViewText(int id){
+    public String getText(int id){
         View view = getView(id);
         return ((TextView) view).getText().toString();
     }
@@ -232,7 +274,7 @@ public class UiHelper {
             @Override
             public void onLayoutChange(View view, int i, int i1, int i2, int i3, int i4, int i5, int i6, int i7) {
                 if(++iKbCount>1)                                                                    // first two calls should be ignored
-                bKeyboardVisible = !bKeyboardVisible;
+                    bKeyboardVisible = !bKeyboardVisible;
             }
         });
         rootView.addView(layoutKbDetect);
@@ -242,27 +284,18 @@ public class UiHelper {
     public static void runOnUI(final Utils.ThreadCode code){
         Handler mainHandler = new Handler(Looper.getMainLooper());
         mainHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                code.execute();
-            }
-        });
+            @Override public void run() { code.execute(); }});
     }
+
     // METHOD - executes delayed code on Main thread
     public static void runDelayedOnUI(long iTime, final Utils.ThreadCode code){
         final Handler handler = new Handler(Looper.getMainLooper());
         handler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                code.execute();
-            }
-        }, iTime);
+            @Override public void run() { code.execute(); }}, iTime);
     }
 
     // METHOD set keyboard state, as keyboard listener only detects change, so initial status could be set if required
-    public void setKeyboardState(boolean bVisible){
-        bKeyboardVisible = bVisible;
-    }
+    public void setKeyboardState(boolean bVisible){ bKeyboardVisible = bVisible;}
 
     public void showKeyboard(){ showKeyboard(rootView); }
     public void showKeyboard(View v){

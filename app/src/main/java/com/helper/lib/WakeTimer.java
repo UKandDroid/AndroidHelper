@@ -21,6 +21,9 @@ import java.util.List;
  * Created by Ubaid on 24/06/2016.
  */
 
+// Ver 1.1 - Wake class Change date 20 Dec 2016
+// Remove event if it already exists, repeating or non repeating
+
 // Class to keep CPU awake, or awake at certain time
 public class WakeTimer extends BroadcastReceiver {
 
@@ -40,7 +43,7 @@ public class WakeTimer extends BroadcastReceiver {
     private SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
     private static String ALARM_INTENT = ".receiver.WakeTimer";
     private static int API_VERSION = Build.VERSION.SDK_INT;
-    private static String LOG_TAG =  "BE_WakeTimer";
+    private static String LOG_TAG = "Timer";
     private static Logger log = new Logger(LOG_TAG);
     // CONSTRUCTOR to be called by Intent service, Don't use, instead use init() to initialize the class
     public WakeTimer(){}
@@ -55,6 +58,7 @@ public class WakeTimer extends BroadcastReceiver {
     public int pendingCount(){
         return listActionTime.size();
     }
+
     // METHOD to initialise the class, as class is singleton
     public static WakeTimer init(Context con, Flow.Code flowCode){
         context = con;
@@ -71,7 +75,7 @@ public class WakeTimer extends BroadcastReceiver {
         PowerManager pm = (PowerManager)context.getSystemService(Context.POWER_SERVICE);
         wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK , "Wake");
 
-       // loadPendingActions();
+        // loadPendingActions();
         instance.setNextTimer();
         return instance;
     }
@@ -87,31 +91,24 @@ public class WakeTimer extends BroadcastReceiver {
     public void runDelayed(int iAction, long timeMillis) { runDelayed(iAction, timeMillis, false, "");}
     public void runRepeat(int iAction, long timeMillis, String sTag) {runDelayed(iAction, timeMillis, true, sTag); }
     public void runDelayed(int iAction, long timeMillis, String sTag) { runDelayed(iAction, timeMillis, false, sTag);}
-    private void runDelayed(int iAction,  long timeMillis, boolean bRepeat, String sTag) {
-        boolean bAdd = true;
+    private void runDelayed(int iAction, long timeMillis, boolean bRepeat, String sTag) {
         long iTime = System.currentTimeMillis() + timeMillis;
         int iSize = listAction.size();
-        if(bRepeat){                                                // If its a repeating alarm, check it already does not exist
-            for(int i=0; i< iSize; i++){                            // If it does, remove it, so there is always one repeating alarm
-                if(listAction.get(i) == iAction) {                  // for a action
-                    removeAction(i);
-                    iSize = listActionTime.size();
-                }}}
 
-        for(int i = 0; i < iSize; i++ ){
-            if(iTime < listActionTime.get(i)){
-                bAdd = false;
+        for(int i=0; i<iSize; i++){                                                // if action already exists, remove it so we can add new
+            if(listAction.get(i) == iAction) {
+                removeAction(i);
+                iSize = listActionTime.size();
+            }}
+
+        for(int i = 0; i <= iSize; i++ ){
+            if(i == iSize || iTime < listActionTime.get(i)){                       // put it in right time slot
                 listTag.add(i, sTag);
                 listAction.add(i, iAction);
                 listActionTime.add(i, iTime);
                 listRepeatTime.add(i, bRepeat ? timeMillis : 0L);
-                break;}}
-
-        if(bAdd){
-            listTag.add(sTag);
-            listAction.add(iAction);
-            listActionTime.add(iTime);
-            listRepeatTime.add(bRepeat ? timeMillis : 0L);
+                break;
+            }
         }
 
         saveActions();
@@ -175,7 +172,7 @@ public class WakeTimer extends BroadcastReceiver {
         boolean bNextNow = false;
         log.w( "Exe Timer " + intent.getStringExtra("tag") + " (" + intent.getIntExtra("action", 0) + ") :  " + sdf.format(new Date()));
         iCurAction = -1;                                                                            // Set -1, so we cannot cancel current action in execution code
-                                                                                                    //  as its the action being executed
+        //  as its the action being executed
         if(actionCode != null)
             actionCode.onAction(intent.getIntExtra("action", 0), true, 0, intent.getStringExtra("tag"));
 

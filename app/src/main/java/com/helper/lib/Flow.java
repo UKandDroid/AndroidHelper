@@ -23,8 +23,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 
-// VERSION 1.0.9
-// CLASS Flow
+
+// Version 2.0.1
+// Changed onClick for EditText as it takes two clicks when not in focus to register onClick
+
 public class Flow {
     private Code code;                                      // Call back for onAction to be executed
     private boolean bRunning;
@@ -479,6 +481,17 @@ public class Flow {
         switch (iListener) {
             // triggered listener when view is clicked
             case Event.ON_CLICK:
+                if(view instanceof EditText){                                                         // NOTE: for editText  first tap get focus, 2nd to trigger onClick, unless focusable is setfalse()
+                    view.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+                        @Override public void onFocusChange(View v, boolean hasFocus) {
+                            if(hasFocus){
+                                if (bRunOnUI) {
+                                    hThread.runOnUI(iAction, true, 0, view);
+                                } else {
+                                    hThread.run(iAction, true, 0, view);
+                                }
+                            }}});
+                }
                 view.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
