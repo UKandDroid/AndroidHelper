@@ -17,9 +17,6 @@ import java.util.Date;
 import java.util.List;
 
 
-/**
- * Created by Ubaid on 24/06/2016.
- */
 
 // Ver 1.1 - Wake class Change date 20 Dec 2016
 // Remove event if it already exists, repeating or non repeating

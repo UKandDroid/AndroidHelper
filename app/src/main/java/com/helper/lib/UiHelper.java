@@ -18,9 +18,10 @@ import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
-
-// Version 1.1.4
+// Version 1.1.5
+// Added method to return string from resource, showToast
 // Changed getText to getText, added setText(ID, integer)
 // Added setTextColorRes, sets text color from resource
 public class UiHelper {
@@ -138,6 +139,30 @@ public class UiHelper {
                 }});
         }
     }
+
+    // METHOD - sets text  and Text color for Button, TextView, EditText
+    public void setTextRes(final int id, final int iResString){
+        final View view = getView(id);
+        if(Looper.myLooper() == Looper.getMainLooper()) {  // if current thread is main thread
+            ((TextView) view).setText(context.getResources().getString(iResString));
+        } else {                                           // Update it on main thread
+            new Handler(Looper.getMainLooper()).post(new Runnable() {
+                @Override public void run() {
+                    ((TextView) view).setText(context.getResources().getString(iResString));
+                }});
+        }
+    }
+
+    // METHOD - returns text string from id
+    public String getStringRes( final int iResString){
+        return context.getResources().getString(iResString);
+    }
+
+    // METHOD - shows toast message
+    public void showToast( String sMessage){
+        Toast.makeText(context, sMessage, Toast.LENGTH_SHORT).show();
+    }
+
 
     // METHOD - sets Text color for Button, TextView, EditText
     public void setTextColor(final int id, final int iColor ){

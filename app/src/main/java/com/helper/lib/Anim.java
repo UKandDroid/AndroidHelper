@@ -2,9 +2,11 @@ package com.helper.lib;
 
 import android.animation.ValueAnimator;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.View;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.AccelerateInterpolator;
+import android.view.animation.AlphaAnimation;
 import android.view.animation.Animation;
 import android.view.animation.AnimationSet;
 import android.view.animation.AnticipateInterpolator;
@@ -21,167 +23,95 @@ import android.view.animation.TranslateAnimation;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Created by Ubaid on 15/06/2016.
- */
-// Version 1.1.0
+// Version 1.1.1
+// Added alpha animation
 public class Anim {
-    public static final String TYPE_VALUE = "value";
-    public static final String TYPE_SCALE = "scale";
-    public static final String TYPE_ROTATE = "rotate";
-    public static final String TYPE_SCALE_X = "scale_x";
-    public static final String TYPE_SCALE_Y = "scale_y";
-    public static final String TYPE_TRANSLATE_X = "trans_x";
-    public static final String TYPE_TRANSLATE_Y = "trans_y";
+    public static final int TYPE_SCALE = 0;
+    public static final int TYPE_ROTATE = 1;
+    public static final int TYPE_SCALE_X = 2;
+    public static final int TYPE_SCALE_Y = 3;
+    public static final int TYPE_TRANSLATE_X = 4;
+    public static final int TYPE_TRANSLATE_Y = 5;
+    public static final int TYPE_ALPHA = 6;
 
-    public static final String INTER_CYCLE = "cycle";
-    public static final String INTER_LINEAR = "linear";
-    public static final String INTER_BOUNCE = "bounce";
-    public static final String INTER_OVERSHOOT = "overshoot";
-    public static final String INTER_ACCELERATE = "accelerate";
-    public static final String INTER_DECELERATE = "decelerate";
-    public static final String INTER_ANTICIPATE = "anticipate";
-    public static final String INTER_ACC_DECELERATE = "acc_decelerate";
-    public static final String INTER_ANTICIPATE_OVERSHOOT = "anti_overshoot";
+
+    public static final int INTER_CYCLE = 0;
+    public static final int INTER_LINEAR = 1;
+    public static final int INTER_BOUNCE = 2;
+    public static final int INTER_OVERSHOOT = 3;
+    public static final int INTER_ACCELERATE = 4;
+    public static final int INTER_DECELERATE = 5;
+    public static final int INTER_ANTICIPATE = 6;
+    public static final int INTER_ACC_DECELERATE = 7;
+    public static final int INTER_ANTICIPATE_OVERSHOOT = 8;
     private static String LOG_TAG = "Anim";
 
     private View view;
     private Flow flowAnimation;
-    private float pivotX = 0.5f, pivotY =0.5f;                    // Animation bug, if view has been translated, pivot 0.5 does not work
-    private float moveX =0, moveY =0;
-    private AnimationSet animationSet = new AnimationSet(false);
-    private String iDefaultInter = INTER_ACC_DECELERATE;
-    private Flow.Code valueChangeList;
-    private List<AnimData> listAnimData = new ArrayList<>();
-    private boolean bViewCreated = false;
-    private boolean bStarted = false;
-    private long iStartDelay = 0;
+    private AnimationSet animationSet;
+    private int iDefaultInter = INTER_ACC_DECELERATE;
+    private List<Long> listStartTime = new ArrayList<>();
+    private List<Long> listDuration = new ArrayList<>();
+    private List<Animation> listAnimation = new ArrayList<>();
 
     public Anim(){}
     public Anim(View v){ setView(v);}
 
-    public void setView(View v){
-        view = v;
-        v.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
-            @Override
-            public void onLayoutChange(View v, int left, int top, int right, int bottom, int oldLeft, int oldTop, int oldRight, int oldBottom) {
-                if (!bViewCreated) {
-                    bViewCreated = true;
-                    if (bStarted) {
-                        flowAnimation.runOnUI(-1);
-                    }
-                }
-            }
-        });
-    }
+    public void setView(View v){ view = v; }
     // METHOD sets default interpolator, used when none is provided
-    public void setInterpolator( String i){ iDefaultInter = i;}
+    public void setInterpolator( int i){ iDefaultInter = i;}
 
     // METHOD add animation, method gets start time from previous animation and sets it
-    public void addAnimation(String iType, float iStart, float iEnd, long iDuration){
+    public void addAnimation(int iType, float iStart, float iEnd, long iDuration){
         addAnimation(iType, iDefaultInter, iStart, iEnd, iDuration);
     }
 
     // METHOD add animation, method gets start time from previous animation and sets it
-    public void addAnimation(String iType, String iInterpolator, float iStart, float iEnd, long iDuration){
+    public void addAnimation(int iType, int iInterpolator, float iStart, float iEnd, long iDuration){
         long iStartTime = 0;
-        int iCount = listAnimData.size();
-        if (iCount > 0){
+        int iCount = listStartTime.size();
+        if(iCount > 0){
             iCount--;
-            AnimData animData = listAnimData.get(iCount);
-            iStartTime = animData.iStartTime+ animData.iDuration;
+            iStartTime = listStartTime.get(iCount)+ listDuration.get(iCount);
         }
         addAnimation(iType, iInterpolator, iStart, iEnd, iDuration, iStartTime);
     }
 
-    public void addAnimation(String iType, String iInterpolator, float iStart, float iEnd,  long iDuration, long iStartTime){
-        addAnimation( iType,  iInterpolator,  iStart,  iEnd,   iDuration,  iStartTime, false, 0);
-    }
-
-    public void addValueAnimator(int iValueAction, String iInterpolator, int iStart, int iEnd, long iDuration, long iStartTime){
-        addAnimation( TYPE_VALUE,  iInterpolator,  iStart,  iEnd,   iDuration,  iStartTime, true, iValueAction);
-    }
-
-    public void setValueChangeListener(Flow.Code code){
-        valueChangeList = code;
-    }
-
-    private void addAnimation(String sType, String sInterpolator, float iStart, float iEnd,  long iDuration, long iStartTime, boolean bValueAnimation, int iValueAction){
-        Cloneable animator = null ;
-        switch (sType){
-
-            case TYPE_VALUE:
-                animator = ValueAnimator.ofInt((int) iStart, (int) iEnd);
-                break;
-        }
-
-        if(bValueAnimation){                                // If its a value animation, not UI animation
-            ((ValueAnimator)animator).setDuration(iDuration);
-            switch (sInterpolator){
-                case INTER_CYCLE: ((ValueAnimator)animator).setInterpolator(new CycleInterpolator(1)); break;
-                case INTER_LINEAR: ((ValueAnimator)animator).setInterpolator(new LinearInterpolator()); break;
-                case INTER_BOUNCE: ((ValueAnimator)animator).setInterpolator(new BounceInterpolator()); break;
-                case INTER_OVERSHOOT: ((ValueAnimator)animator).setInterpolator(new OvershootInterpolator()); break;
-                case INTER_ACCELERATE: ((ValueAnimator)animator).setInterpolator(new AccelerateInterpolator()); break;
-                case INTER_DECELERATE: ((ValueAnimator)animator).setInterpolator(new DecelerateInterpolator()); break;
-                case INTER_ANTICIPATE: ((ValueAnimator)animator).setInterpolator(new AnticipateInterpolator()); break;
-                case INTER_ACC_DECELERATE: ((ValueAnimator)animator).setInterpolator(new AccelerateDecelerateInterpolator()); break;
-                case INTER_ANTICIPATE_OVERSHOOT: ((ValueAnimator)animator).setInterpolator(new AnticipateOvershootInterpolator()); break;
-            }
-        }
-
-        AnimData anim = new AnimData();
-        anim.iEnd = iEnd;
-        anim.sType = sType;
-        anim.anim = animator;
-        anim.iStart = iStart;
-        anim.iDuration = iDuration;
-        anim.iAction = iValueAction;
-        anim.iAction = iValueAction;
-        anim.sInterpolator = sInterpolator;
-        anim.bValueAnim = bValueAnimation;
-        anim.iStartTime = iStartTime;
-        listAnimData.add(anim);
-    }
-
-
-
-    private Animation getAnimation(AnimData animData){
+    public void addAnimation(int iType, int iInterpolator, float iStart, float iEnd,  long iDuration, long iStartTime){
         Animation animator = null ;
-        switch (animData.sType){
+        switch (iType){
             case TYPE_SCALE:
-                animator = new ScaleAnimation(animData.iStart, animData.iEnd, animData.iStart, animData.iEnd, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
+                animator = new ScaleAnimation(iStart, iEnd, iStart, iEnd, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
                 break;
 
             case TYPE_SCALE_X:
-                animator = new ScaleAnimation(animData.iStart, animData.iEnd, 1.0f, 1.0f, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
+                animator = new ScaleAnimation(iStart, iEnd, 1.0f, 1.0f, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
                 break;
 
             case TYPE_SCALE_Y:
-                animator = new ScaleAnimation(1.0f, 1.0f, animData.iStart, animData.iEnd, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
+                animator = new ScaleAnimation(1.0f, 1.0f, iStart, iEnd, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
                 break;
 
             case TYPE_ROTATE:
-                animator = new RotateAnimation(animData.iStart, animData.iEnd, Animation.RELATIVE_TO_SELF, pivotX, Animation.RELATIVE_TO_SELF, pivotY);
+                animator = new RotateAnimation(iStart, iEnd, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
                 break;
 
             case TYPE_TRANSLATE_X:
-                moveX += (animData.iEnd-animData.iStart);
-                pivotX = 0.5f + ((moveX/pxToDp(view.getWidth()))*0.5f);
-                animator = new TranslateAnimation(animData.iStart, animData.iEnd, 0, 0);
+                animator = new TranslateAnimation(iStart, iEnd, 0, 0);
                 break;
 
             case TYPE_TRANSLATE_Y:
-                moveY += (animData.iEnd-animData.iStart);
-                pivotY = 0.5f +((moveY/pxToDp(view.getHeight()))*0.5f);
-                animator = new TranslateAnimation(0, 0, animData.iStart, animData.iEnd);
+                animator = new TranslateAnimation(0, 0, iStart, iEnd);
+                break;
+
+            case TYPE_ALPHA:
+                animator = new AlphaAnimation( iStart, iEnd);
                 break;
         }
 
-        animator.setDuration(animData.iDuration);
-        animator.setStartOffset(animData.iStartTime);
-
-        switch (animData.sInterpolator){
+        animator.setFillAfter(true);
+        animator.setDuration(iDuration);
+        switch (iInterpolator){
             case INTER_CYCLE: animator.setInterpolator(new CycleInterpolator(1)); break;
             case INTER_LINEAR: animator.setInterpolator(new LinearInterpolator()); break;
             case INTER_BOUNCE: animator.setInterpolator(new BounceInterpolator()); break;
@@ -193,92 +123,38 @@ public class Anim {
             case INTER_ANTICIPATE_OVERSHOOT: animator.setInterpolator(new AnticipateOvershootInterpolator()); break;
         }
 
-        return animator;
+        listDuration.add(iDuration);
+        listStartTime.add(iStartTime);
+        listAnimation.add(animator);
     }
 
-
-    // METHOD starts Value animators, view animators start onLayoutChange Listener for the view
+    // METHOD starts animation for the views
     public void start(){
+        animationSet = new AnimationSet(false);
         flowAnimation = new Flow(actionCode);
-        for(int i=0; i < listAnimData.size(); i++){
-            AnimData animData = listAnimData.get(i);
-            if(animData.bValueAnim){
-                flowAnimation.runDelayedOnUI(i, animData.bValueAnim, 0, listAnimData.get(i).iStartTime);
-            }
+        for(int i=0; i < listStartTime.size(); i++){
+            flowAnimation.runDelayedOnUI(i, listStartTime.get(i));
         }
-
-        if(!bStarted && bViewCreated){
-            flowAnimation.runDelayed(-1, iStartDelay);
-        }
-        bStarted = true;
     }
-
-    public void startDelayed(long iDelay){
-        iStartDelay = iDelay;
-        start();
-    }
-
 
     Flow.Code actionCode = new Flow.Code() {
         @Override public void onAction(int iAction, boolean bSuccess, int iExtra, Object data) {
-            switch (iAction){
-                case 1:                 // Run Value animations
-                    final ValueAnimator valueAnim = (ValueAnimator) listAnimData.get(iAction).anim;
-                    final int iValueAction = listAnimData.get(iAction).iAction;
-                    valueAnim.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
-                        @Override public void onAnimationUpdate(ValueAnimator animation) {
-                            Integer value = (Integer) animation.getAnimatedValue();
-                            if(valueChangeList != null){
-                                valueChangeList.onAction(iValueAction, true, value, null);
-                            }}});
-                    valueAnim.start();
-                    break;
-
-                case -1: case -2:                // load animation bit late so we have view width and height
-                    for(int i=0; i < listAnimData.size(); i++){
-                        AnimData animData = listAnimData.get(i);
-                        if(!animData.bValueAnim){
-                            animationSet.addAnimation(getAnimation(animData));
-                        }
-                    }
-                    view.clearAnimation();
-                    view.setAnimation(animationSet);
-                    animationSet.start();
-                    animationSet.setFillAfter(true);
-                    break;
-            }
+            Animation anim =  listAnimation.get(iAction);
+            animationSet.addAnimation(anim);
+            view.clearAnimation();
+            view.setAnimation(animationSet);
+            animationSet.setFillAfter(true);
+            animationSet.start();
         }} ;
-
-
-    // METHOD - Convert pixels to dp
-    private  int pxToDp( int iPixels){
-        DisplayMetrics displayMetrics = view.getContext().getResources().getDisplayMetrics();
-        int dp = Math.round(iPixels / (displayMetrics.xdpi / DisplayMetrics.DENSITY_DEFAULT));
-        return dp;
-    }
 
     public void stop(){
         flowAnimation.stop();
         animationSet.cancel();
-        int iCount = listAnimData.size();
+        int iCount = listAnimation.size();
         if(view != null){ view.clearAnimation(); }
         for(int i =0; i < iCount; i++){
-            AnimData anim = listAnimData.get(i);
-            if(anim.bValueAnim){
-                ((ValueAnimator)anim.anim).cancel();
-            } else {
-                ((Animation)anim.anim).cancel();
-            }
+            listAnimation.get(i).cancel();
         }
     }
 
-    // CLASS to hold animation params
-    class AnimData {
-        Object anim;
-        long iStartTime, iDuration;
-        public int iAction;
-        float iStart, iEnd;
-        boolean bValueAnim = false;
-        String sType, sInterpolator;
-    }
 }
