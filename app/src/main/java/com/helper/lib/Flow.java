@@ -17,6 +17,7 @@ import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.RelativeLayout;
+import android.widget.Spinner;
 import android.widget.TextView;
 
 import java.util.ArrayList;
@@ -24,8 +25,9 @@ import java.util.List;
 
 
 
-// Version 2.0.1
+// Version 2.0.2
 // Changed onClick for EditText as it takes two clicks when not in focus to register onClick
+// Added SPINNER_ITEM_SELECTED ui event
 
 public class Flow {
     private Code code;                                      // Call back for onAction to be executed
@@ -231,6 +233,7 @@ public class Flow {
         public static final int TEXT_ENTERED = 5;
         public static final int LIST_ITEM_SELECT = 6;
         public static final int CHECKBOX_STATE = 7;
+        public static final int SPINNER_ITEM_SELECT = 8;
 
         public Object obj;
         public int iExtra;
@@ -483,7 +486,8 @@ public class Flow {
             case Event.ON_CLICK:
                 if(view instanceof EditText){                                                         // NOTE: for editText  first tap get focus, 2nd to trigger onClick, unless focusable is setfalse()
                     view.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-                        @Override public void onFocusChange(View v, boolean hasFocus) {
+                        @Override
+                        public void onFocusChange(View v, boolean hasFocus) {
                             if(hasFocus){
                                 if (bRunOnUI) {
                                     hThread.runOnUI(iAction, true, 0, view);
@@ -512,7 +516,8 @@ public class Flow {
                     selText = (EditText) view;
                 }
                 view.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-                    @Override public void onFocusChange(View v, boolean hasFocus) {
+                    @Override
+                    public void onFocusChange(View v, boolean hasFocus) {
                         String sFieldName = v.getResources().getResourceName(v.getId());
                         sFieldName = sFieldName.split("/")[1];
                         if (!hasFocus) {
@@ -585,6 +590,27 @@ public class Flow {
                         }
                     }
                 });
+                break;
+
+            case Event.SPINNER_ITEM_SELECT:
+                ((Spinner) view).setOnItemSelectedListener(
+                        new AdapterView.OnItemSelectedListener() {
+                            @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                                if (bRunOnUI) {
+                                    hThread.runOnUI(iAction, true, position, view);
+                                } else {
+                                    hThread.run(iAction, true, position, view);
+                                }
+
+                            }
+                            @Override public void onNothingSelected(AdapterView<?> parent) {
+                                if (bRunOnUI) {
+                                    hThread.runOnUI(iAction, false, -1, view);
+                                } else {
+                                    hThread.run(iAction, false, -1, view);
+                                }
+                            }
+                        });
                 break;
 
             case Event.CHECKBOX_STATE:
@@ -667,4 +693,3 @@ public class Flow {
         }
     }
 }
-

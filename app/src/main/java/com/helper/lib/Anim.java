@@ -1,8 +1,5 @@
 package com.helper.lib;
 
-import android.animation.ValueAnimator;
-import android.util.DisplayMetrics;
-import android.util.Log;
 import android.view.View;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.AccelerateInterpolator;
