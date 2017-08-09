@@ -20,10 +20,12 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-// Version 1.1.5
+// Version 1.1.6
+// added int method for setTag
 // Added method to return string from resource, showToast
-// Changed getText to getText, added setText(ID, integer)
+// Changed getTextString to getText, added setText(ID, integer)
 // Added setTextColorRes, sets text color from resource
+
 public class UiHelper {
 
     private Context context;
@@ -62,7 +64,8 @@ public class UiHelper {
             getView(id).setBackgroundResource(resource);
         } else {
             new Handler(Looper.getMainLooper()).post(new Runnable() {
-                @Override public void run() {
+                @Override
+                public void run() {
                     getView(id).setBackgroundResource(resource);
                 }});
         }
@@ -89,7 +92,8 @@ public class UiHelper {
             ((TextView) view).setText(sText);
         } else {
             new Handler(Looper.getMainLooper()).post(new Runnable() {
-                @Override public void run() {
+                @Override
+                public void run() {
                     ((TextView) view).setText(sText);       // Update it on main thread
                 }});
         }
@@ -103,7 +107,8 @@ public class UiHelper {
             ((TextView) view).setText(Integer.toString(iText));
         } else {
             new Handler(Looper.getMainLooper()).post(new Runnable() {
-                @Override public void run() {
+                @Override
+                public void run() {
                     ((TextView) view).setText(Integer.toString(iText));       // Update it on main thread
                 }});
         }
@@ -117,7 +122,8 @@ public class UiHelper {
             ((TextView) view).setHint(sText);
         } else {
             new Handler(Looper.getMainLooper()).post(new Runnable() {
-                @Override public void run() {
+                @Override
+                public void run() {
                     ((TextView) view).setHint(sText);// Update it on main thread
                 }});
         }
@@ -133,7 +139,8 @@ public class UiHelper {
             ((TextView) view).setText(sText);
         } else {                                           // Update it on main thread
             new Handler(Looper.getMainLooper()).post(new Runnable() {
-                @Override public void run() {
+                @Override
+                public void run() {
                     ((TextView) view).setText(sText);// Update it on main thread
                     ((TextView) view).setTextColor(iColor);
                 }});
@@ -147,14 +154,15 @@ public class UiHelper {
             ((TextView) view).setText(context.getResources().getString(iResString));
         } else {                                           // Update it on main thread
             new Handler(Looper.getMainLooper()).post(new Runnable() {
-                @Override public void run() {
+                @Override
+                public void run() {
                     ((TextView) view).setText(context.getResources().getString(iResString));
                 }});
         }
     }
 
     // METHOD - returns text string from id
-    public String getStringRes( final int iResString){
+    public String getStringRes(final int iResString){
         return context.getResources().getString(iResString);
     }
 
@@ -171,7 +179,8 @@ public class UiHelper {
             ((TextView) view).setTextColor(iColor);
         } else {                                           // Update it on main thread
             new Handler(Looper.getMainLooper()).post(new Runnable() {
-                @Override public void run() {
+                @Override
+                public void run() {
                     ((TextView) view).setTextColor(iColor);
                 }});
         }
@@ -185,7 +194,8 @@ public class UiHelper {
             ((TextView) view).setTextColor(iColor);
         } else {                                           // Update it on main thread
             new Handler(Looper.getMainLooper()).post(new Runnable() {
-                @Override public void run() {
+                @Override
+                public void run() {
                     ((TextView) view).setTextColor(iColor);
                 }});
         }
@@ -199,14 +209,15 @@ public class UiHelper {
 
         } else {                                           // Update it on main thread
             new Handler(Looper.getMainLooper()).post(new Runnable() {
-                @Override public void run() {
+                @Override
+                public void run() {
                     ((TextView) view).setTypeface(null, bTrue ? Typeface.BOLD : Typeface.NORMAL);
                 }});
         }
     }
     // METHOD - Checks/Un checks a box
     public void setChecked(final int id, boolean bCheck){
-        CheckBox  checkBox = (CheckBox) getView(id);
+        CheckBox checkBox = (CheckBox) getView(id);
         checkBox.setChecked(bCheck);
     }
 
@@ -220,6 +231,7 @@ public class UiHelper {
         View view = getView(id);
         return ((TextView) view).getText().toString();
     }
+
     // METHOD - shows progress bar
     public void showProgress(Context context){
         if(layoutProgress == null){
@@ -265,6 +277,7 @@ public class UiHelper {
         return  listener;
     }
     // METHOD - sets Tag for a arView
+    public void setTag(int id, int tag){ setTag(id, ""+tag); }
     public void setTag(int id, String tag){
         getView(id).setTag(tag);
     }
@@ -309,14 +322,16 @@ public class UiHelper {
     public static void runOnUI(final Utils.ThreadCode code){
         Handler mainHandler = new Handler(Looper.getMainLooper());
         mainHandler.post(new Runnable() {
-            @Override public void run() { code.execute(); }});
+            @Override
+            public void run() { code.execute(); }});
     }
 
     // METHOD - executes delayed code on Main thread
     public static void runDelayedOnUI(long iTime, final Utils.ThreadCode code){
         final Handler handler = new Handler(Looper.getMainLooper());
         handler.postDelayed(new Runnable() {
-            @Override public void run() { code.execute(); }}, iTime);
+            @Override
+            public void run() { code.execute(); }}, iTime);
     }
 
     // METHOD set keyboard state, as keyboard listener only detects change, so initial status could be set if required
@@ -333,10 +348,10 @@ public class UiHelper {
     }
 
     public void hideKeyboard(){ hideKeyboard(rootView); }
-    public void hideKeyboard(View v){
-        if(v != null){
+    public void hideKeyboard(View viewWithFocus){                       // Give view that has focus, use  <requestFocus/> for a view to get focus
+        if(viewWithFocus != null){
             InputMethodManager imm = (InputMethodManager)context.getSystemService(Context.INPUT_METHOD_SERVICE);
-            imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
+            imm.hideSoftInputFromWindow(viewWithFocus.getWindowToken(), 0);
         } else {
             Log.e(LOG_TAG, "Hide keyboard ERROR, rootView/supplied view is null");
         }
