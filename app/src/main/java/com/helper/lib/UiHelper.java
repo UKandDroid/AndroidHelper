@@ -20,7 +20,9 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-// Version 1.1.6
+// Version 1.1.8
+// Added method SetEnabled
+// Hide keyboard method, request focus
 // added int method for setTag
 // Added method to return string from resource, showToast
 // Changed getTextString to getText, added setText(ID, integer)
@@ -130,6 +132,19 @@ public class UiHelper {
         return (TextView)view;
     }
 
+    // METHOD - Enables or disabels a view
+    public void setEnabled(final int id, final boolean bEnable){
+        final View view = getView(id);
+        if(Looper.myLooper() == Looper.getMainLooper()) {  // if current thread is main thread
+            view.setEnabled(bEnable);
+        } else {                                           // Update it on main thread
+            new Handler(Looper.getMainLooper()).post(new Runnable() {
+                @Override
+                public void run() {
+                    view.setEnabled(bEnable);
+                }});
+        }
+    }
 
     // METHOD - sets text  and Text color for Button, TextView, EditText
     public void setText(final int id, final int iColor, final String sText ){
@@ -347,11 +362,14 @@ public class UiHelper {
         }
     }
 
+
     public void hideKeyboard(){ hideKeyboard(rootView); }
-    public void hideKeyboard(View viewWithFocus){                       // Give view that has focus, use  <requestFocus/> for a view to get focus
-        if(viewWithFocus != null){
+    public void hideKeyboard(View v){
+
+        if(v != null){
+            v.requestFocus();
             InputMethodManager imm = (InputMethodManager)context.getSystemService(Context.INPUT_METHOD_SERVICE);
-            imm.hideSoftInputFromWindow(viewWithFocus.getWindowToken(), 0);
+            imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
         } else {
             Log.e(LOG_TAG, "Hide keyboard ERROR, rootView/supplied view is null");
         }
