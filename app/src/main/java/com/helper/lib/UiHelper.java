@@ -20,7 +20,8 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-// Version 1.1.8
+// Version 1.1.9
+// Added show Toast with string resource
 // Added method SetEnabled
 // Hide keyboard method, request focus
 // added int method for setTag
@@ -186,6 +187,10 @@ public class UiHelper {
         Toast.makeText(context, sMessage, Toast.LENGTH_SHORT).show();
     }
 
+    // METHOD - shows toast message
+    public void showToast( int iResString){
+        Toast.makeText(context, getStringRes(iResString), Toast.LENGTH_SHORT).show();
+    }
 
     // METHOD - sets Text color for Button, TextView, EditText
     public void setTextColor(final int id, final int iColor ){
@@ -311,7 +316,7 @@ public class UiHelper {
         return arView[index];
     }
 
-    // METHOD returns if keyboard is visible
+    // METHOD returns if keyboard is visible, needs setKeyboardListener() to setup listener first
     public  boolean isKeyboardVisible(){
         if(layoutKbDetect == null){ throw new NullPointerException(); }
         return bKeyboardVisible;
@@ -361,7 +366,6 @@ public class UiHelper {
             Log.e(LOG_TAG, "Show Keyboard ERROR, rootView/supplied view is null");
         }
     }
-
 
     public void hideKeyboard(){ hideKeyboard(rootView); }
     public void hideKeyboard(View v){
