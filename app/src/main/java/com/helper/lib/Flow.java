@@ -8,6 +8,7 @@ import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
@@ -25,9 +26,10 @@ import java.util.List;
 
 
 
-// Version 2.0.2
-// Changed onClick for EditText as it takes two clicks when not in focus to register onClick
+// Version 2.0.3
+// Added on touch listener for view
 // Added SPINNER_ITEM_SELECTED ui event
+// Changed onClick for EditText as it takes two clicks when not in focus to register onClick
 
 public class Flow {
     private Code code;                                      // Call back for onAction to be executed
@@ -40,7 +42,7 @@ public class Flow {
     private static int iThreadCount = 0;
     private boolean bTextEntered = false;
     private boolean bKeyboardVisible = false;
-    private RelativeLayout layoutKbDetect = null;
+    private RelativeLayout layoutKbDetect = null;           // For edit text, text entered event, check if keyboard is hidden
     private static final String LOG_TAG = "Flow";
     private static final int LOG_LEVEL = 4;
     private List<Action> listActions = new ArrayList<Action>();  // List of registered actions
@@ -227,13 +229,16 @@ public class Flow {
         private static final int WAITING = 0;
         private static final int SUCCESS = 1;
         private static final int FAILURE = 2;
+
         // EVENTS for which listeners are set
-        public static final int ON_CLICK = 3;
-        public static final int TEXT_CHANGE = 4;
-        public static final int TEXT_ENTERED = 5;
-        public static final int LIST_ITEM_SELECT = 6;
+        public static final int TOUCH = 3;
+        public static final int ON_CLICK = 4;
+        public static final int TEXT_CHANGE = 5;
+        public static final int TEXT_ENTERED = 6;
         public static final int CHECKBOX_STATE = 7;
-        public static final int SPINNER_ITEM_SELECT = 8;
+        public static final int LIST_ITEM_SELECT = 8;
+        public static final int SPINNER_ITEM_SELECT = 9;
+
 
         public Object obj;
         public int iExtra;
@@ -456,6 +461,7 @@ public class Flow {
                 layoutKbDetect.addOnLayoutChangeListener(null);
             }
         }
+
     }
 
     // METHODS for packing data for repeat event
@@ -625,6 +631,19 @@ public class Flow {
                     }
                 });
                 break;
+
+            case Event.TOUCH:           // Listener returns true for Touch down and Move, false when finger is lifted up
+                view.setOnTouchListener(new View.OnTouchListener() {
+                    @Override
+                    public boolean onTouch(View v, MotionEvent event) {
+                        if (bRunOnUI) {
+                            hThread.runOnUI(iAction, event.getAction() != MotionEvent.ACTION_UP, event.getAction(), view);
+                        } else {
+                            hThread.run(iAction, event.getAction() != MotionEvent.ACTION_UP, event.getAction(), view);
+                        }
+                        return true;
+                    }
+                });
         }
     }
 
@@ -693,3 +712,4 @@ public class Flow {
         }
     }
 }
+

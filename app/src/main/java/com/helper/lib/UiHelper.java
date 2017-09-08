@@ -8,19 +8,25 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
-// Version 1.1.9
+// Version 1.2.2
+// added not static methods for pxToDp dpToPx
+// Added Spinner methods - Set data, set selection
+// Added method text size
 // Added show Toast with string resource
 // Added method SetEnabled
 // Hide keyboard method, request focus
@@ -62,14 +68,14 @@ public class UiHelper {
     public Button button(int id){ return (Button)getView(id);}
 
     // METHOD - sets Background for a arView
-    public void setBackground(final int id, final int resource){
+    public void setBackground(final int id, final int iResId){
         if(Looper.myLooper() == Looper.getMainLooper()) {  // if current thread is main thread
-            getView(id).setBackgroundResource(resource);
+            getView(id).setBackgroundResource(iResId);
         } else {
             new Handler(Looper.getMainLooper()).post(new Runnable() {
                 @Override
                 public void run() {
-                    getView(id).setBackgroundResource(resource);
+                    getView(id).setBackgroundResource(iResId);
                 }});
         }
     }
@@ -148,17 +154,17 @@ public class UiHelper {
     }
 
     // METHOD - sets text  and Text color for Button, TextView, EditText
-    public void setText(final int id, final int iColor, final String sText ){
+    public void setText(final int id, final int iRGB, final String sText ){
         final View view = getView(id);
         if(Looper.myLooper() == Looper.getMainLooper()) {  // if current thread is main thread
-            ((TextView) view).setTextColor(iColor);
+            ((TextView) view).setTextColor(iRGB);
             ((TextView) view).setText(sText);
         } else {                                           // Update it on main thread
             new Handler(Looper.getMainLooper()).post(new Runnable() {
                 @Override
                 public void run() {
                     ((TextView) view).setText(sText);// Update it on main thread
-                    ((TextView) view).setTextColor(iColor);
+                    ((TextView) view).setTextColor(iRGB);
                 }});
         }
     }
@@ -182,6 +188,11 @@ public class UiHelper {
         return context.getResources().getString(iResString);
     }
 
+    public float getDimenRes(final int iRes){
+        return context.getResources().getDimension(iRes);
+    }
+
+
     // METHOD - shows toast message
     public void showToast( String sMessage){
         Toast.makeText(context, sMessage, Toast.LENGTH_SHORT).show();
@@ -193,17 +204,53 @@ public class UiHelper {
     }
 
     // METHOD - sets Text color for Button, TextView, EditText
-    public void setTextColor(final int id, final int iColor ){
+    public void setTextColor(final int id, final int iRGB ){
         final View view = getView(id);
         if(Looper.myLooper() == Looper.getMainLooper()) {  // if current thread is main thread
-            ((TextView) view).setTextColor(iColor);
+            ((TextView) view).setTextColor(iRGB);
         } else {                                           // Update it on main thread
             new Handler(Looper.getMainLooper()).post(new Runnable() {
                 @Override
                 public void run() {
-                    ((TextView) view).setTextColor(iColor);
+                    ((TextView) view).setTextColor(iRGB);
                 }});
         }
+    }
+
+    // METHOD - sets Text color Size Button, TextView, EditText, Note dimension resources are returned as pixels, that's why TypedValue.COMPLEX_UNIT_PX for resouce
+    public void setTextSizeRes(final int id, final int iRes ){setTextSize(id, TypedValue.COMPLEX_UNIT_PX, getDimenRes(iRes));}
+    public void setTextSizeRes(final int id, final int iUnit, final int iRes ){setTextSize(id, iUnit, getDimenRes(iRes));}
+    public void setTextSize(final int id, final float iSize ){setTextSize(id, TypedValue.COMPLEX_UNIT_SP, iSize);}
+    public void setTextSize(final int id, final int iUnit, final float iSize ){
+        final View view = getView(id);
+        if(Looper.myLooper() == Looper.getMainLooper()) {  // if current thread is main thread
+            ((TextView) view).setTextSize(iUnit, iSize);
+        } else {                                           // Update it on main thread
+            new Handler(Looper.getMainLooper()).post(new Runnable() {
+                @Override
+                public void run() {
+                    ((TextView) view).setTextSize(iUnit, iSize);
+                }});
+        }
+    }
+
+    // METHOD - sets Text color for Button, TextView, EditText
+
+    public void setSpinSelection(final int iId, final int iSel){
+        if(Looper.myLooper() != Looper.getMainLooper()){
+            new Handler(Looper.getMainLooper()).post(new Runnable() { @Override public void run() {setSpinSelection(iId, iSel); }});
+            return;
+        }
+        ((Spinner)getView(iId)).setSelection(iSel);
+    }
+
+    public ArrayAdapter<String> setSpinData(final int iId, final int iArrId) { return setSpinData(iId, context.getResources().getStringArray(iArrId), android.R.layout.simple_list_item_single_choice);}
+    public ArrayAdapter<String> setSpinData(final int iId, final int iArrId, int iLayout){ return setSpinData(iId, context.getResources().getStringArray(iArrId), iLayout); }
+    public ArrayAdapter<String> setSpinData(final int iId, final String arr[], final int iLayout){
+        Spinner spin = (Spinner)getView(iId);
+        ArrayAdapter<String> adaptSpin = new ArrayAdapter<String>(context, iLayout, arr );
+        spin.setAdapter(adaptSpin);
+        return adaptSpin;
     }
 
     // METHOD - sets Text color for Button, TextView, EditText from resource
@@ -316,7 +363,7 @@ public class UiHelper {
         return arView[index];
     }
 
-    // METHOD returns if keyboard is visible, needs setKeyboardListener() to setup listener first
+    // METHOD returns if keyboard is visible
     public  boolean isKeyboardVisible(){
         if(layoutKbDetect == null){ throw new NullPointerException(); }
         return bKeyboardVisible;
@@ -367,6 +414,7 @@ public class UiHelper {
         }
     }
 
+
     public void hideKeyboard(){ hideKeyboard(rootView); }
     public void hideKeyboard(View v){
 
@@ -398,6 +446,20 @@ public class UiHelper {
         return dp;
     }
 
+    // METHOD - Convert pixels to dp
+    public int pxToDp( int iPixels){
+        DisplayMetrics displayMetrics = context.getResources().getDisplayMetrics();
+        int dp = Math.round(iPixels / (displayMetrics.xdpi / DisplayMetrics.DENSITY_DEFAULT));
+        return dp;
+    }
+
+    // METHOD - Convert dp to pixels
+    public int dpToPx( int dp){
+        Resources r =  context.getResources();
+        DisplayMetrics displayMetrics = r.getDisplayMetrics();
+        int px = Math.round(dp * (displayMetrics.xdpi / DisplayMetrics.DENSITY_DEFAULT));
+        return px;
+    }
     // METHOD - Convert dp to pixels
     public static int dpToPx(Context con, int dp){
         Resources r =  con.getResources();
