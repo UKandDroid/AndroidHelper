@@ -24,9 +24,8 @@ import android.widget.TextView;
 import java.util.ArrayList;
 import java.util.List;
 
-
-
-// Version 2.0.3
+// Version 2.0.4
+// Added registerEventSequence()
 // Added on touch listener for view
 // Added SPINNER_ITEM_SELECTED ui event
 // Changed onClick for EditText as it takes two clicks when not in focus to register onClick
@@ -67,10 +66,12 @@ public class Flow {
 
     public void stop() {
         try {
-            bRunning = false;
+
             for (int i = 0; i < listActions.size(); i++) {
                 listActions.get(i).recycle();
             }
+            hThread.mHandler.removeCallbacksAndMessages(null);
+            hThread.mUiHandler.removeCallbacksAndMessages(null);
             hThread.stop();
             listActions = null;
             waitAction = null;
@@ -78,6 +79,7 @@ public class Flow {
 
             if (keybViewRoot != null && layoutKbDetect != null)
                 keybViewRoot.removeView(layoutKbDetect);
+            bRunning = false;
         } catch (Exception e) {}
     }
 
@@ -158,6 +160,11 @@ public class Flow {
         listActions.add(act);
     }
 
+    public void registerEventSequence(boolean bRunOnUI, int iStep, String events[]) {
+        Action act = new Action(iStep, events, true);
+        act.bRunOnUI = bRunOnUI;
+        listActions.add(act);
+    }
     // METHOD wait for event once dispatched clear it
     public void waitForEvents(int iAction, String events[]) {
         waitForEvents(false, iAction, events);
@@ -187,18 +194,9 @@ public class Flow {
     }
 
     // METHODS to send event
-    public void event(String sEvent) {
-        event(sEvent, true, 0, null);
-    }
-
-    public void event(String sEvent, boolean bSuccess) {
-        event(sEvent, bSuccess, 0, null);
-    }
-
-    public void event(String sEvent, boolean bSuccess, int iExtra) {
-        event(sEvent, bSuccess, iExtra, null);
-    }
-
+    public void event(String sEvent) { event(sEvent, true, 0, null); }
+    public void event(String sEvent, boolean bSuccess) { event(sEvent, bSuccess, 0, null); }
+    public void event(String sEvent, boolean bSuccess, int iExtra) { event(sEvent, bSuccess, iExtra, null); }
     public void event(String sEvent, boolean bSuccess, int iExtra, Object obj) {
         if (!bRunning) return;
 
@@ -294,6 +292,7 @@ public class Flow {
     public class Action {
         private int iCodeStep;                                      // Code step to execute for this action
         private int iEventCount;                                    // How many event are for this action code to be triggered
+        private boolean bOrdered = false;                           // Only trigger when events occur in right order
         //   private boolean bEventFound;
         private boolean bRunOnUI = false;                           // Code run on Background / UI thread
         public boolean bFireOnce = false;                           // Clear Action once fired, used for wait action
@@ -302,6 +301,16 @@ public class Flow {
 
         // CONSTRUCTOR
         public Action(int iCodeStep, String events[]) {
+            bOrdered = false;
+            this.iCodeStep = iCodeStep;
+            iEventCount = events.length;
+            for (int i = 0; i < iEventCount; i++) {
+                listEvents.add(Event.obtain(events[i]));            // get events from events pool
+            }
+        }
+
+        public Action(int iCodeStep, String events[], boolean bOrder) {
+            this.bOrdered = bOrder;
             this.iCodeStep = iCodeStep;
             iEventCount = events.length;
             for (int i = 0; i < iEventCount; i++) {
@@ -332,6 +341,9 @@ public class Flow {
                     event.obj = obj;
                     event.iExtra = iExtra;
                     event.iStatus = bResult ? Event.SUCCESS : Event.FAILURE;
+                } else if(bOrdered && event.iStatus == Event.WAITING){                              // if its a Sequence action, no event should be empty before current event
+                    if( i != 0 ){ listEvents.get(i-1).iStatus = Event.WAITING; }                    // reset last one, so they are always in sequence
+                    break;
                 }
 
                 switch (event.iStatus) {
@@ -341,6 +353,9 @@ public class Flow {
                         iFired++;
                         break;
                 }
+
+                if(bFound && bOrdered)
+                    break;
             }
 
             if (bFound) {                             // if event was found in this Action
@@ -359,6 +374,7 @@ public class Flow {
                         }
                     }
                 }
+
             }
         }
     }

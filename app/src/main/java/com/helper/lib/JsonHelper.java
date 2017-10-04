@@ -11,6 +11,9 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+
+//version 1.0.1
+// Changed log
 // we have an Json array of item
 // item[0]                       get array element / JSON Object
 // item[0].object                get JSON Object at index 0
@@ -61,7 +64,7 @@ public class JsonHelper {
     public boolean getBoolean(String strPath) {
         JSONObject temp = (JSONObject) getJson(strPath, true);
         if(temp == null){
-            Log.e(LOG_TAG, "Invalid path: getBoolean() " + strPath);
+            Log.e(LOG_TAG, "Invalid path: " + strPath+".getBoolean() ");
             return false;
         }
         return temp.optBoolean(varName);
@@ -70,7 +73,7 @@ public class JsonHelper {
     public int getInteger(String strPath) {
         JSONObject temp = (JSONObject) getJson(strPath, true);
         if(temp == null){
-            Log.e(LOG_TAG, "Invalid path: getInteger() " + strPath);
+            Log.e(LOG_TAG, "Invalid path: " + strPath+".getInteger() ");
             return 0;
         }
         return temp.optInt(varName);
@@ -79,7 +82,7 @@ public class JsonHelper {
     public String getString(String strPath) {
         JSONObject temp = (JSONObject) getJson(strPath, true);
         if(temp == null){
-            Log.e(LOG_TAG, "Invalid path: getString() " + strPath);
+            Log.e(LOG_TAG, "Invalid path: " + strPath+".getString() ");
             return "";
         }
         return temp.optString(varName);
@@ -88,7 +91,7 @@ public class JsonHelper {
     public double getDouble(String strPath) {
         JSONObject temp = (JSONObject) getJson(strPath, true);
         if(temp == null){
-            Log.e(LOG_TAG, "Invalid path: getDouble() " + strPath);
+            Log.e(LOG_TAG, "Invalid path: " + strPath+".getDouble() ");
             return Double.NaN;
         }
         return temp.optDouble(varName);
@@ -100,7 +103,7 @@ public class JsonHelper {
         try {
             jObj = (JSONObject)getJson(strPath, true);
             jObj.put(varName, value);
-        } catch (JSONException e) { Log.e(LOG_TAG, "Invalid path: setBoolean() " + strPath); }
+        } catch (JSONException e) { Log.e(LOG_TAG, "Invalid path: " + strPath+".setBoolean() "); }
         jTemp.setRoot(jObj);
         return jTemp;
     }
@@ -111,7 +114,7 @@ public class JsonHelper {
         try {
             jObj = (JSONObject)getJson(strPath, true);
             jObj.put(varName, value);
-        } catch (JSONException e) {  Log.e(LOG_TAG, "Invalid path: setJson() " + strPath); }
+        } catch (JSONException e) {  Log.e(LOG_TAG, "Invalid path: " + strPath+".setJson() "); }
         jTemp.setRoot(jObj);
         return jTemp;
     }
@@ -122,7 +125,7 @@ public class JsonHelper {
         try {
             jObj = (JSONObject) getJson(strPath, true);
             jObj.put(varName, value);
-        } catch (JSONException e) {  Log.e(LOG_TAG, "Invalid path: setJson() " + strPath); }
+        } catch (JSONException e) {  Log.e(LOG_TAG, "Invalid path: " + strPath+".setJson() "); }
         jTemp.setRoot(jObj);
         return jTemp;
     }
@@ -133,7 +136,7 @@ public class JsonHelper {
         try {
             jObj = (JSONObject)getJson(strPath, true);
             jObj.put(varName, value);
-        } catch (JSONException e) { Log.e(LOG_TAG, "Invalid path: setInteger() " + strPath); }
+        } catch (JSONException e) { Log.e(LOG_TAG, "Invalid path: " + strPath+".setInteger() "); }
         jTemp.setRoot(jObj);
         return jTemp;
     }
@@ -144,7 +147,7 @@ public class JsonHelper {
         try {
             jObj = (JSONObject)getJson(strPath, true);
             jObj.put(varName, value);
-        } catch (JSONException e) { Log.e(LOG_TAG, "Invalid path: setString() " + strPath); }
+        } catch (JSONException e) { Log.e(LOG_TAG, "Invalid path: " + strPath+".setString() "); }
         jTemp.setRoot(jObj);
         return jTemp;
     }
@@ -155,7 +158,7 @@ public class JsonHelper {
         try {
             jObj = (JSONObject)getJson(strPath, true);
             jObj.put(varName, value);
-        } catch (JSONException e) { Log.e(LOG_TAG, "Invalid path: setDouble() " + strPath); }
+        } catch (JSONException e) { Log.e(LOG_TAG, "Invalid path:" + strPath+". setDouble() "); }
         jTemp.setRoot(jObj);
         return jTemp;
     }
@@ -188,7 +191,7 @@ public class JsonHelper {
             try {
                 jhObj.setRoot(rootJsonArray.getJSONObject(index));
             } catch (JSONException e) {
-                Log.d(LOG_TAG, "JsonHelper::setString() cannot get array index: "+ index);
+                Log.d(LOG_TAG, "JsonHelper::setString() cannot get array index: " + index);
                 e.printStackTrace();
                 return null;
             }
@@ -210,7 +213,7 @@ public class JsonHelper {
     public JsonHelper get(String strPath){
         JsonHelper jhTemp = new JsonHelper();
         Object obj = getJson(strPath, false);
-        if(obj instanceof  JSONObject){
+        if(obj instanceof JSONObject){
             jhTemp.setRoot((JSONObject) obj);
         } else {
             jhTemp.setRoot((JSONArray) obj);
@@ -296,7 +299,7 @@ public class JsonHelper {
                 }
             }
         } catch (JSONException e) {
-            Log.d(LOG_TAG, "JsonHelper::getJson() error getting JSON " );
+            Log.d(LOG_TAG, "JsonHelper::getJson() error getting JSON ");
             return null;
         }
         return jsonResult;

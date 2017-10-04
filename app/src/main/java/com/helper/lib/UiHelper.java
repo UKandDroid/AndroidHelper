@@ -23,8 +23,9 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
-// Version 1.2.2
-// added not static methods for pxToDp dpToPx
+// Version 1.2.3
+// Added set text for float & long
+// added non static methods for pxToDp dpToPx
 // Added Spinner methods - Set data, set selection
 // Added method text size
 // Added show Toast with string resource
@@ -95,6 +96,9 @@ public class UiHelper {
     public void setClickable(int id, boolean bTrue){ getView(id).setClickable(bTrue); }
 
     // METHOD - sets text for Button, TextView, EditText
+    public TextView setText(final int id, final long lText){ return setText(id, Long.toString(lText)); }
+    public TextView setText(final int id, final float fText){ return setText(id, Float.toString(fText)); }
+    public TextView setText(final int id, final int iText){ return setText(id, Integer.toString(iText)); }
     public TextView setText(final int id, final String sText){
         final View view = getView(id);
         if(Looper.myLooper() == Looper.getMainLooper()) {   // if current thread is main thread
@@ -109,20 +113,6 @@ public class UiHelper {
         return (TextView)view;
     }
 
-    // METHOD - sets text for Button, TextView, EditText
-    public TextView setText(final int id, final int iText){
-        final View view = getView(id);
-        if(Looper.myLooper() == Looper.getMainLooper()) {   // if current thread is main thread
-            ((TextView) view).setText(Integer.toString(iText));
-        } else {
-            new Handler(Looper.getMainLooper()).post(new Runnable() {
-                @Override
-                public void run() {
-                    ((TextView) view).setText(Integer.toString(iText));       // Update it on main thread
-                }});
-        }
-        return (TextView)view;
-    }
 
     // METHOD - sets text for Button, TextView, EditText
     public TextView setHint(final int id, final String sText){
@@ -466,5 +456,9 @@ public class UiHelper {
         DisplayMetrics displayMetrics = r.getDisplayMetrics();
         int px = Math.round(dp * (displayMetrics.xdpi / DisplayMetrics.DENSITY_DEFAULT));
         return px;
+    }
+
+    public int getIntRes(int iResId){
+        return context.getResources().getInteger(iResId);
     }
 }
