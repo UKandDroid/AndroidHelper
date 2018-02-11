@@ -22,7 +22,7 @@
       </configuration>
     </facet>
   </component>
-  <component name="NewModuleRootManager" LANGUAGE_LEVEL="JDK_1_7" inherit-compiler-output="false">
+  <component name="NewModuleRootManager" LANGUAGE_LEVEL="JDK_1_7">
     <output url="file://$MODULE_DIR$/build/intermediates/classes/debug" />
     <output-test url="file://$MODULE_DIR$/build/intermediates/classes/test/debug" />
     <exclude-output />
@@ -97,10 +97,10 @@
     </content>
     <orderEntry type="jdk" jdkName="Android API 23 Platform" jdkType="Android SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" exported="" name="support-annotations-22.2.0" level="project" />
-    <orderEntry type="library" exported="" name="support-v4-22.2.0" level="project" />
-    <orderEntry type="library" exported="" name="com.android.volley-2015.05.28" level="project" />
-    <orderEntry type="library" exported="" name="appcompat-v7-22.2.0" level="project" />
+    <orderEntry type="library" exported="" name="com.android.support:support-annotations:22.2.0@jar" level="project" />
+    <orderEntry type="library" exported="" name="com.android.support:support-v4-22.2.0" level="project" />
+    <orderEntry type="library" exported="" name="eu.the4thfloor.volley:com.android.volley:2015.05.28@jar" level="project" />
+    <orderEntry type="library" exported="" name="com.android.support:appcompat-v7-22.2.0" level="project" />
     <orderEntry type="library" exported="" name="android-android-23" level="project" />
   </component>
 </module>

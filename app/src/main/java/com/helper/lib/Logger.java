@@ -20,18 +20,28 @@ import java.util.Date;
  * Created by Ubaid on 29/06/2016.
  */
 public class Logger {
+    private int iLogLevel = 3;
     private String LOG_TAG = "";
     private static Context context;
     private boolean bSaveToFile = false;
     private static FileOutputStream stream ;
-    private int logLevel = 3;
     private boolean INTERNAL_STORAGE = true;
-    private static String FILE_NAME = "Nudge.html";
-    private static String DIRECTORY = "/Android/BlueBand/";
+    private static String FILE_NAME = "debug.html";
+    private static String DIRECTORY = "/Android/logs/";
     private static final String END = "</font>";
     private static final String FONT_RED ="<font face=\"sans-serif\" color=\"red\">";
     private static final String FONT_BLUE ="<font face=\"sans-serif\" color=\"blue\">";
     private static final String FONT_BLACK ="<font face=\"sans-serif\" color=\"black\">";
+
+    public Logger(String sLogTag) { LOG_TAG = sLogTag;}
+    public Logger() {
+        String sCallingClass = Thread.currentThread().getStackTrace()[3].getClassName();
+        String sSplitClass[] = sCallingClass.split("\\.");
+        LOG_TAG = sSplitClass[sSplitClass.length-1];
+    }
+
+    public int getLogLevel() { return this.iLogLevel; }
+    public void setLogLevel(int iLevel){ this.iLogLevel = iLevel; }
 
     // METHOD for logging
     public void d(String sLog){ d(1, sLog); }
@@ -40,21 +50,20 @@ public class Logger {
     public void d(int iLevel, String sLog) {
         sLog = sLog == null ? "" : sLog;
         if(bSaveToFile) { logToFile( FONT_BLACK + sLog + END); }
-        if(iLevel <= logLevel) { Log.d(LOG_TAG, sLog); } }
+        if(iLevel <= iLogLevel) { Log.d(LOG_TAG, sLog); } }
 
     public void e(int iLevel, String sLog){
         sLog = sLog == null ? "" : sLog;
         if(bSaveToFile) { logToFile(FONT_RED +sLog + END ); }
-        if(iLevel <= logLevel) { Log.e(LOG_TAG, sLog); } }
+        if(iLevel <= iLogLevel) { Log.e(LOG_TAG, sLog); } }
 
     public void w(int iLevel, String sLog){
         sLog = sLog == null ? "" : sLog;
         if(bSaveToFile) { logToFile(FONT_BLUE +sLog + END ); }
-        if(iLevel <= logLevel) { Log.w(LOG_TAG, sLog); } }
+        if(iLevel <= iLogLevel) { Log.w(LOG_TAG, sLog); }}
 
-    public Logger(String sLogTag){ LOG_TAG = sLogTag;}
-    public static void initialise(Context con){ context = con;}
-    public void saveToFile(){
+    public void saveToFile(Context con){
+        context = con;
         bSaveToFile = true;
         if(stream == null){
             try {
@@ -114,13 +123,13 @@ public class Logger {
         return  sb;
     }
 
-    public boolean deleteLog(){
+    public boolean deleteFile(){
         if(INTERNAL_STORAGE){
             File dir = context.getFilesDir();
             File file = new File(dir, FILE_NAME);
             file.delete();                                                                          // Delete old file
             stream = null;
-            saveToFile();                                                                           // Create new one
+            saveToFile(context);                                                                    // Create new one
         } else {
             File dir = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + DIRECTORY);
             File file = new File(dir, FILE_NAME);

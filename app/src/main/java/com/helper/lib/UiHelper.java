@@ -23,7 +23,8 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
-// Version 1.2.4
+// Version 1.2.5
+// Added support for chain calls e.g ui.setText(R.id.text, "test").setColor(iColor).setBg(R.drawable.bg)
 // Changed old method calls
 // Added set text for float & long
 // added non static methods for pxToDp dpToPx
@@ -39,13 +40,14 @@ import android.widget.Toast;
 
 public class UiHelper {
 
+    private View curView;               // View we are currently working with
     private Context context;
     private ViewGroup rootView;
     private Handler mainThread;
+    private static int iKbCount = 0;
+    private ProgressBar progressBar;
     private int[] arId = new int[256];      // Store loaded arView arId, so they can checked against.
     private View[] arView = new View[256];  // keeps reference of loaded views, so they are not loaded again..
-    private ProgressBar progressBar;
-    private static int iKbCount = 0;
     private ProgressDialog progressDialog;
     private boolean bKeyboardVisible = false;
     private RelativeLayout layoutProgress = null;
@@ -95,28 +97,33 @@ public class UiHelper {
     public void showToast( String sMessage){ Toast.makeText(context, sMessage, Toast.LENGTH_SHORT).show();}
     public void showToast( int iResString){ Toast.makeText(context, getStringRes(iResString), Toast.LENGTH_SHORT).show();}
 
-    public TextView setText(final int id, final long lText){ return setText(id, Long.toString(lText)); }
-    public TextView setText(final int id, final float fText){ return setText(id, Float.toString(fText)); }
-    public TextView setText(final int id, final int iText){ return setText(id, Integer.toString(iText)); }
-    public TextView setText(final int id, final String sText){
-        final View view = getView(id);
+    public UiHelper setText(final long lText){ return setText(curView, Long.toString(lText)); }
+    public UiHelper setText(final int id, final long lText){ return setText(getView(id), Long.toString(lText)); }
+    public UiHelper setText(final float fText){ return setText(curView, Float.toString(fText)); }
+    public UiHelper setText(final int id, final float fText){ return setText(getView(id), Float.toString(fText)); }
+    public UiHelper setText(final int iText){ return setText(curView, Integer.toString(iText)); }
+    public UiHelper setText(final int id, final int iText){ return setText(getView(id), Integer.toString(iText)); }
+    public UiHelper setText( final String sText){return setText(curView, sText); }
+    public UiHelper setText(final int id, final String sText){return setText(getView(id), sText); }
+    private UiHelper setText(final View view, final String sText){
         if(isMainThread()) {
             ((TextView) view).setText(sText);
         } else {
             mainThread.post(new Runnable() {@Override public void run() { ((TextView) view).setText(sText); }});
         }
-        return (TextView)view;
+        return this;
     }
 
     // METHOD - sets Background for a View
-    public void setBackground(final int id, final int iResId){
+    public void setBackground(final int iResId){setBackground(curView, iResId);}
+    public void setBackground(final int id, final int iResId){setBackground(getView(id), iResId);}
+    private void setBackground(final View view, final int iResId){
         if(isBgThread()) {  // if current thread is not main thread, call it on main thread
-            mainThread.post(new Runnable() { @Override public void run() { setBackground(id, iResId); }});
+            mainThread.post(new Runnable() { @Override public void run() { setBackground(view, iResId); }});
             return;
         }
 
         // Padding is lost when new background is set, so we need to reapply it.
-        View view = getView(id);
         int pL = view.getPaddingLeft();
         int pT = view.getPaddingTop();
         int pR = view.getPaddingRight();
@@ -138,9 +145,10 @@ public class UiHelper {
     }
 
     // METHOD - Enables or disables a view
-    public void setEnabled(final int id, final boolean bEnable){
-        final View view = getView(id);
-        if(isMainThread()) {  // if current thread is main thread
+    public UiHelper setEnabled( final boolean bEnable) { return setEnabled(curView, bEnable); }
+    public UiHelper setEnabled(final int id, final boolean bEnable) { return setEnabled(getView(id), bEnable); }
+    private UiHelper setEnabled(final View view, final boolean bEnable){
+        if(isMainThread()) {                                // if current thread is main thread
             view.setEnabled(bEnable);
         } else {                                           // Update it on main thread
             mainThread.post(new Runnable() {
@@ -149,26 +157,13 @@ public class UiHelper {
                     view.setEnabled(bEnable);
                 }});
         }
+        return this;
     }
 
     // METHOD - sets text  and Text color for Button, TextView, EditText
-    public void setText(final int id, final int iRGB, final String sText ){
-        final View view = getView(id);
-        if(isMainThread()) {  // if current thread is main thread
-            ((TextView) view).setTextColor(iRGB);
-            ((TextView) view).setText(sText);
-        } else {                                           // Update it on main thread
-            mainThread.post(new Runnable() {
-                @Override public void run() {
-                    ((TextView) view).setText(sText);// Update it on main thread
-                    ((TextView) view).setTextColor(iRGB);
-                }});
-        }
-    }
-
-    // METHOD - sets text  and Text color for Button, TextView, EditText
-    public void setTextRes(final int id, final int iResString){
-        final View view = getView(id);
+    public UiHelper setTextRes( final int iResString){return setTextRes(curView, iResString); }
+    public UiHelper setTextRes(final int id, final int iResString){return setTextRes(getView(id), iResString); }
+    private UiHelper setTextRes(final View view, final int iResString){
         if(isMainThread()) {  // if current thread is main thread
             ((TextView) view).setText(context.getResources().getString(iResString));
         } else {                                           // Update it on main thread
@@ -177,26 +172,31 @@ public class UiHelper {
                     ((TextView) view).setText(context.getResources().getString(iResString));
                 }});
         }
+        return this;
     }
 
     // METHOD - sets Text color for Button, TextView, EditText
-    public void setTextColor(final int id, final int iRGB ){
+    public void setTextColor(final int iRGB ){setTextColor(curView, iRGB);}
+    public void setTextColor(final int id, final int iRGB ){ setTextColor(getView(id), iRGB); }
+    private void setTextColor(final View v, final int iRGB ){
         if(isBgThread()){
-            mainThread.post(new Runnable() { @Override public void run() { setTextColor(id, iRGB); }});
+            mainThread.post(new Runnable() { @Override public void run() { setTextColor(v, iRGB); }});
             return;
         }
-        ((TextView)getView(id)).setTextColor(iRGB);
+        ((TextView)v).setTextColor(iRGB);
     }
 
     // METHOD - sets Text color for Button, TextView, EditText from resource
-    public void setTextColorRes(final int id, final int colorId ){
+    public UiHelper setTextColorRes(final int id, final int iColorRes ){return setTextColorRes(getView(id), iColorRes);}
+    public UiHelper setTextColorRes( final int iColorRes ){return setTextColorRes(curView, iColorRes);}
+    private UiHelper setTextColorRes(final View view, final int colorId ){
         if(isBgThread()){
-            mainThread.post(new Runnable() { @Override public void run() { setTextColorRes( id,colorId ); }});
-            return;
+            mainThread.post(new Runnable() { @Override public void run() { setTextColorRes( view,colorId ); }});
+            return this;
         }
         final int iColor =  getColor(colorId);
-        final View view = getView(id);
         ((TextView) view).setTextColor(iColor);
+        return this;
     }
 
     // METHOD - sets Text color Size Button, TextView, EditText, Note dimension resources are returned as pixels, that's why TypedValue.COMPLEX_UNIT_PX for resouce
@@ -208,6 +208,12 @@ public class UiHelper {
         if(isMainThread()) {  // if current thread is main thread
             ((TextView) view).setTextSize(iUnit, iSize);
         } else {                                           // Update it on main thread
+            runOnUI(new Utils.ThreadCode() {
+                @Override
+                public void execute() {
+
+                }
+            });
             mainThread.post(new Runnable() {
                 @Override
                 public void run() {
@@ -239,7 +245,6 @@ public class UiHelper {
         final View view = getView(id);
         if(isMainThread()) {  // if current thread is main thread
             ((TextView) view).setTypeface(null, bTrue ? Typeface.BOLD : Typeface.NORMAL);
-
         } else {                                           // Update it on main thread
             mainThread.post(new Runnable() {
                 @Override
@@ -248,15 +253,15 @@ public class UiHelper {
                 }});
         }
     }
-    // METHOD - Checks/Un checks a box
+    // METHOD - Checks/Un-checks a check box
     public void setChecked(final int id, boolean bCheck){
         CheckBox checkBox = (CheckBox) getView(id);
         checkBox.setChecked(bCheck);
     }
 
     // METHOD returns color from resource id
-    public int getColor(int rID){
-        return  context.getResources().getColor(rID);
+    public int getColor(int iRes){
+        return  context.getResources().getColor(iRes);
     }
 
     // METHOD - returns text for Button, TextView, EditText
@@ -318,7 +323,7 @@ public class UiHelper {
             arId[index] = id;
             arView[index] = rootView.findViewById(id);
         }
-        return arView[index];
+        return curView = arView[index];
     }
 
     // METHOD returns if keyboard is visible
@@ -385,6 +390,8 @@ public class UiHelper {
 
     // METHOD release resources
     public void release(){
+        mainThread.removeCallbacksAndMessages(null);
+        curView = null;
         context = null;
         rootView = null;
         arId = null;
@@ -393,6 +400,7 @@ public class UiHelper {
         progressBar = null;
         progressDialog = null;
         layoutKbDetect = null;
+        mainThread = null;
     }
 
     // METHOD - Convert pixels to dp
@@ -431,6 +439,13 @@ public class UiHelper {
         return Looper.myLooper() != Looper.getMainLooper();
     }
 
+    public boolean ifBgThread(Runnable r){
+        if(Looper.myLooper() != Looper.getMainLooper()){
+            mainThread.post(r);
+            return true;
+        }
+        return false ;
+    }
     public int getIntRes(int iResId){
         return context.getResources().getInteger(iResId);
     }

@@ -48,7 +48,7 @@ public class WakeTimer extends BroadcastReceiver {
     // METHOD to get instance of the class, as class is singleton
     public WakeTimer instance(){
         if(instance == null){ throw  new RuntimeException("Class not initialised, use init(Context, Flow.Code )");}
-        log.saveToFile();
+       // log.saveToFile();
         return instance;
     }
 

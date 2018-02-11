@@ -235,11 +235,5 @@ public class Anim {
         }
     }
 
-    // METHOD for logging
-    private void log(String sLog){ log(1, sLog); }
-    private void loge(String sLog){ loge(1, sLog); }
-    private void logw(String sLog){ logw(1, sLog); }
-    private void log(int iLevel, String sLog) { if(iLevel <= Settings.LOG_LEVEL) { Log.d(LOG_TAG, sLog); } }
-    private void loge(int iLevel, String sLog){ if(iLevel <= Settings.LOG_LEVEL) { Log.e(LOG_TAG, sLog); } }
-    private void logw(int iLevel, String sLog){ if(iLevel <= Settings.LOG_LEVEL) { Log.w(LOG_TAG, sLog); } }
+
 }

@@ -12,6 +12,7 @@ import com.helper.R;
 public class MainActivity extends AppCompatActivity {
     WakeTimer wake;
     public boolean bFlip = true;
+    Logger log = new Logger();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -23,6 +24,7 @@ public class MainActivity extends AppCompatActivity {
 
             }
         });
+        log.d("testing");
         wake.runRepeat(1, 1000L*20, "one");
         wake.runRepeat(2, 1000L*18, "two");
     }
