@@ -7,14 +7,12 @@ import org.json.JSONObject;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.CharBuffer;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-
-//version 1.0.1
-// Changed log
-// we have an Json array of item
+//version 1.1.0
 // item[0]                       get array element / JSON Object
 // item[0].object                get JSON Object at index 0
 // item[0].array[]               get JSON Array at item index 0
@@ -39,7 +37,7 @@ public class JsonHelper {
     private String varName;     // Variable name
     private boolean bIsArray = false;
     private final String LOG_TAG = "JsonHelper";
-    private final String VERSION = "1.1";
+    private final String VERSION = "1.1.0";
 
     public JsonHelper(){
         JSONObject temp = new JSONObject();
@@ -47,8 +45,8 @@ public class JsonHelper {
             temp.put("Empty", "JsonHelper root json not set");
             setRoot(temp);
         } catch (JSONException e) {e.printStackTrace(); }
-
     }
+
     public JsonHelper(JSONObject jObject){ setRoot(jObject); }
     public JsonHelper(JSONArray jArray){ setRoot(jArray); }
 
@@ -370,14 +368,13 @@ public class JsonHelper {
 
         boolean bResult = true;
         StringBuilder text = new StringBuilder();
+        char line[]= new char[256];
         try {
-            BufferedReader br = new BufferedReader(new InputStreamReader(context.getAssets().open(fileName)));
-            String line;
-
-            while ((line = br.readLine()) != null) {
+            InputStreamReader isr = new InputStreamReader(context.getAssets().open(fileName));
+            while ((isr.read( line) != -1) ) {
                 text.append(line);
             }
-            br.close();
+            isr.close();
         } catch (IOException e) {
             Log.d(LOG_TAG, "JsonHelper::loadJSONFile() opening file: " + fileName);
             bResult = false;
