@@ -24,11 +24,33 @@ import android.widget.TextView;
 import java.util.ArrayList;
 import java.util.List;
 
-// Version 2.0.4
+// Version 2.0.5
 // Added registerEventSequence()
-// Added on touch listener for view
-// Added SPINNER_ITEM_SELECTED ui event
 // Changed onClick for EditText as it takes two clicks when not in focus to register onClick
+
+// Added Help examples
+// ## EXAMPLES ##
+// Flow flow = new Flow(flowCode)
+//  Example 1: flow.registerEvents(1, "email_entered", "password_entered", "verify_code_entered" ) action 1 gets called when all those events occur
+//          : flow.onEvent("email_entered", true, 0, object)  is trigger for the registered events,
+//          :  when all three events are triggered with flow.onEvent(...., true, ..., ....), action 1 is executed with bSuccess = true
+//          :  after 3 event true(s), if one onEvents(...., false, ...,...) sends false, action 1 will be executed with bSuccess = false
+//          :  now action 1 will only trigger again when all onEvents(...., true, ...,...) are true, i.e the events which sent false, send true again
+// Example 2: flow.registerUIEvent(2, spinnerView, Flow.Event.SPINNER_ITEM_SELECT) action two gets called when ever a spinner item is selected
+// Example 3: flow.run(3, true(opt), extra(opt), object(opt)) runs an action on background thread, same as registering for one event and triggering that event
+// Example 4: flow.runOnUi(4, true(opt), extra(opt), object(opt)) runs code on Ui thread
+// Example 5: flow.runDelayed(5, true(opt), extra(opt), 4000) runs delayed code
+// Example 6: flow.runDelayedOnUi(6, true(opt), extra(opt), 4000) runs delayed code on Ui thread
+
+// Flow.Code flowCode = new Flow.Code(){
+//  @override public void onAction(int iAction, boolean bSuccess, int iExtra, Object data){
+//  switch(iAction){
+//      case 1:  ...... break;   // this code will run in first example when all events are triggered as true
+//      case 2: ...... break;    // this code will run when a spinner item is selected
+//      case 3: ....... break;   // this will run when ever run(3) is called
+//      case 4: ........ break;  // this will run on ui thread whenever runOnUi(4) is called
+//      case 5: ........ break;  // this will run on delayed by 4 secs
+// }  }
 
 public class Flow {
     private Code code;                                      // Call back for onAction to be executed
@@ -48,6 +70,18 @@ public class Flow {
     private static final int FLAG_SUCCESS = 0x00000001;
     private static final int FLAG_RUNonUI = 0x00000002;
     private static final int FLAG_REPEAT = 0x00000004;
+    // CLASS UiEvents type
+    static class UiEvent {
+        public static final int ON_CLICK = 3;
+        public static final int TEXT_CHANGE = 4;
+        public static final int TEXT_ENTERED = 5;
+        public static final int LIST_ITEM_SELECT = 6;
+        public static final int CHECKBOX_STATE = 7;
+        public static final int SPINNER_ITEM_SELECT = 8;
+        public static final int CLICK_STATES = 9;
+    }
+    // INTERFACE for code execution on events
+    public interface Code { public void onAction(int iAction, boolean bSuccess, int iExtra, Object data);}
 
     public Flow(Code codeCallback) {
         bRunning = true;
@@ -178,7 +212,7 @@ public class Flow {
 
     // METHODS register UI events for Action
     public void registerUIEvent(final int iStep, View view) {
-        registerListener(false, iStep, view, Event.ON_CLICK);
+        registerListener(false, iStep, view, UiEvent.ON_CLICK);
     }
 
     public void registerUIEvent(final int iStep, View view, int iEvent) {
@@ -186,7 +220,7 @@ public class Flow {
     }
 
     public void registerUIEvent(boolean bRunOnUI, int iStep, View view) {
-        registerListener(bRunOnUI, iStep, view, Event.ON_CLICK);
+        registerListener(bRunOnUI, iStep, view, UiEvent.ON_CLICK);
     }
 
     public void registerUIEvent(boolean bRunOnUI, int iStep, View view, int iEvent) {
@@ -216,27 +250,12 @@ public class Flow {
         hThread.mUiHandler.removeMessages(iAction);
     }
 
-    // INTERFACE for code execution on events
-    public interface Code {
-        public void onAction(int iAction, boolean bSuccess, int iExtra, Object data);
-    }
-
     // CLASS for event Pool
-    public static class Event {
+    private static class Event {
         // EVENTS for self use
         private static final int WAITING = 0;
         private static final int SUCCESS = 1;
         private static final int FAILURE = 2;
-
-        // EVENTS for which listeners are set
-        public static final int TOUCH = 3;
-        public static final int ON_CLICK = 4;
-        public static final int TEXT_CHANGE = 5;
-        public static final int TEXT_ENTERED = 6;
-        public static final int CHECKBOX_STATE = 7;
-        public static final int LIST_ITEM_SELECT = 8;
-        public static final int SPINNER_ITEM_SELECT = 9;
-
 
         public Object obj;
         public int iExtra;
@@ -505,7 +524,7 @@ public class Flow {
     private void registerListener(final boolean bRunOnUI, final int iAction, final View view, int iListener) {
         switch (iListener) {
             // triggered listener when view is clicked
-            case Event.ON_CLICK:
+            case UiEvent.ON_CLICK:
                 if(view instanceof EditText){                                                         // NOTE: for editText  first tap get focus, 2nd to trigger onClick, unless focusable is setfalse()
                     view.setOnFocusChangeListener(new View.OnFocusChangeListener() {
                         @Override
@@ -531,7 +550,7 @@ public class Flow {
                 break;
 
             // Triggered when Text entered in text field, i.e when text field loses focus, enter button is pressed or keyboard is closed
-            case Event.TEXT_ENTERED:
+            case UiEvent.TEXT_ENTERED:
                 if(view.getWidth() != 0){                                                           // If view is created, set it up else wati
                     keyboardHideActionForText(Flow.this, bRunOnUI, iAction, view);
                     view.setTag(iAction);
@@ -580,7 +599,7 @@ public class Flow {
                 break;
 
             // Triggered when text changes
-            case Event.TEXT_CHANGE:
+            case UiEvent.TEXT_CHANGE:
                 ((EditText) view).addTextChangedListener(new TextWatcher() {
                     @Override
                     public void afterTextChanged(Editable s) {
@@ -601,7 +620,7 @@ public class Flow {
                 });
                 break;
 
-            case Event.LIST_ITEM_SELECT:
+            case UiEvent.LIST_ITEM_SELECT:
                 ((ListView) view).setOnItemClickListener(new AdapterView.OnItemClickListener() {
                     @Override
                     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
@@ -614,7 +633,7 @@ public class Flow {
                 });
                 break;
 
-            case Event.SPINNER_ITEM_SELECT:
+            case UiEvent.SPINNER_ITEM_SELECT:
                 ((Spinner) view).setOnItemSelectedListener(
                         new AdapterView.OnItemSelectedListener() {
                             @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
@@ -635,7 +654,7 @@ public class Flow {
                         });
                 break;
 
-            case Event.CHECKBOX_STATE:
+            case UiEvent.CHECKBOX_STATE:
                 ((CheckBox) view).setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
                     @Override
                     public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
@@ -648,7 +667,7 @@ public class Flow {
                 });
                 break;
 
-            case Event.TOUCH:           // Listener returns true for Touch down and Move, false when finger is lifted up
+            case UiEvent.CLICK_STATES:           // Listener returns true for Touch down and Move, false when finger is lifted up
                 view.setOnTouchListener(new View.OnTouchListener() {
                     @Override
                     public boolean onTouch(View v, MotionEvent event) {
