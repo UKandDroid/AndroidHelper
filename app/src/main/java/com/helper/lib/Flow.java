@@ -1,4 +1,3 @@
-package com.helper.lib;
 
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -24,8 +23,12 @@ import android.widget.TextView;
 import java.util.ArrayList;
 import java.util.List;
 
-// Version 2.0.5
+// Version 2.0.7
+// Fixed bug where status for new event was already set to SUCCESS
+// register events only once for an action
 // Added registerEventSequence()
+// Added on touch listener for view
+// Added SPINNER_ITEM_SELECTED ui event
 // Changed onClick for EditText as it takes two clicks when not in focus to register onClick
 
 // Added Help examples
@@ -59,7 +62,7 @@ public class Flow {
     private int iKeybCount = 0;
     private EditText selText;                               // Selected text filed, used for EditText text enter
     private ViewGroup keybViewRoot;
-    private Action waitAction = null;
+    //private Action aAction = null;
     private static int iThreadCount = 0;
     private boolean bTextEntered = false;
     private boolean bKeyboardVisible = false;
@@ -70,18 +73,6 @@ public class Flow {
     private static final int FLAG_SUCCESS = 0x00000001;
     private static final int FLAG_RUNonUI = 0x00000002;
     private static final int FLAG_REPEAT = 0x00000004;
-    // CLASS UiEvents type
-    static class UiEvent {
-        public static final int ON_CLICK = 3;
-        public static final int TEXT_CHANGE = 4;
-        public static final int TEXT_ENTERED = 5;
-        public static final int LIST_ITEM_SELECT = 6;
-        public static final int CHECKBOX_STATE = 7;
-        public static final int SPINNER_ITEM_SELECT = 8;
-        public static final int CLICK_STATES = 9;
-    }
-    // INTERFACE for code execution on events
-    public interface Code { public void onAction(int iAction, boolean bSuccess, int iExtra, Object data);}
 
     public Flow(Code codeCallback) {
         bRunning = true;
@@ -108,7 +99,6 @@ public class Flow {
             hThread.mUiHandler.removeCallbacksAndMessages(null);
             hThread.stop();
             listActions = null;
-            waitAction = null;
             Event.releasePool();
 
             if (keybViewRoot != null && layoutKbDetect != null)
@@ -118,49 +108,24 @@ public class Flow {
     }
 
     // METHODS run an action
-
     public void run(int iAction) {
         hThread.run(iAction);
     }
-
-    public void run(int iAction, int iExtra, Object obj) {
-        hThread.run(iAction, true, iExtra, obj);
-    }
-
     public void runOnUI(int iAction) {
         hThread.run(iAction, true);
     }
-
-    public void runOnUI(int iAction, int iExtra, Object obj) {
-        hThread.runOnUI(iAction, true, iExtra, obj);
-    }
-
-    public void runOnUI(int iAction, boolean bSuccess, int iExtra, Object obj) {
-        hThread.runOnUI(iAction, bSuccess, iExtra, obj);
-    }
-
-    // METHODS run repeated actions / Timer
-    public void runRepeat(int iAction, long iDelay) {
-        hThread.runRepeat(false, iAction, true, 0, iDelay);
-    }
-
-    public void runRepeat(int iAction, boolean bSuccess, int iExtra, long iDelay) {
-        hThread.runRepeat(false, iAction, bSuccess, iExtra, iDelay);
-    }
-
-    public void runRepeatOnUI(int iAction, long iDelay) {
-        hThread.runRepeat(true, iAction, true, 0, iDelay);
-    }
-
-    public void runRepeatOnUI(int iAction, boolean bSuccess, int iExtra, long iDelay) {
-        hThread.runRepeat(true, iAction, bSuccess, iExtra, iDelay);
-    }
+    public void run(int iAction, int iExtra, Object obj) { hThread.run(iAction, true, iExtra, obj);}
+    public void runOnUI(int iAction, int iExtra, Object obj) { hThread.runOnUI(iAction, true, iExtra, obj);}
+    public void runOnUI(int iAction, boolean bSuccess, int iExtra, Object obj) { hThread.runOnUI(iAction, bSuccess, iExtra, obj);}
+    public void runRepeat(int iAction, long iDelay) { hThread.runRepeat(false, iAction, true, 0, iDelay);}
+    public void runRepeatOnUI(int iAction, long iDelay) { hThread.runRepeat(true, iAction, true, 0, iDelay);}
+    public void runRepeat(int iAction, boolean bSuccess, int iExtra, long iDelay) { hThread.runRepeat(false, iAction, bSuccess, iExtra, iDelay);}
+    public void runRepeatOnUI(int iAction, boolean bSuccess, int iExtra, long iDelay) { hThread.runRepeat(true, iAction, bSuccess, iExtra, iDelay);}
 
     // METHODS run action delayed
     public void runDelayed(int iAction, long iTime) {
         runDelayed(iAction, true, 0, iTime);
     }
-
     public void runDelayedOnUI(int iAction, long iTime) {
         runDelayedOnUI(iAction, true, 0, iTime);
     }
@@ -183,49 +148,35 @@ public class Flow {
         hThread.mHandler.sendMessageDelayed(msg, iTime);
     }
 
-    // METHODS register for events, Registered events are permanent, unlike waitForEvents
-    public void registerEvents(int iStep, String events[]) {
-        registerEvents(false, iStep, events);
-    }
+    // METHODS events registration
+    public void registerEvents(int iAction, String events[]) { registerEvents(iAction, false, false, false, events);}
+    public void waitForEvents(int iAction, String events[]) { registerEvents(iAction, false, true, false, events); }
+    public void waitForEvents(boolean bRunOnUI, int iAction, String events[]) { registerEvents(iAction, bRunOnUI, true, false, events);}
+    public void registerEvents( int iAction, boolean bRunOnUI, String events[]) {registerEvents(iAction, bRunOnUI, false, false, events); }
+    public void registerEventSequence( int iAction, boolean bRunOnUI, String events[]) { registerEvents(iAction, bRunOnUI, false, true, events);}
 
-    public void registerEvents(boolean bRunOnUI, int iStep, String events[]) {
-        Action act = new Action(iStep, events);
-        act.bRunOnUI = bRunOnUI;
-        listActions.add(act);
-    }
+    private void registerEvents( int iAction, boolean bRunOnUI, boolean bRunOnce, boolean bSequence,  String events[]){
+        for (int i = 0; i< listActions.size(); i++){ // remove action if it already exists
+            if(listActions.get(i).iAction == iAction){
+                listActions.remove(i);
+                log("ACTION: "+iAction+ " already exists, removing it  ");
+                break;
+            }
+        }
 
-    public void registerEventSequence(boolean bRunOnUI, int iStep, String events[]) {
-        Action act = new Action(iStep, events, true);
-        act.bRunOnUI = bRunOnUI;
-        listActions.add(act);
-    }
-    // METHOD wait for event once dispatched clear it
-    public void waitForEvents(int iAction, String events[]) {
-        waitForEvents(false, iAction, events);
-    }
-
-    public void waitForEvents(boolean bRunOnUI, int iAction, String events[]) {
-        waitAction = new Action(iAction, events);
-        waitAction.bRunOnUI = bRunOnUI;
-        waitAction.bFireOnce = true;                  // waitForEvents is fired only once, and is released after fired
+        Action aAction = new Action(iAction, events);
+        aAction.bRunOnUI = bRunOnUI;
+        aAction.bFireOnce = bRunOnce;                  // fired only once, then removed
+        aAction.bSequence = bSequence;                 // events have to be in sequence for the action to be fired
+        listActions.add( aAction);
+        log("ACTION: " + iAction + " registered  EVENTS = {" + events[0] +", "+ events[1]+"}");
     }
 
     // METHODS register UI events for Action
-    public void registerUIEvent(final int iStep, View view) {
-        registerListener(false, iStep, view, UiEvent.ON_CLICK);
-    }
-
-    public void registerUIEvent(final int iStep, View view, int iEvent) {
-        registerListener(false, iStep, view, iEvent);
-    }
-
-    public void registerUIEvent(boolean bRunOnUI, int iStep, View view) {
-        registerListener(bRunOnUI, iStep, view, UiEvent.ON_CLICK);
-    }
-
-    public void registerUIEvent(boolean bRunOnUI, int iStep, View view, int iEvent) {
-        registerListener(bRunOnUI, iStep, view, iEvent);
-    }
+    public void registerUIEvent(final int iStep, View view) { registerListener(false, iStep, view, Event.ON_CLICK); }
+    public void registerUIEvent(final int iStep, View view, int iEvent) { registerListener(false, iStep, view, iEvent);}
+    public void registerUIEvent(boolean bRunOnUI, int iStep, View view) { registerListener(bRunOnUI, iStep, view, Event.ON_CLICK); }
+    public void registerUIEvent(boolean bRunOnUI, int iStep, View view, int iEvent) { registerListener(bRunOnUI, iStep, view, iEvent); }
 
     // METHODS to send event
     public void event(String sEvent) { event(sEvent, true, 0, null); }
@@ -234,12 +185,15 @@ public class Flow {
     public void event(String sEvent, boolean bSuccess, int iExtra, Object obj) {
         if (!bRunning) return;
 
-        if (waitAction != null) {
-            waitAction.onEvent(sEvent, bSuccess, iExtra, obj);
-        }
+        log("EVENT:  "+ sEvent);
         int iSize = listActions.size();
+        boolean bActionFired = false;
         for (int i = 0; i < iSize; i++) {
-            listActions.get(i).onEvent(sEvent, bSuccess, iExtra, obj);
+            bActionFired =  listActions.get(i).onEvent(sEvent, bSuccess, iExtra, obj);
+            if(bActionFired){
+                listActions.remove(i);
+                log("Removing ACTION run once after been fired");
+            }
         }
     }
 
@@ -250,12 +204,27 @@ public class Flow {
         hThread.mUiHandler.removeMessages(iAction);
     }
 
+    // INTERFACE for code execution on events
+    public interface Code {
+        public void onAction(int iAction, boolean bSuccess, int iExtra, Object data);
+    }
+
     // CLASS for event Pool
-    private static class Event {
+    public static class Event {
         // EVENTS for self use
         private static final int WAITING = 0;
         private static final int SUCCESS = 1;
         private static final int FAILURE = 2;
+
+        // EVENTS for which listeners are set
+        public static final int TOUCH = 3;
+        public static final int ON_CLICK = 4;
+        public static final int TEXT_CHANGE = 5;
+        public static final int TEXT_ENTERED = 6;
+        public static final int CHECKBOX_STATE = 7;
+        public static final int LIST_ITEM_SELECT = 8;
+        public static final int SPINNER_ITEM_SELECT = 9;
+
 
         public Object obj;
         public int iExtra;
@@ -269,8 +238,7 @@ public class Flow {
         private static final Object sPoolSync = new Object();       // The lock used for synchronization
 
         // CONSTRUCTOR - Private
-        private Event() {
-        }
+        private Event() {}
 
         // METHOD get pool object only through this method, so no direct allocation are made
         public static Event obtain(String sId) {
@@ -278,6 +246,7 @@ public class Flow {
                 if (sPool != null) {
                     Event e = sPool;
                     e.sEvent = sId;
+                    e.iStatus = WAITING;
                     sPool = e.next;
                     e.next = null;
                     sPoolSize--;
@@ -285,6 +254,7 @@ public class Flow {
                 }
                 Event eve = new Event();
                 eve.sEvent = sId;
+                eve.iStatus = WAITING;
                 return eve;
             }
         }
@@ -309,9 +279,9 @@ public class Flow {
 
     // CLASS for events for action, when all events occur action is triggered
     public class Action {
-        private int iCodeStep;                                      // Code step to execute for this action
+        private int iAction;                                      // Code step to execute for this action
         private int iEventCount;                                    // How many event are for this action code to be triggered
-        private boolean bOrdered = false;                           // Only trigger when events occur in right order
+        private boolean bSequence = false;                           // Only trigger when events occur in right order
         //   private boolean bEventFound;
         private boolean bRunOnUI = false;                           // Code run on Background / UI thread
         public boolean bFireOnce = false;                           // Clear Action once fired, used for wait action
@@ -320,8 +290,8 @@ public class Flow {
 
         // CONSTRUCTOR
         public Action(int iCodeStep, String events[]) {
-            bOrdered = false;
-            this.iCodeStep = iCodeStep;
+            bSequence = false;
+            this.iAction = iCodeStep;
             iEventCount = events.length;
             for (int i = 0; i < iEventCount; i++) {
                 listEvents.add(Event.obtain(events[i]));            // get events from events pool
@@ -329,8 +299,8 @@ public class Flow {
         }
 
         public Action(int iCodeStep, String events[], boolean bOrder) {
-            this.bOrdered = bOrder;
-            this.iCodeStep = iCodeStep;
+            this.bSequence = bOrder;
+            this.iAction = iCodeStep;
             iEventCount = events.length;
             for (int i = 0; i < iEventCount; i++) {
                 listEvents.add(Event.obtain(events[i]));            // get events from events pool
@@ -344,36 +314,34 @@ public class Flow {
                 listEvents.get(i).recycle();
             }
             listEvents = null;
-            waitAction = null;
         }
 
         // METHOD searches all actions, if any associated with this event
-        public void onEvent(String sEvent, Boolean bResult, int iExtra, Object obj) {
+        public boolean onEvent(String sEvent, Boolean bResult, int iExtra, Object obj) {
             int iFired = 0;                     // How many have been fired
             int iSuccess = 0;                   // How many has been successful
             boolean bFound = false;
-
+            boolean bActionFired = false;
             for (int i = 0; i < iEventCount; i++) {
                 Event event = listEvents.get(i);
-                if (sEvent.equals(event.sEvent)) { // If event is found in this event list
+                if (sEvent.equals(event.sEvent)) {  // If event is found in this event list
+                    logw("{" + sEvent + "} fired for ACTION: " + iAction + " ");
                     bFound = true;
                     event.obj = obj;
                     event.iExtra = iExtra;
                     event.iStatus = bResult ? Event.SUCCESS : Event.FAILURE;
-                } else if(bOrdered && event.iStatus == Event.WAITING){                              // if its a Sequence action, no event should be empty before current event
+                } else if(bSequence && event.iStatus == Event.WAITING){                              // if its a Sequence action, no event should be empty before current event
                     if( i != 0 ){ listEvents.get(i-1).iStatus = Event.WAITING; }                    // reset last one, so they are always in sequence
                     break;
                 }
 
                 switch (event.iStatus) {
-                    case Event.SUCCESS:
-                        iSuccess++;
-                    case Event.FAILURE:
-                        iFired++;
+                    case Event.SUCCESS: iSuccess++;
+                    case Event.FAILURE: iFired++;    // Add to fired event regard less of success or failure
                         break;
                 }
 
-                if(bFound && bOrdered)
+                if(bFound && bSequence)
                     break;
             }
 
@@ -383,10 +351,12 @@ public class Flow {
                     int iCurStatus = bSuccess ? Event.SUCCESS : Event.FAILURE;
                     if (iCurStatus != iSetStatus) {    // If there is a change in action status only then run code
                         iSetStatus = iCurStatus;
+                        bActionFired = true;
+                        logw("ACTION:"+ iAction + " fired" );
                         if (bRunOnUI) {
-                            hThread.runOnUI(iCodeStep, bSuccess, 0, this.listEvents);
+                            hThread.runOnUI(iAction, bSuccess, 0, this.listEvents);
                         } else {
-                            hThread.run(iCodeStep, bSuccess, 0, this.listEvents);
+                            hThread.run(iAction, bSuccess, 0, this.listEvents);
                         }
                         if (bFireOnce) {
                             recycle();                  // Recycle if its flagged for it
@@ -395,6 +365,7 @@ public class Flow {
                 }
 
             }
+            return bActionFired;
         }
     }
 
@@ -524,7 +495,7 @@ public class Flow {
     private void registerListener(final boolean bRunOnUI, final int iAction, final View view, int iListener) {
         switch (iListener) {
             // triggered listener when view is clicked
-            case UiEvent.ON_CLICK:
+            case Event.ON_CLICK:
                 if(view instanceof EditText){                                                         // NOTE: for editText  first tap get focus, 2nd to trigger onClick, unless focusable is setfalse()
                     view.setOnFocusChangeListener(new View.OnFocusChangeListener() {
                         @Override
@@ -550,7 +521,7 @@ public class Flow {
                 break;
 
             // Triggered when Text entered in text field, i.e when text field loses focus, enter button is pressed or keyboard is closed
-            case UiEvent.TEXT_ENTERED:
+            case Event.TEXT_ENTERED:
                 if(view.getWidth() != 0){                                                           // If view is created, set it up else wati
                     keyboardHideActionForText(Flow.this, bRunOnUI, iAction, view);
                     view.setTag(iAction);
@@ -599,7 +570,7 @@ public class Flow {
                 break;
 
             // Triggered when text changes
-            case UiEvent.TEXT_CHANGE:
+            case Event.TEXT_CHANGE:
                 ((EditText) view).addTextChangedListener(new TextWatcher() {
                     @Override
                     public void afterTextChanged(Editable s) {
@@ -620,7 +591,7 @@ public class Flow {
                 });
                 break;
 
-            case UiEvent.LIST_ITEM_SELECT:
+            case Event.LIST_ITEM_SELECT:
                 ((ListView) view).setOnItemClickListener(new AdapterView.OnItemClickListener() {
                     @Override
                     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
@@ -633,10 +604,11 @@ public class Flow {
                 });
                 break;
 
-            case UiEvent.SPINNER_ITEM_SELECT:
+            case Event.SPINNER_ITEM_SELECT:
                 ((Spinner) view).setOnItemSelectedListener(
                         new AdapterView.OnItemSelectedListener() {
-                            @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                            @Override
+                            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                                 if (bRunOnUI) {
                                     hThread.runOnUI(iAction, true, position, view);
                                 } else {
@@ -644,7 +616,8 @@ public class Flow {
                                 }
 
                             }
-                            @Override public void onNothingSelected(AdapterView<?> parent) {
+                            @Override
+                            public void onNothingSelected(AdapterView<?> parent) {
                                 if (bRunOnUI) {
                                     hThread.runOnUI(iAction, false, -1, view);
                                 } else {
@@ -654,7 +627,7 @@ public class Flow {
                         });
                 break;
 
-            case UiEvent.CHECKBOX_STATE:
+            case Event.CHECKBOX_STATE:
                 ((CheckBox) view).setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
                     @Override
                     public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
@@ -667,7 +640,7 @@ public class Flow {
                 });
                 break;
 
-            case UiEvent.CLICK_STATES:           // Listener returns true for Touch down and Move, false when finger is lifted up
+            case Event.TOUCH:           // Listener returns true for Touch down and Move, false when finger is lifted up
                 view.setOnTouchListener(new View.OnTouchListener() {
                     @Override
                     public boolean onTouch(View v, MotionEvent event) {
@@ -717,7 +690,7 @@ public class Flow {
     }
 
     // METHOD for logging
-    private void log(String sLog) {
+    public void log(String sLog) {
         log(1, sLog);
     }
 
@@ -746,5 +719,7 @@ public class Flow {
             Log.w(LOG_TAG, sLog);
         }
     }
+
+
 }
 
