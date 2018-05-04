@@ -5,6 +5,7 @@ import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
 import android.util.Log;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.AccelerateInterpolator;
 import android.view.animation.AlphaAnimation;
@@ -21,10 +22,13 @@ import android.view.animation.RotateAnimation;
 import android.view.animation.ScaleAnimation;
 import android.view.animation.TranslateAnimation;
 
+
 import java.util.ArrayList;
 import java.util.List;
 
-// Version 1.2.2
+
+// Version 1.2.3
+// Added support for view height and width, that causes other view to move accordingly
 // Added start delay in every animation instead added to startTime list
 // Added method set repeat count for animation
 // Added ValueAnimator
@@ -34,9 +38,9 @@ public class Anim {
     public static final int ANIM_RUNNING = 1;
     public static final int ANIM_END = 2;
     // INTERFACE callback for Value Animation Updates
-    public interface ValueListener { void onValueChange( int iState, float value); }
+    public interface ValueListener { void onValueChange(int iState, float value); }
 
-    public static final int TYPE_SCALE = 0;
+    public static final int TYPE_SCALE = 0; // size of view increases but does not force other views to move
     public static final int TYPE_ROTATE = 1;
     public static final int TYPE_SCALE_X = 2;
     public static final int TYPE_SCALE_Y = 3;
@@ -44,7 +48,8 @@ public class Anim {
     public static final int TYPE_TRANSLATE_Y = 5;
     public static final int TYPE_ALPHA = 6;
     public static final int TYPE_VALUE = 7;
-
+    public static final int TYPE_HEIGHT = 8; //  the view gets other views to move, does not happen with scale or translate animation
+    public static final int TYPE_WIDTH = 9; //  the view gets other views to move
 
     public static final int INTER_CYCLE = 0;
     public static final int INTER_LINEAR = 1;
@@ -63,12 +68,13 @@ public class Anim {
     private Flow flowAnimation;
     private AnimationSet animationSet;
     private float fAnimValue = 0;
-    private ValueAnimator valueAnim = null;
     private ValueListener valueListener = null;
+    private ValueAnimator valueAnim = null;
     private int iDefaultInter = INTER_ACC_DECELERATE;
     private List<Long> listStartTime = new ArrayList<>();
     private List<Long> listDuration = new ArrayList<>();
-    private List<Animation> listAnimation = new ArrayList<>();
+    private List<Animation> listViewAnimation = new ArrayList<>();
+    private List<ValueAnimator> listValueAnimation = new ArrayList<>();
 
     public Anim(){}
     public Anim(View v){ setView(v);}
@@ -117,9 +123,12 @@ public class Anim {
     }
 
     public void addAnimation(int iType, int iInterpolator, float iStart, float iEnd,  long iDuration, long iStartTime){
-        Animation animator = null ;
+        Cloneable animator = null ;
 
         switch (iType){
+            case TYPE_HEIGHT:
+                animator = ValueAnimator.ofFloat(iStart, iEnd);
+                break;
             case TYPE_SCALE:
                 animator = new ScaleAnimation(iStart, iEnd, iStart, iEnd, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
                 break;
@@ -149,63 +158,87 @@ public class Anim {
                 break;
 
             case TYPE_VALUE:
-                valueAnim = ValueAnimator.ofFloat(iStart, iEnd);
+                animator = ValueAnimator.ofFloat(iStart, iEnd);
                 break;
         }
 
         if(animator != null){
-
             switch (iInterpolator){
-                case INTER_CYCLE: animator.setInterpolator(new CycleInterpolator(1)); break;
-                case INTER_LINEAR: animator.setInterpolator(new LinearInterpolator()); break;
-                case INTER_BOUNCE: animator.setInterpolator(new BounceInterpolator()); break;
-                case INTER_OVERSHOOT: animator.setInterpolator(new OvershootInterpolator()); break;
-                case INTER_ACCELERATE: animator.setInterpolator(new AccelerateInterpolator()); break;
-                case INTER_DECELERATE: animator.setInterpolator(new DecelerateInterpolator()); break;
-                case INTER_ANTICIPATE: animator.setInterpolator(new AnticipateInterpolator()); break;
-                case INTER_ACC_DECELERATE: animator.setInterpolator(new AccelerateDecelerateInterpolator()); break;
-                case INTER_ANTICIPATE_OVERSHOOT: animator.setInterpolator(new AnticipateOvershootInterpolator()); break;
+                case INTER_CYCLE: ((Animator)animator).setInterpolator(new CycleInterpolator(1)); break;
+                case INTER_LINEAR: ((Animator)animator).setInterpolator(new LinearInterpolator()); break;
+                case INTER_BOUNCE: ((Animator)animator).setInterpolator(new BounceInterpolator()); break;
+                case INTER_OVERSHOOT: ((Animator)animator).setInterpolator(new OvershootInterpolator()); break;
+                case INTER_ACCELERATE: ((Animator)animator).setInterpolator(new AccelerateInterpolator()); break;
+                case INTER_DECELERATE: ((Animator)animator).setInterpolator(new DecelerateInterpolator()); break;
+                case INTER_ANTICIPATE: ((Animator)animator).setInterpolator(new AnticipateInterpolator()); break;
+                case INTER_ACC_DECELERATE: ((Animator)animator).setInterpolator(new AccelerateDecelerateInterpolator()); break;
+                case INTER_ANTICIPATE_OVERSHOOT: ((Animator)animator).setInterpolator(new AnticipateOvershootInterpolator()); break;
             }
 
-            animator.setFillAfter(true);                // animation stays as it ended, view gone/Invisible wont work, unless animation stop is called
-            animator.setDuration(iDuration);
-            listDuration.add(iDuration);
-            listStartTime.add(0l);                   // start delay is added in every animation instead as start offset
-            animator.setStartOffset(iStartTime);     // start delay for every animation
-            listAnimation.add(animator);
-        }  else {
+            switch (iType){
+                case TYPE_VALUE:
+                    fAnimValue = iStart;
+                    ((Animator) animator).setDuration(iDuration);
+                    ((Animator) animator).setStartDelay(iStartTime);
+                    valueAnim = ((ValueAnimator) animator);
+                    listValueAnimation.add(((ValueAnimator) animator));
+                    if(valueListener!= null){ valueListener.onValueChange(ANIM_START, fAnimValue);}
+                    break;
 
-            switch (iInterpolator){
-                case INTER_CYCLE: valueAnim.setInterpolator(new CycleInterpolator(1)); break;
-                case INTER_LINEAR: valueAnim.setInterpolator(new LinearInterpolator()); break;
-                case INTER_BOUNCE: valueAnim.setInterpolator(new BounceInterpolator()); break;
-                case INTER_OVERSHOOT: valueAnim.setInterpolator(new OvershootInterpolator()); break;
-                case INTER_ACCELERATE: valueAnim.setInterpolator(new AccelerateInterpolator()); break;
-                case INTER_DECELERATE: valueAnim.setInterpolator(new DecelerateInterpolator()); break;
-                case INTER_ANTICIPATE: valueAnim.setInterpolator(new AnticipateInterpolator()); break;
-                case INTER_ACC_DECELERATE: valueAnim.setInterpolator(new AccelerateDecelerateInterpolator()); break;
-                case INTER_ANTICIPATE_OVERSHOOT: valueAnim.setInterpolator(new AnticipateOvershootInterpolator()); break;
+                case TYPE_HEIGHT:
+                    final ViewGroup.LayoutParams param = view.getLayoutParams();
+                    ((Animator) animator).setDuration(iDuration);
+                    ((Animator) animator).setStartDelay(iStartTime);
+                    listValueAnimation.add(((ValueAnimator) animator));
+                    ((ValueAnimator) animator).addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+                        @Override
+                        public void onAnimationUpdate(ValueAnimator valueAnimator) {
+                            param.height = ((Float)valueAnimator.getAnimatedValue()).intValue();
+                            view.setLayoutParams(param);
+                        }});
+                    break;
+
+                case TYPE_WIDTH:
+                    final ViewGroup.LayoutParams param2 = view.getLayoutParams();
+                    ((Animator) animator).setDuration(iDuration);
+                    ((Animator) animator).setStartDelay(iStartTime);
+                    listValueAnimation.add(((ValueAnimator) animator));
+                    ((ValueAnimator) animator).addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+                        @Override
+                        public void onAnimationUpdate(ValueAnimator valueAnimator) {
+                            param2.width = ((Float)valueAnimator.getAnimatedValue()).intValue();
+                            view.setLayoutParams(param2);
+                        }});
+                    break;
+
+
+                default:
+                    ((Animation) animator).setFillAfter(true);                // animation stays as it ended, view gone/Invisible wont work, unless animation stop is called
+                    ((Animation) animator).setDuration(iDuration);
+                    listDuration.add(iDuration);
+                    listStartTime.add(0l);                   // start delay is added in every animation instead as start offset
+                    ((Animation) animator).setStartOffset(iStartTime);     // start delay for every animation
+                    listViewAnimation.add(((Animation)animator));
             }
-            fAnimValue = iStart;
-            valueAnim.setDuration(iDuration);
-            valueAnim.setStartDelay(iStartTime);
+
         }
     }
 
-    public void setRepeatCount(int index, int iCount){
-        listAnimation.get(index).setRepeatCount(iCount);
+    public void setRepeatCount(int iAnimIndex, int iCount){
+        listViewAnimation.get(iAnimIndex).setRepeatCount(iCount);
     }
 
 
     // METHOD starts animation for the views
     public void start(){
-        animationSet = new AnimationSet(false);
-        flowAnimation = new Flow(actionCode);
-        if(valueAnim != null){
-            if(valueListener!= null){ valueListener.onValueChange(ANIM_START, fAnimValue);}
-            valueAnim.start();
+        // Start value based animations
+        for(int i =0; i< listValueAnimation.size();i++){
+            listValueAnimation.get(i).start();
         }
 
+        // Start view based animations
+        animationSet = new AnimationSet(false);
+        flowAnimation = new Flow(actionCode);
         for(int i=0; i < listStartTime.size(); i++){
             flowAnimation.runDelayedOnUI(i, listStartTime.get(i));
         }
@@ -213,7 +246,7 @@ public class Anim {
 
     Flow.Code actionCode = new Flow.Code() {
         @Override public void onAction(int iAction, boolean bSuccess, int iExtra, Object data) {
-            Animation anim =  listAnimation.get(iAction);
+            Animation anim =  listViewAnimation.get(iAction);
             animationSet.addAnimation(anim);
             view.clearAnimation();
             view.setAnimation(animationSet);
@@ -222,18 +255,25 @@ public class Anim {
         }} ;
 
     public void stop(){
-        if(flowAnimation != null)
-            flowAnimation.stop();
-        if(animationSet != null)
-            animationSet.cancel();
-        int iCount = listAnimation.size();
-        if(view != null){ view.clearAnimation(); }
-        if(valueAnim != null){ valueAnim.cancel(); }
+        if(flowAnimation != null) flowAnimation.stop();
+        if(animationSet != null) animationSet.cancel();
+        if(valueAnim != null) valueAnim.cancel();
+        if(view != null) view.clearAnimation();
 
-        for(int i =0; i < iCount; i++){
-            listAnimation.get(i).cancel();
+        for(int i =0; i < listValueAnimation.size(); i++){
+            listValueAnimation.get(i).cancel();
+        }
+
+        for(int i =0; i < listViewAnimation.size(); i++){
+            listViewAnimation.get(i).cancel();
         }
     }
 
-
+    // METHOD for logging
+    private void log(String sLog){ log(1, sLog); }
+    private void loge(String sLog){ loge(1, sLog); }
+    private void logw(String sLog){ logw(1, sLog); }
+    private void log(int iLevel, String sLog) { if(iLevel <= 2) { Log.d(LOG_TAG, sLog); } }
+    private void loge(int iLevel, String sLog){ if(iLevel <= 2) { Log.e(LOG_TAG, sLog); } }
+    private void logw(int iLevel, String sLog){ if(iLevel <= 2) { Log.w(LOG_TAG, sLog); } }
 }

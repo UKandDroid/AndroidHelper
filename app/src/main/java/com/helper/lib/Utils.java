@@ -7,6 +7,7 @@ import android.media.RingtoneManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
@@ -48,51 +49,6 @@ public class Utils {
         }
     }
 
-    // METHOD - Convert pixels to dp
-    public static int pxToDp(Context con, int iPixels){
-        DisplayMetrics displayMetrics = con.getResources().getDisplayMetrics();
-        int dp = Math.round(iPixels / (displayMetrics.xdpi / DisplayMetrics.DENSITY_DEFAULT));
-        return dp;
-    }
-    // METHOD - Convert dp to pixels
-    public static int dpToPx(Context con, int dp){
-        Resources r =  con.getResources();
-        DisplayMetrics displayMetrics = r.getDisplayMetrics();
-        int px = Math.round(dp * (displayMetrics.xdpi / DisplayMetrics.DENSITY_DEFAULT));
-        return px;
-    }
-    // METHOD - runs code on main thread, use for updating UI from non-UI thread
-    public static void updateUI(final ThreadCode code){
-        Handler mainHandler = new Handler(Looper.getMainLooper());
-        mainHandler.post( new Runnable() { @Override
-        public void run() { code.execute();}});
-    }
-    // METHOD - executes delayed code on Main thread
-    public static void updateDelayedUI(long iTime, final ThreadCode code){
-        final Handler handler = new Handler(Looper.getMainLooper());
-        handler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                code.execute();
-            }
-        }, iTime);
-    }
-
-    public static Runnable runDelayed(final long iTime, final ThreadCode code){
-        if(handBg == null){
-             handlerThread = new HandlerThread("BGThread");                            // start background thread
-            handlerThread.start();
-            handBg = new Handler(handlerThread.getLooper());
-        }
-        Runnable threadCode  =  new Runnable() {
-            @Override
-            public void run() {
-                code.execute();
-            }};
-        handBg.postDelayed(threadCode, iTime);
-        return threadCode;
-    }
-
     public static Runnable run( final ThreadCode code){
         if(handBg == null){
              handlerThread = new HandlerThread("BGThread");                            // start background thread
@@ -127,6 +83,7 @@ public class Utils {
     public String stopTimer(){
         return  strTimerTag +" Time: " + (System.currentTimeMillis() - iStartTime)+"ms" ;
     }
+
     // METHOD - get android device id
     public static String getPhoneId(Context context) {
         String androidId = Settings.Secure.getString(context.getContentResolver(), Settings.Secure.ANDROID_ID);
@@ -140,56 +97,6 @@ public class Utils {
         return outputFmt.format(utcTime);
     }
 
-    // DATE Conversion methods
-    public static String getLocalTime2(long unixTime){
-        Date utcTime = new Date(unixTime);
-        SimpleDateFormat outputFmt = new SimpleDateFormat("EEEE, dd MMM yyyy");
-        return outputFmt.format(utcTime);
-    }
-
-    // DATE Conversion methods
-    public static String getLocalTime3(long unixTime){
-        Date utcTime = new Date(unixTime);
-        SimpleDateFormat outputFmt = new SimpleDateFormat("dd, HH:mm:ss");
-        return outputFmt.format(utcTime);
-    }
-    // DATE Conversion methods
-    public static String getEventTime(long unixTime){
-        Date utcTime = new Date(unixTime);
-        SimpleDateFormat outputFmt = new SimpleDateFormat("HH:mm:ss");
-        return outputFmt.format(utcTime);
-    }
-
-    public static String getUTCDay(int iDay) {
-        Calendar calendar = Calendar.getInstance();
-        calendar.add(Calendar.DATE, iDay + 1 );
-        //  calendar.setTimeZone(TimeZone.getTimeZone("UTC"));
-        Date UTCTime = calendar.getTime();
-        SimpleDateFormat outputFmt = new SimpleDateFormat("ddMMyyyy-HHmmss");
-        return outputFmt.format(UTCTime);
-    }
-
-    public static String getChartsScreenDay(int iDay) {
-        Calendar calendar = Calendar.getInstance();
-        calendar.add(Calendar.DATE, iDay );
-        //  calendar.setTimeZone(TimeZone.getTimeZone("UTC"));
-        Date UTCTime = calendar.getTime();
-        SimpleDateFormat outputFmt = new SimpleDateFormat("EEEE, dd MMM yyyy");
-        return outputFmt.format(UTCTime);
-    }
-
-    public static String getWeek(int iStart){
-        Calendar calendar = Calendar.getInstance();
-        SimpleDateFormat outputFmt = new SimpleDateFormat("dd MMM yyyy");
-        calendar.add(Calendar.DATE, iStart );
-        Date UTCTime = calendar.getTime();
-        //  calendar.setTimeZone(TimeZone.getTimeZone("UTC"));
-        String sRange = outputFmt.format(UTCTime);
-        calendar.add(Calendar.DATE, 6);
-        UTCTime = calendar.getTime();
-        sRange += " - " +outputFmt.format(UTCTime);
-        return sRange;
-    }
     // Returns Just name of the Day
     public static String getDayName(long iDate) {
         SimpleDateFormat sdf = new SimpleDateFormat("EEEE");
@@ -197,40 +104,18 @@ public class Utils {
         return sdf.format(d);
     }
 
-   /* // METHOD shows a tip only if its not shown already
-    public static void showTip(Context context, char tip, String sText){
-        if(Prefs.get(tip)){
-            Prefs.set(tip, false);
-            Toast.makeText(context, sText, Toast.LENGTH_LONG).show();
-        }
-    }*/
-
-    // Returns Today, Yesterday, week day name for one week then date
-    public static String getDayName2(long  iTime) {
-        String sDate = "";
-        SimpleDateFormat outputDayTime = new SimpleDateFormat(" dd MMM yyyy");
-        Calendar cal = Calendar.getInstance();
-        int iCurDay = cal.get(Calendar.DAY_OF_YEAR);
-        cal.setTime(new Date(iTime) );
-        int iMsgDay = cal.get(Calendar.DAY_OF_YEAR);
-        int iDay = iCurDay - iMsgDay;
-
-        if(iDay == 0){
-            sDate = "Today" ;
-        } else if(iDay == 1){
-            sDate = "Yesterday" ;
-        } else if(iDay <= 7){
-            sDate = Utils.getDayName(iTime);
-        } else {
-            sDate = outputDayTime.format(new Date(iTime));
-        }
-        return sDate;
+    public static boolean isEmulator() {
+        return Build.FINGERPRINT.startsWith("generic")
+                || Build.FINGERPRINT.startsWith("unknown")
+                || Build.MODEL.contains("google_sdk")
+                || Build.MODEL.contains("Emulator")
+                || Build.MODEL.contains("Android SDK built for x86")
+                || Build.MANUFACTURER.contains("Genymotion")
+                || (Build.BRAND.startsWith("generic") && Build.DEVICE.startsWith("generic"))
+                || "google_sdk".equals(Build.PRODUCT);
     }
 
-    public static String getMessageDetailScreenDate(long iTime) {
-        SimpleDateFormat outputFmt = new SimpleDateFormat("EEEE, dd MMM yyyy - HH:mm:ss");
-        return outputFmt.format(new Date(iTime));
-    }
+
     public static void playSound(Context context){
         try {
             Uri notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
@@ -238,19 +123,6 @@ public class Utils {
             r.play();
         } catch (Exception e) { e.printStackTrace(); }
     }
-
-    public static long getUnixTime(String sDateTime){
-        SimpleDateFormat utcFmt = new SimpleDateFormat("ddMMyyyy");
-        Date dateSensor = null;
-        try {
-            dateSensor = utcFmt.parse(sDateTime);
-            return dateSensor.getTime();
-        } catch (ParseException e) { e.printStackTrace();
-        }
-        loge( "APIDate::getUnixTime() Date Parsing error");
-        return  0;
-    }
-
 
 
     // Class create a HandlerThread, that uses message to execute code

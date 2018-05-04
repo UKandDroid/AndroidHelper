@@ -23,7 +23,8 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
-// Whats new Version 1.2.5
+// Whats new Version 1.2.6
+// Removed KB detect as it's implemented in flow
 // Added support for chain calls e.g ui.setText(R.id.text, "test").setColor(iColor).setBg(R.drawable.bg)
 
 // Helper class for working with android Views
@@ -37,9 +38,7 @@ public class UiHelper {
     private int[] arId = new int[256];      // Store loaded arView arId, so they can checked against.
     private View[] arView = new View[256];  // keeps reference of loaded views, so they are not loaded again..
     private ProgressDialog progressDialog;
-    private boolean bKeyboardVisible = false;
     private RelativeLayout layoutProgress = null;
-    private RelativeLayout layoutKbDetect = null;
     private static final String LOG_TAG = "UiHelper";
 
     // CONSTRUCTORS
@@ -233,49 +232,10 @@ public class UiHelper {
         return curView = arView[index];
     }
 
-    // METHOD returns if keyboard is visible
-    public  boolean isKeyboardVisible(){
-        if(layoutKbDetect == null){ throw new NullPointerException(); }
-        return bKeyboardVisible;
-    }
-
-    // METHOD - sets up a full screen view, change of the view size means change in keyboard state.
-    public void setKeyboardListener(){
-        if(layoutKbDetect == null){
-            layoutKbDetect = new RelativeLayout(context);
-            layoutKbDetect.setLayoutParams(new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT));
-        }
-        layoutKbDetect.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
-            @Override
-            public void onLayoutChange(View view, int i, int i1, int i2, int i3, int i4, int i5, int i6, int i7) {
-                if(++iKbCount>1)                                                                    // first two calls should be ignored
-                    bKeyboardVisible = !bKeyboardVisible;
-            }
-        });
-        rootView.addView(layoutKbDetect);
-    }
-
-    // METHOD - runs code on main thread, use for updating UI from non-UI thread
-    public static void runOnUI(final Utils.ThreadCode code){
-        Handler mainHandler = new Handler(Looper.getMainLooper());
-        mainHandler.post(new Runnable() {
-            @Override
-            public void run() { code.execute(); }});
-    }
-
-    // METHOD - executes delayed code on Main thread
-    public static void runDelayedOnUI(long iTime, final Utils.ThreadCode code){
-        final Handler handler = new Handler(Looper.getMainLooper());
-        handler.postDelayed(new Runnable() {
-            @Override public void run() { code.execute(); }}, iTime);
-    }
-
-    // METHOD set keyboard state, as keyboard listener only detects change, so initial status could be set if required
-    public void setKeyboardState(boolean bVisible){ bKeyboardVisible = bVisible;}
-
     public void showKeyboard(){ showKeyboard(rootView); }
     public void showKeyboard(View v){
-        if(rootView != null){
+        if(v != null){
+            v.requestFocus();
             InputMethodManager imm = (InputMethodManager)context.getSystemService(Context.INPUT_METHOD_SERVICE);
             imm.showSoftInput(v, 0);
         } else {
@@ -306,7 +266,6 @@ public class UiHelper {
         layoutProgress = null;
         progressBar = null;
         progressDialog = null;
-        layoutKbDetect = null;
         mainThread = null;
     }
 
