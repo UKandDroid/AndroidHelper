@@ -1,4 +1,4 @@
-package com.Trailer.Libraries;
+package com.helper.lib;
 
 import android.graphics.Rect;
 import android.os.Handler;
@@ -22,30 +22,24 @@ import android.widget.Spinner;
 import android.widget.TextView;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-
-// Version 2.1.1
+// Version 2.1.2
+// added un-register events
 // Fixed keyboard show hide bug
-// KEYBOARD_STATE_CHANGE ui event, needs to give it activity root view to work
+// KEYBOARD_STATE_CHANGE ui event, needs activity root view to work, works only for android:windowSoftInputMode="adjustResize" or adjustPan
 // changed method signatures to be consistent
-// TEXT_ENTERED will work with only lose Focus and keyboard done button, if KEYBORAD_SHOW_HIDE event is not set first
-// Fixed bug where once fired action was auto deleted
-// Fixed bug where status for new event was already set to
-// register events only once for an action
-// Added registerEventSequence()
-// Added on touch listener for view
-// Added SPINNER_ITEM_SELECTED ui event
-// Changed onClick for EditText as it takes two clicks when not in focus to register onClick
+// TEXT_ENTERED will work with lose Focus and keyboard done button, if KEYBORAD_SHOW_HIDE event is not set first
 
 // Added Help examples
 // ## EXAMPLES ##
 // Flow flow = new Flow(flowCode)
-//  Example 1: flow.registerEvents(1, "email_entered", "password_entered", "verify_code_entered" ) action 1 gets called when all those events occur
-//          : flow.onEvent("email_entered", true, 0, object)  is trigger for the registered events,
-//          :  when all three events are triggered with flow.onEvent(...., true, ..., ....), action 1 is executed with bSuccess = true
-//          :  after 3 event true(s), if one onEvents(...., false, ...,...) sends false, action 1 will be executed with bSuccess = false
-//          :  now action 1 will only trigger again when all onEvents(...., true, ...,...) are true, i.e the events which sent false, send true again
-// Example 2: flow.registerUIEvent(2, spinnerView, Flow.Event.SPINNER_ITEM_SELECT) action two gets called when ever a spinner item is selected
+// Example 1: flow.registerEvents(1, "email_entered", "password_entered", "verify_code_entered" ) action 1 gets called when all those events occur
+//          : flow.onEvent("email_entered", true, extra(opt), object(opt))  is trigger for the registered event "email_entered",
+//          :  when all three events are triggered with flow.onEvent(...., true), action 1 is executed with bSuccess = true
+//          :  after 3 event true(s), if one onEvent(...., false) sends false, action 1 will be executed with bSuccess = false
+//          :  now action 1 will only trigger again when all onEvents(...., true) are true, i.e the events which sent false, send true again
+// Example 2: flow.registerUiEvent(2, spinnerView, Flow.Event.SPINNER_ITEM_SELECT) action two gets called when ever a spinner item is selected
 // Example 3: flow.run(3, true(opt), extra(opt), object(opt)) runs an action on background thread, same as registering for one event and triggering that event
 // Example 4: flow.runOnUi(4, true(opt), extra(opt), object(opt)) runs code on Ui thread
 // Example 5: flow.runDelayed(5, true(opt), extra(opt), 4000) runs delayed code
@@ -63,20 +57,21 @@ import java.util.List;
 
 public class Flow {
     private Code code;                                      // Call back for onAction to be executed
-    private boolean bRunning;
     private HThread hThread;
+    private View viewActRoot;
+    private boolean bRunning;
+    private Rect rLast = new Rect();
     private static int iThreadCount = 0;
-    private boolean bTextEntered = false;
     private boolean bKeybVisible = false;
-    private static final String LOG_TAG = "Flow";
     private static final int LOG_LEVEL = 4;
-    private List<Action> listActions = new ArrayList<Action>();  // List of registered actions
+    private static final String LOG_TAG = "Flow";
+    private static final int FLAG_REPEAT = 0x00000004;
     private static final int FLAG_SUCCESS = 0x00000001;
     private static final int FLAG_RUNonUI = 0x00000002;
-    private static final int FLAG_REPEAT = 0x00000004;
+    private List<Action> listActions = new ArrayList<Action>();  // List of registered actions
+    private HashMap<View, TextWatcher> listTextListeners = new HashMap();        // list of text change listeners for a text field
+    private HashMap<View, KeyboardState> listKBListeners = new HashMap();        // list of keyboard state change listeners
     private List<KeyboardState> keyList = new ArrayList<>();
-    private View viewActRoot;
-    private Rect rLast = new Rect();
     public Flow(Code codeCallback) {
         bRunning = true;
         code = codeCallback;
@@ -171,18 +166,10 @@ public class Flow {
     public void registerEvents(int iAction, String events[]) { registerEvents(iAction, false, false, false, events);}
     public void waitForEvents(int iAction, String events[]) { registerEvents(iAction, false, true, false, events); }
     public void waitForEvents( int iAction, boolean bRunOnUI, String events[]) { registerEvents(iAction, bRunOnUI, true, false, events);}
-    public void registerEvents( int iAction, boolean bRunOnUI, String events[]) {registerEvents(iAction, bRunOnUI, false, false, events); }
+    public void registerEvents(int iAction, boolean bRunOnUI, String events[]) { registerEvents(iAction, bRunOnUI, false, false, events); }
     public void registerEventSequence( int iAction, boolean bRunOnUI, String events[]) { registerEvents(iAction, bRunOnUI, false, true, events);}
-
-    private void registerEvents( int iAction, boolean bRunOnUI, boolean bRunOnce, boolean bSequence,  String events[]){
-        for (int i = 0; i< listActions.size(); i++){ // remove action if it already exists
-            if(listActions.get(i).iAction == iAction){
-                listActions.remove(i);
-                log("ACTION: "+iAction+ " already exists, removing it  ");
-                break;
-            }
-        }
-
+    private void registerEvents(int iAction, boolean bRunOnUI, boolean bRunOnce, boolean bSequence, String events[]){
+        unRegisterEvents(iAction);  // to stop duplication, remove if the action already exists
         Action aAction = new Action(iAction, events);
         aAction.bRunOnUI = bRunOnUI;
         aAction.bFireOnce = bRunOnce;                  // fired only once, then removed
@@ -190,14 +177,24 @@ public class Flow {
         listActions.add( aAction);
         StringBuffer buf = new StringBuffer(400);
         for(int i =0; i< events.length; i++){ buf.append(events[i]+", ");}
-        log("ACTION: " + iAction + " registered  EVENTS = {" + events[0] +", "+ events[1]+"}");
+        log("ACTION: " + iAction + " registered  EVENTS = {" +buf.toString()+"}");
     }
 
-    // METHODS register UI events for Action
-    public void registerUIEvent(final int iStep, View view) { registerListener(false, iStep, view, UiEvent.ON_CLICK); }
-    public void registerUIEvent(final int iStep, View view, int iEvent) { registerListener(false, iStep, view, iEvent);}
-    public void registerUIEvent( int iStep, boolean bRunOnUI, View view) { registerListener(bRunOnUI, iStep, view, UiEvent.ON_CLICK); }
-    public void registerUIEvent( int iStep, boolean bRunOnUI, View view, int iEvent) { registerListener(bRunOnUI, iStep, view, iEvent); }
+    public void unRegisterEvents(int iAction){
+        for (int i = 0; i< listActions.size(); i++){ // remove action if it already exists
+            if(listActions.get(i).iAction == iAction){
+                listActions.remove(i);
+                log("ACTION: "+iAction+ " exists, removing it  ");
+                break;
+            }
+        }
+    }
+    // METHODS registers/un registers UI events for Action
+    public void unRegisterUIEvent( View view, int iEvent) { unRegisterListener(view, iEvent); }
+    public void registerUiEvent(final int iStep, View view) { registerListener(false, iStep, view, UiEvent.ON_CLICK); }
+    public void registerUiEvent(final int iStep, View view, int iEvent) { registerListener(false, iStep, view, iEvent);}
+    public void registerUiEvent(int iStep, boolean bRunOnUI, View view) { registerListener(bRunOnUI, iStep, view, UiEvent.ON_CLICK); }
+    public void registerUiEvent(int iStep, boolean bRunOnUI, View view, int iEvent) { registerListener(bRunOnUI, iStep, view, iEvent); }
 
     // METHODS to send event
     public void event(String sEvent) { event(sEvent, true, 0, null); }
@@ -546,20 +543,19 @@ public class Flow {
             // for text entered to work with keyboard hide, set android:windowSoftInputMode="adjustResize" or "adjustPan"
             // and setup KEYBOARD_STATE UiEvent, provided with main activity root decor view
             case UiEvent.TEXT_ENTERED:
-                addKeybListener( new KeyboardState() {
+                KeyboardState listKb =  new KeyboardState() {
                     @Override public void onStateChange(boolean bVisible) {
                         if(view.hasFocus() && !bVisible){
-                            if (bRunOnUI) {
-                                hThread.runOnUI(iAction, bVisible, 0, view);
-                            } else {
-                                hThread.run(iAction, bVisible, 0, view);
-                            }}}});
+                            if (bRunOnUI) {hThread.runOnUI(iAction, bVisible, 0, view);
+                            } else {hThread.run(iAction, bVisible, 0, view); }}}};
+                listKBListeners.put(view, listKb);
+                addKeybListener(listKb );
+
                 view.setOnFocusChangeListener(new View.OnFocusChangeListener() {
                     @Override
                     public void onFocusChange(View v, boolean hasFocus) {
                         if (!hasFocus) {
                             logw(4, "Text ENTERED on Lost focus");
-                            bTextEntered = true;
                             if (bRunOnUI) {
                                 hThread.runOnUI(iAction, true, 0, view);
                             } else {
@@ -577,7 +573,6 @@ public class Flow {
                             } else {
                                 hThread.run(iAction, true, 3, view);
                             }
-                            bTextEntered = true;
                         }
                         return false;
                     }});
@@ -585,7 +580,7 @@ public class Flow {
 
             // Triggered when text changes
             case UiEvent.TEXT_CHANGED:
-                ((EditText) view).addTextChangedListener(new TextWatcher() {
+                TextWatcher txtListen =  new TextWatcher() {
                     @Override public void afterTextChanged(Editable s) {}
                     @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
                     @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
@@ -594,7 +589,9 @@ public class Flow {
                         } else {
                             hThread.run(iAction, true, 0, view);
                         }}
-                });
+                };
+                listTextListeners.put(view, txtListen);
+                ((EditText) view).addTextChangedListener(txtListen);
                 break;
 
             case UiEvent.LIST_ITEM_SELECT:
@@ -660,8 +657,32 @@ public class Flow {
         }
     }
 
+    // VIEW LISTENERS set event listeners for View objects
+    private void unRegisterListener( final View view, int iListener) {
+        switch (iListener) {
+            case UiEvent.ON_CLICK:
+                if(view instanceof EditText){ view.setOnFocusChangeListener(null); }
+                view.setOnClickListener(null);
+                break;
 
-    // METHOD - sends event through listener when keyboard state changes
+            case UiEvent.TEXT_ENTERED:
+                listKBListeners.remove(view);
+                view.setOnFocusChangeListener(null);
+                ((EditText) view).setOnEditorActionListener(null);
+                break;
+
+            case UiEvent.KEYBOARD_STATE_CHANGE: removeKeybListener();                           break;
+            case UiEvent.TEXT_CHANGED: listTextListeners.remove(view);                          break;
+            case UiEvent.LIST_ITEM_SELECT: ((ListView) view).setOnItemClickListener(null);      break;
+            case UiEvent.SPINNER_ITEM_SELECT:((Spinner) view).setOnItemSelectedListener(null);  break;
+            case UiEvent.CHECKBOX_STATE:((CheckBox) view).setOnCheckedChangeListener(null);     break;
+            case UiEvent.TOUCH:view.setOnTouchListener(null);                                   break;
+        }
+    }
+
+    // METHOD - sets/removes global keyboard listener, that will send notification to all other listeners
+    private void removeKeybListener() { viewActRoot.getViewTreeObserver().removeOnGlobalLayoutListener(keybListener); }
+
     private void setUpKeybListener(final KeyboardState keyListener, final View view) {
         rLast = new Rect();         // set a new rect for storing screen state
         viewActRoot = view;
