@@ -3,6 +3,7 @@ package com.helper.lib;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.res.Resources;
+import android.graphics.Color;
 import android.graphics.Typeface;
 import android.os.Handler;
 import android.os.Looper;
@@ -23,7 +24,8 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
-// Whats new Version 1.2.6
+// Whats new Version 1.2.7
+// fix text color resource bug
 // Removed KB detect as it's implemented in flow
 // Added support for chain calls e.g ui.setText(R.id.text, "test").setColor(iColor).setBg(R.drawable.bg)
 
@@ -132,8 +134,8 @@ public class UiHelper {
     }
 
     // METHOD - sets Text color for Button, TextView, EditText
-    public UiHelper setTextColorRes(final int id, final int iColorRes ){ return setTextColor(getView(id), iColorRes);}
-    public UiHelper setTextColorRes( final int iColorRes ){return setTextColor(curView, iColorRes);}
+    public UiHelper setTextColorRes(final int id, final int iColorRes ){return  setTextColor(getView(id), getColorRes(iColorRes));}
+    public UiHelper setTextColorRes( final int iColorRes ){ return setTextColor(curView, getColorRes(iColorRes));}
     public UiHelper setTextColor(final int iRGB ){ return setTextColor(curView, iRGB);}
     public UiHelper setTextColor(final int id, final int iRGB ){ return setTextColor(getView(id), iRGB); }
     private UiHelper setTextColor(final View v, final int iRGB ){ ((TextView)v).setTextColor(iRGB); return this; }
@@ -315,4 +317,37 @@ public class UiHelper {
     public int getIntRes(int iResId){
         return context.getResources().getInteger(iResId);
     }
+
+    // METHOD - sets Text color for Button, TextView, EditText
+    public void setTypeface(final int id, final Typeface font ){
+        final View view = getView(id);
+        if(Looper.myLooper() == Looper.getMainLooper()) {  // if current thread is main thread
+            ((TextView) view).setTypeface(font, Typeface.NORMAL);
+
+        } else {                                           // Update it on main thread
+            new Handler(Looper.getMainLooper()).post(new Runnable() {
+                @Override
+                public void run() {
+                    ((TextView) view).setTypeface(font, Typeface.NORMAL);
+                }});
+        }
+    }
+
+    // METHOD - executes delayed code on Main thread
+    public static void runDelayedOnUI(long iTime, final Utils.ThreadCode code){
+        final Handler handler = new Handler(Looper.getMainLooper());
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() { code.execute(); }}, iTime);
+    }
+
+
+    // METHOD - runs code on main thread, use for updating UI from non-UI thread
+    public static void runOnUI(final Utils.ThreadCode code){
+        Handler mainHandler = new Handler(Looper.getMainLooper());
+        mainHandler.post(new Runnable() {
+            @Override
+            public void run() { code.execute(); }});
+    }
+
 }

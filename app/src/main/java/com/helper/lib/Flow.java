@@ -1,4 +1,4 @@
-package com.helper.lib;
+package com.Trailer.Libraries;
 
 import android.graphics.Rect;
 import android.os.Handler;
@@ -24,9 +24,10 @@ import android.widget.TextView;
 import java.util.ArrayList;
 import java.util.List;
 
-// Version 2.1.0
+// Version 2.1.1
+// Fixed keyboard show hide bug
+// KEYBOARD_STATE_CHANGE ui event, needs to give it activity root view to work
 // changed method signatures to be consistent
-// KEYBOARD_SHOW_HIDE ui event, needs to give it activity root view to work
 // TEXT_ENTERED will work with only lose Focus and keyboard done button, if KEYBORAD_SHOW_HIDE event is not set first
 // Fixed bug where once fired action was auto deleted
 // Fixed bug where status for new event was already set to
@@ -92,7 +93,7 @@ public class Flow {
         public static final int CHECKBOX_STATE = 7;
         public static final int LIST_ITEM_SELECT = 8;
         public static final int SPINNER_ITEM_SELECT = 9;
-        public static final int KEYBOARD_SHOW_HIDE = 10;
+        public static final int KEYBOARD_STATE_CHANGE = 10; //   works only for android:windowSoftInputMode="adjustResize" or adjustPan
     }
     // STATE METHODS pause, resume, stop the action, should be called to release resources
     public void pause() {
@@ -187,6 +188,8 @@ public class Flow {
         aAction.bFireOnce = bRunOnce;                  // fired only once, then removed
         aAction.bSequence = bSequence;                 // events have to be in sequence for the action to be fired
         listActions.add( aAction);
+        StringBuffer buf = new StringBuffer(400);
+        for(int i =0; i< events.length; i++){ buf.append(events[i]+", ");}
         log("ACTION: " + iAction + " registered  EVENTS = {" + events[0] +", "+ events[1]+"}");
     }
 
@@ -355,6 +358,7 @@ public class Flow {
             }
 
             if (bFound) {                             // if event was found in this Action
+                logw("{" + sEvent + ":} for ACTION: " + iAction + ", Total Fired: "+iFired+" iSuccess: "+iSuccess);
                 if (iFired == iEventCount) {          // if all events for action has been fired
                     boolean bSuccess = (iSuccess == iEventCount); // all events registered success
                     int iCurStatus = bSuccess ? Event.SUCCESS : Event.FAILURE;
@@ -526,26 +530,30 @@ public class Flow {
                 });
                 break;
 
-            case UiEvent.KEYBOARD_SHOW_HIDE: // Method reports keyboard state change, should be provided with root activity view (activity.window.decorView)
+            case UiEvent.KEYBOARD_STATE_CHANGE: // Method reports keyboard state change, should be provided with root activity view (activity.window.decorView)
                 KeyboardState list  = new KeyboardState() {
                     @Override public void onStateChange(boolean bVisible) {
-                        if (bRunOnUI) {
-                            hThread.runOnUI(iAction, bVisible, 0, view);
-                        } else {
-                            hThread.run(iAction, bVisible, 0, view);
-                        }}};
+                        if(view.hasFocus()){
+                            if (bRunOnUI) {
+                                hThread.runOnUI(iAction, bVisible, 0, view);
+                            } else {
+                                hThread.run(iAction, bVisible, 0, view);
+                            }}}};
                 setUpKeybListener(list, view);
                 break;
 
             // Triggered when Text entered in text field, i.e when text field loses focus, enter button is pressed on keyboard
+            // for text entered to work with keyboard hide, set android:windowSoftInputMode="adjustResize" or "adjustPan"
+            // and setup KEYBOARD_STATE UiEvent, provided with main activity root decor view
             case UiEvent.TEXT_ENTERED:
                 addKeybListener( new KeyboardState() {
                     @Override public void onStateChange(boolean bVisible) {
-                        if (bRunOnUI) {
-                            hThread.runOnUI(iAction, bVisible, 0, view);
-                        } else {
-                            hThread.run(iAction, bVisible, 0, view);
-                        }}});
+                        if(view.hasFocus() && !bVisible){
+                            if (bRunOnUI) {
+                                hThread.runOnUI(iAction, bVisible, 0, view);
+                            } else {
+                                hThread.run(iAction, bVisible, 0, view);
+                            }}}});
                 view.setOnFocusChangeListener(new View.OnFocusChangeListener() {
                     @Override
                     public void onFocusChange(View v, boolean hasFocus) {
