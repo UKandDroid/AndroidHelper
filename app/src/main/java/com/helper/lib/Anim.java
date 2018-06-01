@@ -240,7 +240,7 @@ public class Anim {
         animationSet = new AnimationSet(false);
         flowAnimation = new Flow(actionCode);
         for(int i=0; i < listStartTime.size(); i++){
-            flowAnimation.runDelayedOnUI(i, listStartTime.get(i));
+            flowAnimation.runDelayed(i, true, listStartTime.get(i));
         }
     }
 

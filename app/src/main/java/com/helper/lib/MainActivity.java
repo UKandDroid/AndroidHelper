@@ -5,6 +5,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Toast;
 
 import com.helper.R;
 
@@ -19,16 +20,19 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         View v = findViewById(R.id.btn_hello);
-        wake = WakeTimer.init(this, new Flow.Code() {
-            @Override public void onAction(int iAction, boolean bSuccess, int iExtra, Object data) {
 
-            }
-        });
-        log.d("testing");
-        wake.runRepeat(1, 1000L*20, "one");
-        wake.runRepeat(2, 1000L*18, "two");
+        Flow flow  = new Flow(flowcode );
+        flow.registerUiEvent(0, this.getWindow().getDecorView(), Flow.UiEvent.KEYBOARD_STATE_CHANGE);
+        //flow.unRegisterUIEvent(this.getWindow().getDecorView(), Flow.UiEvent.KEYBOARD_STATE_CHANGE);
     }
 
+
+    Flow.Code  flowcode = new Flow.Code() {
+        @Override
+        public void onAction(int iAction, boolean bSuccess, int iExtra, Object data) {
+            Toast.makeText(MainActivity.this, "Keyborad shown: " + bSuccess, Toast.LENGTH_SHORT ).show();
+        }
+    };
 
     @Override protected void onPostResume() {
         super.onPostResume();

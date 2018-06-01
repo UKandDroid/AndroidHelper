@@ -1,22 +1,28 @@
 package com.helper.lib;
 
+import android.app.Activity;
 import android.graphics.Rect;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
 import android.text.Editable;
+import android.text.Layout;
 import android.text.TextWatcher;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
+import android.view.Window;
+import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
 import android.widget.AdapterView;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.ListView;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -62,6 +68,7 @@ public class Flow {
     private boolean bRunning;
     private Rect rLast = new Rect();
     private static int iThreadCount = 0;
+    private int iSoftInputMode = -1;
     private boolean bKeybVisible = false;
     private static final int LOG_LEVEL = 4;
     private static final String LOG_TAG = "Flow";
@@ -90,6 +97,7 @@ public class Flow {
         public static final int SPINNER_ITEM_SELECT = 9;
         public static final int KEYBOARD_STATE_CHANGE = 10; //   works only for android:windowSoftInputMode="adjustResize" or adjustPan
     }
+
     // STATE METHODS pause, resume, stop the action, should be called to release resources
     public void pause() {
         bRunning = false;
@@ -124,40 +132,51 @@ public class Flow {
     public void run(int iAction) {
         hThread.run(iAction);
     }
-    public void run(int iAction, int iExtra, Object obj) { hThread.run(iAction, true, iExtra, obj);}
-    public void run(int iAction, boolean bSuccess, int iExtra, Object obj) { hThread.run(iAction, bSuccess, iExtra, obj);}
-    public void runOnUI(int iAction) {
-        hThread.run(iAction, true);
+    public void run(int iAction, boolean bRunOnUi) {
+        if(bRunOnUi) hThread.run(iAction, bRunOnUi);
     }
-    public void runOnUI(int iAction, int iExtra, Object obj) { hThread.runOnUI(iAction, true, iExtra, obj);}
-    public void runOnUI(int iAction, boolean bSuccess, int iExtra, Object obj) { hThread.runOnUI(iAction, bSuccess, iExtra, obj);}
+    public void run(int iAction, int iExtra, Object obj) { hThread.run(iAction, true, iExtra, obj);}
+    public void run(int iAction, boolean bRunOnUi, boolean bSuccess, int iExtra, Object obj) {
+        if(bRunOnUi) hThread.runOnUI(iAction, bSuccess, iExtra, obj);
+        else hThread.run(iAction, bSuccess, iExtra, obj);}
+
     public void runRepeat(int iAction, long iDelay) { hThread.runRepeat(false, iAction, true, 0, iDelay);}
-    public void runRepeatOnUI(int iAction, long iDelay) { hThread.runRepeat(true, iAction, true, 0, iDelay);}
+    public void runRepeat(int iAction, boolean bRunOnUi, long iDelay) { hThread.runRepeat(bRunOnUi, iAction, true, 0, iDelay);}
     public void runRepeat(int iAction, boolean bSuccess, int iExtra, long iDelay) { hThread.runRepeat(false, iAction, bSuccess, iExtra, iDelay);}
-    public void runRepeatOnUI(int iAction, boolean bSuccess, int iExtra, long iDelay) { hThread.runRepeat(true, iAction, bSuccess, iExtra, iDelay);}
+    public void runRepeat(int iAction, boolean bRunOnUi, boolean bSuccess, int iExtra, long iDelay) { hThread.runRepeat(bRunOnUi, iAction, bSuccess, iExtra, iDelay);}
 
     // METHODS run action delayed
     public void runDelayed(int iAction, long iTime) {
-        runDelayed(iAction, true, 0, iTime);
+        runDelayed2(iAction, true, 0, null, iTime);
     }
-    public void runDelayedOnUI(int iAction, long iTime) {
-        runDelayedOnUI(iAction, true, 0, iTime);
+    public void runDelayed(int iAction, boolean bRunOnUi, long iTime) {
+        if(bRunOnUi) runDelayedOnUI(iAction, true, 0, null, iTime);
+        else runDelayed2(iAction, true, 0, null, iTime);
+    }
+    public void runDelayed(int iAction, boolean bSuccess, int iExtra, Object object, long iTime) {
+        runDelayed2(iAction, bSuccess, iExtra, object, iTime);
+    }
+    public void runDelayed(int iAction, boolean bRunOnUi, boolean bSuccess, int iExtra, Object object, long iTime) {
+        if(bRunOnUi) runDelayedOnUI(iAction, bSuccess, iExtra, object, iTime);
+        else runDelayed2(iAction, bSuccess, iExtra, object, iTime);
     }
 
-    public void runDelayedOnUI(int iAction, boolean bSuccess, int iExtra, long iTime) {
+    private void runDelayedOnUI(int iAction, boolean bSuccess, int iExtra, Object object, long iTime) {
         Message msg = Message.obtain();
         msg.what = iAction;
         msg.arg1 = iExtra;
         msg.arg2 = bSuccess ? 1 : 0;
+        msg.obj = object;
         hThread.mUiHandler.removeMessages(iAction);                             // Remove any pending messages in queue
         hThread.mUiHandler.sendMessageDelayed(msg, iTime);
     }
 
-    public void runDelayed(int iAction, boolean bSuccess, int iExtra, long iTime) {
+    private void runDelayed2(int iAction, boolean bSuccess, int iExtra,Object object, long iTime) {
         Message msg = Message.obtain();
         msg.what = iAction;
         msg.arg1 = iExtra;
         msg.arg2 = bSuccess ? 1 : 0;
+        msg.obj = object;
         hThread.mHandler.removeMessages(iAction);                               // Remove any pending messages in queue
         hThread.mHandler.sendMessageDelayed(msg, iTime);
     }
@@ -189,6 +208,7 @@ public class Flow {
             }
         }
     }
+
     // METHODS registers/un registers UI events for Action
     public void unRegisterUIEvent( View view, int iEvent) { unRegisterListener(view, iEvent); }
     public void registerUiEvent(final int iStep, View view) { registerListener(false, iStep, view, UiEvent.ON_CLICK); }
@@ -680,10 +700,25 @@ public class Flow {
         }
     }
 
-    // METHOD - sets/removes global keyboard listener, that will send notification to all other listeners
-    private void removeKeybListener() { viewActRoot.getViewTreeObserver().removeOnGlobalLayoutListener(keybListener); }
+    // METHOD - sets/removes global keyboard listener, also sets resets SoftInputMode
+    private void removeKeybListener() {
+        viewActRoot.getViewTreeObserver().removeOnGlobalLayoutListener(keybListener);
+        Activity act = (Activity) ((ViewGroup) viewActRoot).getChildAt(0).getContext();
+        Window window = act.getWindow();
+        iSoftInputMode = window.getAttributes().softInputMode;     // save it so we can restore, when keyboard listener is removed
+        if(iSoftInputMode != -1)
+            window.setSoftInputMode(iSoftInputMode);
 
+    }
+
+    // METHOD - sets up a listener for keyboard state change, also change SoftInputMode if its not correct
     private void setUpKeybListener(final KeyboardState keyListener, final View view) {
+        Activity act = (Activity) ((ViewGroup) view).getChildAt(0).getContext();  // Change soft input mode to SOFT_INPUT_ADJUST_PAN or SOFT_INPUT_ADJUST_RESIZE, for it to work
+        Window window = act.getWindow();
+        iSoftInputMode = window.getAttributes().softInputMode;     // save it so we can restore, when keyboard listener is removed
+        if(iSoftInputMode != WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN && iSoftInputMode != WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE )
+            window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);
+
         rLast = new Rect();         // set a new rect for storing screen state
         viewActRoot = view;
         keyList.add(keyListener);
