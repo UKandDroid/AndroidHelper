@@ -47,8 +47,10 @@ public class JsonHelper {
         } catch (JSONException e) {e.printStackTrace(); }
     }
 
-    public JsonHelper(JSONObject jObject){ setRoot(jObject); }
     public JsonHelper(JSONArray jArray){ setRoot(jArray); }
+    public JsonHelper(JSONObject jObject){ setRoot(jObject); }
+    public JsonHelper(String sJson){ try { setRoot(new JSONObject(sJson)); } catch (JSONException e) { e.printStackTrace(); } }
+
 
     // METHOD - Returns a JSON Array based on path, array string is added "[]"
     public JSONArray getArray(String strPath) {

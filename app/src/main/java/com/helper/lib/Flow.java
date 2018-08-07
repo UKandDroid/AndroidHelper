@@ -30,12 +30,16 @@ import android.widget.TextView;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-// Version 2.1.2
+// Version 2.1.7
+// Various changes,
+// Added execute() method that can be called after a run event to execute code immediately see example 7
+// bug fix, where run call was not called at all, if ui flag was set false
+// Change window SoftInputMode when keyboard listener is set
 // added un-register events
 // Fixed keyboard show hide bug
 // KEYBOARD_STATE_CHANGE ui event, needs activity root view to work, works only for android:windowSoftInputMode="adjustResize" or adjustPan
 // changed method signatures to be consistent
-// TEXT_ENTERED will work with lose Focus and keyboard done button, if KEYBORAD_SHOW_HIDE event is not set first
+// TEXT_ENTERED will work with lose Focus and keyboard done button, if KEYBOARD_STATE_CHANGE event is not set first
 
 // Added Help examples
 // ## EXAMPLES ##
@@ -60,15 +64,17 @@ import java.util.List;
 //      case 4: ........ break;  // this will run on ui thread whenever runOnUi(4) is called
 //      case 5: ........ break;  // this will run on delayed by 4 secs
 // }  }
+// Example 7: new Flow().runDelayed(2000).execute(() -{})
+// Example 8: new Flow().runRepeat(500).execute(() -{})
 
 public class Flow {
-    private Code code;                                      // Call back for onAction to be executed
+    private Flow nextFlow;
     private HThread hThread;
     private View viewActRoot;
     private boolean bRunning;
+    private int iSoftInputMode = -1;
     private Rect rLast = new Rect();
     private static int iThreadCount = 0;
-    private int iSoftInputMode = -1;
     private boolean bKeybVisible = false;
     private static final int LOG_LEVEL = 4;
     private static final String LOG_TAG = "Flow";
@@ -76,15 +82,26 @@ public class Flow {
     private static final int FLAG_SUCCESS = 0x00000001;
     private static final int FLAG_RUNonUI = 0x00000002;
     private List<Action> listActions = new ArrayList<Action>();  // List of registered actions
+    private List<KeyboardState> keyList = new ArrayList<>();
     private HashMap<View, TextWatcher> listTextListeners = new HashMap();        // list of text change listeners for a text field
     private HashMap<View, KeyboardState> listKBListeners = new HashMap();        // list of keyboard state change listeners
-    private List<KeyboardState> keyList = new ArrayList<>();
+    private Execute code = null;                                                // Call back for onAction to be executed
+
+    // INTERFACES for code execution and keyboard listener
+    private interface Execute {}
+    public interface Run extends Execute{ public void onAction();}
+    private interface KeyboardState { public void onStateChange(boolean bVisible); }
+    public interface Code extends Execute{ public void onAction(int iAction, boolean bSuccess, int iExtra, Object data); }
+
+    public Flow(){ this(null); }
     public Flow(Code codeCallback) {
         bRunning = true;
         code = codeCallback;
         hThread = new HThread();
     }
-    private interface KeyboardState { public void onStateChange(boolean bVisible); }
+
+    public void code(Code codeCallback){  code = codeCallback; }
+    public void execute(Execute CodeOrRunCallback){ code = CodeOrRunCallback;  }
 
     public class UiEvent{
         // EVENTS for which listeners are set
@@ -105,11 +122,10 @@ public class Flow {
         hThread.mUiHandler.removeCallbacksAndMessages(null);
     }
 
-    public void resume() {
-        bRunning = true;
-    }
+    public void resume() { bRunning = true; }
 
     public void stop() {
+        code = null;
         try {
             for (int i = 0; i < listActions.size(); i++) {
                 listActions.get(i).recycle();
@@ -129,36 +145,44 @@ public class Flow {
 
 
     // METHODS run an action
-    public void run(int iAction) {
-        hThread.run(iAction);
-    }
-    public void run(int iAction, boolean bRunOnUi) {
-        if(bRunOnUi) hThread.run(iAction, bRunOnUi);
-    }
-    public void run(int iAction, int iExtra, Object obj) { hThread.run(iAction, true, iExtra, obj);}
-    public void run(int iAction, boolean bRunOnUi, boolean bSuccess, int iExtra, Object obj) {
+    public Flow run(boolean bRunOnUi) { run(-1, true); return  this; }
+    public Flow run(int iAction) { run(iAction, false); return  this; }
+    public Flow run(int iAction, boolean bRunOnUi) { run(iAction, bRunOnUi, true, 0, null); return  this;}
+    public Flow run(int iAction, int iExtra, Object obj) { run(iAction, false, true, iExtra, obj); return  this;}
+    public Flow run(int iAction, boolean bRunOnUi, boolean bSuccess, int iExtra, Object obj) {
         if(bRunOnUi) hThread.runOnUI(iAction, bSuccess, iExtra, obj);
-        else hThread.run(iAction, bSuccess, iExtra, obj);}
+        else hThread.run(iAction, bSuccess, iExtra, obj);
+        return  this;
+    }
 
-    public void runRepeat(int iAction, long iDelay) { hThread.runRepeat(false, iAction, true, 0, iDelay);}
-    public void runRepeat(int iAction, boolean bRunOnUi, long iDelay) { hThread.runRepeat(bRunOnUi, iAction, true, 0, iDelay);}
-    public void runRepeat(int iAction, boolean bSuccess, int iExtra, long iDelay) { hThread.runRepeat(false, iAction, bSuccess, iExtra, iDelay);}
-    public void runRepeat(int iAction, boolean bRunOnUi, boolean bSuccess, int iExtra, long iDelay) { hThread.runRepeat(bRunOnUi, iAction, bSuccess, iExtra, iDelay);}
+    public Flow runRepeat(long iDelay) { hThread.runRepeat(false, -1, true, 0, iDelay);  return  this;}
+    public Flow runRepeat(int iAction, long iDelay) { hThread.runRepeat(false, iAction, true, 0, iDelay);  return  this;}
+    public Flow runRepeat(int iAction, boolean bRunOnUi, long iDelay) { hThread.runRepeat(bRunOnUi, iAction, true, 0, iDelay);  return  this;}
+    public Flow runRepeat(int iAction, boolean bSuccess, int iExtra, long iDelay) { hThread.runRepeat(false, iAction, bSuccess, iExtra, iDelay);  return  this;}
+    public Flow runRepeat(int iAction, boolean bRunOnUi, boolean bSuccess, int iExtra, long iDelay) { hThread.runRepeat(bRunOnUi, iAction, bSuccess, iExtra, iDelay);  return  this;}
 
     // METHODS run action delayed
-    public void runDelayed(int iAction, long iTime) {
-        runDelayed2(iAction, true, 0, null, iTime);
+    public Flow runDelayed( long iTime) {
+        runDelayed2(-1, true, 0, null, iTime);
+        return  this;
     }
-    public void runDelayed(int iAction, boolean bRunOnUi, long iTime) {
+    public Flow runDelayed(int iAction, long iTime) {
+        runDelayed2(iAction, true, 0, null, iTime);
+        return  this;
+    }
+    public Flow runDelayed(int iAction, boolean bRunOnUi, long iTime) {
         if(bRunOnUi) runDelayedOnUI(iAction, true, 0, null, iTime);
         else runDelayed2(iAction, true, 0, null, iTime);
+        return  this;
     }
-    public void runDelayed(int iAction, boolean bSuccess, int iExtra, Object object, long iTime) {
+    public Flow runDelayed(int iAction, boolean bSuccess, int iExtra, Object object, long iTime) {
         runDelayed2(iAction, bSuccess, iExtra, object, iTime);
+        return  this;
     }
-    public void runDelayed(int iAction, boolean bRunOnUi, boolean bSuccess, int iExtra, Object object, long iTime) {
+    public Flow runDelayed(int iAction, boolean bRunOnUi, boolean bSuccess, int iExtra, Object object, long iTime) {
         if(bRunOnUi) runDelayedOnUI(iAction, bSuccess, iExtra, object, iTime);
         else runDelayed2(iAction, bSuccess, iExtra, object, iTime);
+        return  this;
     }
 
     private void runDelayedOnUI(int iAction, boolean bSuccess, int iExtra, Object object, long iTime) {
@@ -212,7 +236,7 @@ public class Flow {
     // METHODS registers/un registers UI events for Action
     public void unRegisterUIEvent( View view, int iEvent) { unRegisterListener(view, iEvent); }
     public void registerUiEvent(final int iStep, View view) { registerListener(false, iStep, view, UiEvent.ON_CLICK); }
-    public void registerUiEvent(final int iStep, View view, int iEvent) { registerListener(false, iStep, view, iEvent);}
+    public Flow registerUiEvent(final int iStep, View view, int iEvent) { registerListener(false, iStep, view, iEvent); return this;}
     public void registerUiEvent(int iStep, boolean bRunOnUI, View view) { registerListener(bRunOnUI, iStep, view, UiEvent.ON_CLICK); }
     public void registerUiEvent(int iStep, boolean bRunOnUI, View view, int iEvent) { registerListener(bRunOnUI, iStep, view, iEvent); }
 
@@ -240,11 +264,6 @@ public class Flow {
         if (!bRunning) return;
         hThread.mHandler.removeMessages(iAction);
         hThread.mUiHandler.removeMessages(iAction);
-    }
-
-    // INTERFACE for code execution on events
-    public interface Code {
-        public void onAction(int iAction, boolean bSuccess, int iExtra, Object data);
     }
 
     // CLASS for event Pool
@@ -393,7 +412,6 @@ public class Flow {
                         }
                     }
                 }
-
             }
             return bActionFired;
         }
@@ -481,9 +499,19 @@ public class Flow {
                     mHandler.removeMessages(msg.what);      // Clear any pending messages
                     mHandler.sendMessageDelayed(msg2, (long) msg.arg1);
                 }
-                code.onAction(msg.what, getFlag(msg.arg2, FLAG_SUCCESS), getExtraInt(msg.arg2), msg.obj);
+                if(code != null){
+                    if(code instanceof Code)
+                        ((Code)code).onAction(msg.what, getFlag(msg.arg2, FLAG_SUCCESS), getExtraInt(msg.arg2), msg.obj);
+                    else
+                        ((Run)code).onAction();
+                }
             } else {
-                code.onAction(msg.what, msg.arg2 == 1, msg.arg1, msg.obj);
+                if(code != null){
+                    if(code instanceof Code)
+                        ((Code)code).onAction(msg.what, msg.arg2 == 1, msg.arg1, msg.obj);
+                    else
+                        ((Run)code).onAction();
+                }
             }
             return true;
         }
@@ -492,24 +520,17 @@ public class Flow {
             mHandler.removeCallbacksAndMessages(null);
             mUiHandler.removeCallbacksAndMessages(null);
             mHandler.getLooper().quit();
-
         }
-
     }
 
     // METHODS for packing data for repeat event
-    private static int addExtraInt(int iValue, int iData) {
-        return iValue | (iData << 8);
-    }
-
+    private static int addExtraInt(int iValue, int iData) { return iValue | (iData << 8); }
     private static int getExtraInt(int iValue) {
         return (iValue >> 8);
     }
-
     private static boolean getFlag(int iValue, int iFlag) {
         return (iValue & iFlag) == iFlag;
     }
-
     private static int setFlag(int iValue, int iFlag, boolean bSet) {
         if (bSet) {
             return iValue | iFlag;
@@ -667,9 +688,9 @@ public class Flow {
                     @Override
                     public boolean onTouch(View v, MotionEvent event) {
                         if (bRunOnUI) {
-                            hThread.runOnUI(iAction, event.getAction() != MotionEvent.ACTION_UP, event.getAction(), view);
+                            hThread.runOnUI(iAction, event.getAction() != MotionEvent.ACTION_UP, event.getAction(), event);
                         } else {
-                            hThread.run(iAction, event.getAction() != MotionEvent.ACTION_UP, event.getAction(), view);
+                            hThread.run(iAction, event.getAction() != MotionEvent.ACTION_UP, event.getAction(), event);
                         }
                         return true;
                     }

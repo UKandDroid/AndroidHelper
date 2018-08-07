@@ -24,21 +24,21 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
-// Whats new Version 1.2.7
+// Whats new Version 1.2.8
+// attempt to fix bug where UiHelper won't work if root object is changed
 // fix text color resource bug
 // Removed KB detect as it's implemented in flow
 // Added support for chain calls e.g ui.setText(R.id.text, "test").setColor(iColor).setBg(R.drawable.bg)
 
 // Helper class for working with android Views
 public class UiHelper {
+    private int[] arId;         // Store loaded arView arId, so they can checked against.
+    private View[] arView;      // keeps reference of loaded views, so they are not loaded again..
     private View curView;
     private Context context;
     private ViewGroup rootView;
-    private Handler mainThread;
-    private static int iKbCount = 0;
+    private static Handler mainThread;
     private ProgressBar progressBar;
-    private int[] arId = new int[256];      // Store loaded arView arId, so they can checked against.
-    private View[] arView = new View[256];  // keeps reference of loaded views, so they are not loaded again..
     private ProgressDialog progressDialog;
     private RelativeLayout layoutProgress = null;
     private static final String LOG_TAG = "UiHelper";
@@ -50,6 +50,8 @@ public class UiHelper {
     }
     public void setRootView(View v){
         rootView = (ViewGroup)v;
+        arId = new int[256];      // Store loaded arView arId, so they can checked against.
+        arView = new View[256];  // keeps reference of loaded views, so they are not loaded again..
         context = rootView.getContext();
         mainThread = new Handler(Looper.getMainLooper());
     }
@@ -314,6 +316,7 @@ public class UiHelper {
         }
         return false ;
     }
+
     public int getIntRes(int iResId){
         return context.getResources().getInteger(iResId);
     }
@@ -334,20 +337,18 @@ public class UiHelper {
     }
 
     // METHOD - executes delayed code on Main thread
-    public static void runDelayedOnUI(long iTime, final Utils.ThreadCode code){
-        final Handler handler = new Handler(Looper.getMainLooper());
-        handler.postDelayed(new Runnable() {
+    public static void runDelayedOnUI(long iTime, final Flow.Run code){
+        mainThread.postDelayed(new Runnable() {
             @Override
-            public void run() { code.execute(); }}, iTime);
+            public void run() { code.onAction(); }}, iTime);
     }
 
 
     // METHOD - runs code on main thread, use for updating UI from non-UI thread
-    public static void runOnUI(final Utils.ThreadCode code){
-        Handler mainHandler = new Handler(Looper.getMainLooper());
-        mainHandler.post(new Runnable() {
+    public static void runOnUI( final Flow.Run code ){
+        mainThread.post(new Runnable() {
             @Override
-            public void run() { code.execute(); }});
+            public void run() { code.onAction(); }});
     }
 
 }
