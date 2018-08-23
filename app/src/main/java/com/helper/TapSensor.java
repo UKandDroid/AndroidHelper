@@ -57,6 +57,7 @@ public final class TapSensor {
                     iFingerCount++;
                 }
                 break;
+
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_POINTER_UP:
             case MotionEvent.ACTION_CANCEL:

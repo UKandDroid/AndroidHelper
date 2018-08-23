@@ -30,8 +30,8 @@ import android.widget.TextView;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-// Version 2.1.7
-// Various changes,
+// Version 2.1.8
+// Fixed keyboard bug
 // Added execute() method that can be called after a run event to execute code immediately see example 7
 // bug fix, where run call was not called at all, if ui flag was set false
 // Change window SoftInputMode when keyboard listener is set
@@ -726,7 +726,6 @@ public class Flow {
         viewActRoot.getViewTreeObserver().removeOnGlobalLayoutListener(keybListener);
         Activity act = (Activity) ((ViewGroup) viewActRoot).getChildAt(0).getContext();
         Window window = act.getWindow();
-        iSoftInputMode = window.getAttributes().softInputMode;     // save it so we can restore, when keyboard listener is removed
         if(iSoftInputMode != -1)
             window.setSoftInputMode(iSoftInputMode);
 

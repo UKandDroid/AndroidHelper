@@ -1,6 +1,9 @@
 package com.helper.lib;
 
 import android.app.ProgressDialog;
+import android.arch.lifecycle.Lifecycle;
+import android.arch.lifecycle.LifecycleObserver;
+import android.arch.lifecycle.OnLifecycleEvent;
 import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Color;
@@ -31,7 +34,7 @@ import android.widget.Toast;
 // Added support for chain calls e.g ui.setText(R.id.text, "test").setColor(iColor).setBg(R.drawable.bg)
 
 // Helper class for working with android Views
-public class UiHelper {
+public class UiHelper implements LifecycleObserver{
     private int[] arId;         // Store loaded arView arId, so they can checked against.
     private View[] arView;      // keeps reference of loaded views, so they are not loaded again..
     private View curView;
@@ -260,6 +263,7 @@ public class UiHelper {
     }
 
     // METHOD release resources
+    @OnLifecycleEvent(Lifecycle.Event.ON_STOP)
     public void release(){
         mainThread.removeCallbacksAndMessages(null);
         curView = null;
@@ -270,6 +274,7 @@ public class UiHelper {
         layoutProgress = null;
         progressBar = null;
         progressDialog = null;
+
         mainThread = null;
     }
 

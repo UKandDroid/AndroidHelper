@@ -1,18 +1,20 @@
 package com.helper.lib;
+
 import android.content.Context;
 import android.util.Log;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-import java.io.BufferedReader;
+
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.nio.CharBuffer;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-//version 1.1.0
+//version 1.1.1
+// Added optional params for string and boolean
 // item[0]                       get array element / JSON Object
 // item[0].object                get JSON Object at index 0
 // item[0].array[]               get JSON Array at item index 0
@@ -27,9 +29,8 @@ import java.util.List;
 // isRootArray() -- tells if root JSON is Array or Object
 
 /* ********************************************************************************************
-* CLASS -- Helper class to get nester JSON objects by string
-* *********************************************************************************************
-*/
+ * CLASS -- Helper class to get nester JSON objects by string
+ * **********************************************************************************************/
 public class JsonHelper {
     private JSONObject rootJsonObj;
     private JSONArray rootJsonArray;
@@ -37,7 +38,7 @@ public class JsonHelper {
     private String varName;     // Variable name
     private boolean bIsArray = false;
     private final String LOG_TAG = "JsonHelper";
-    private final String VERSION = "1.1.0";
+    private final String VERSION = "1.1.1";
 
     public JsonHelper(){
         JSONObject temp = new JSONObject();
@@ -51,44 +52,52 @@ public class JsonHelper {
     public JsonHelper(JSONObject jObject){ setRoot(jObject); }
     public JsonHelper(String sJson){ try { setRoot(new JSONObject(sJson)); } catch (JSONException e) { e.printStackTrace(); } }
 
-
     // METHOD - Returns a JSON Array based on path, array string is added "[]"
     public JSONArray getArray(String strPath) {
         return (JSONArray) getJson(strPath+"[]", false);
     }
+
     // METHOD - Returns JSON Object
     public JSONObject getObject(String strPath) {
         return (JSONObject) getJson(strPath, false);
     }
+
     // METHOD - Returns boolean, false if variable not found
-    public boolean getBoolean(String strPath) {
+    public boolean getBoolean(String strPath){ return getBoolean(strPath, false); }
+    public boolean getBoolean(String strPath, boolean bOptional) {
         JSONObject temp = (JSONObject) getJson(strPath, true);
         if(temp == null){
             Log.e(LOG_TAG, "Invalid path: " + strPath+".getBoolean() ");
-            return false;
+            return bOptional;
         }
-        return temp.optBoolean(varName);
+        return temp.optBoolean(varName, bOptional);
     }
+
     // METHOD - Returns integer, 0 if variable not found
-    public int getInteger(String strPath) {
+    public int getInteger(String strPath) { return getInteger(strPath,0); }
+    public int getInteger(String strPath, int optional) {
         JSONObject temp = (JSONObject) getJson(strPath, true);
         if(temp == null){
             Log.e(LOG_TAG, "Invalid path: " + strPath+".getInteger() ");
-            return 0;
+            return optional;
         }
         return temp.optInt(varName);
     }
+
     // METHOD - Returns string, "" if variable not found
-    public String getString(String strPath) {
+    public String getString(String strPath){return  getString(strPath, ""); }
+    public String getString(String strPath, String sOptional) {
         JSONObject temp = (JSONObject) getJson(strPath, true);
         if(temp == null){
             Log.e(LOG_TAG, "Invalid path: " + strPath+".getString() ");
-            return "";
+            return sOptional;
         }
-        return temp.optString(varName);
+        return temp.optString(varName, sOptional);
     }
+
     // METHOD - Returns double, NaN if variable not found
-    public double getDouble(String strPath) {
+    public double getDouble(String strPath){return getDouble(strPath, Double.NaN); }
+    public double getDouble(String strPath, double optional) {
         JSONObject temp = (JSONObject) getJson(strPath, true);
         if(temp == null){
             Log.e(LOG_TAG, "Invalid path: " + strPath+".getDouble() ");
@@ -96,6 +105,7 @@ public class JsonHelper {
         }
         return temp.optDouble(varName);
     }
+
     // METHOD - Sets a boolean
     public JsonHelper setBoolean(String strPath, boolean value) {
         JSONObject jObj = null;
@@ -107,6 +117,7 @@ public class JsonHelper {
         jTemp.setRoot(jObj);
         return jTemp;
     }
+
     // METHOD - Sets a Json Object
     public JsonHelper setJson(String strPath, JSONObject value) {
         JSONObject jObj = null;
@@ -118,6 +129,7 @@ public class JsonHelper {
         jTemp.setRoot(jObj);
         return jTemp;
     }
+
     // METHOD - Sets a Json array
     public JsonHelper setJson(String strPath, JSONArray value) {
         JSONObject jObj = null;
@@ -129,6 +141,7 @@ public class JsonHelper {
         jTemp.setRoot(jObj);
         return jTemp;
     }
+
     // METHOD - Sets integer
     public JsonHelper setInteger(String strPath, int value) {
         JSONObject jObj = null;
@@ -140,6 +153,7 @@ public class JsonHelper {
         jTemp.setRoot(jObj);
         return jTemp;
     }
+
     // METHOD - Sets string
     public JsonHelper setString(String strPath, String value) {
         JSONObject jObj = null;
@@ -151,6 +165,7 @@ public class JsonHelper {
         jTemp.setRoot(jObj);
         return jTemp;
     }
+
     // METHOD - Sets double
     public JsonHelper setDouble(String strPath, double value) {
         JSONObject jObj = null;
@@ -162,28 +177,24 @@ public class JsonHelper {
         jTemp.setRoot(jObj);
         return jTemp;
     }
+
     // METHOD - Adds a json object to root array
-    public boolean add(JSONObject value) {
+    public boolean addToArray(JSONObject value) {
         if(isJsonArray()){
             JSONArray jArray = (JSONArray)getRoot();
             jArray.put(value);
             return true;
         } else {
-            Log.d(LOG_TAG, "JsonHelper::add() root is not a JSON Array ");
+            Log.d(LOG_TAG, "JsonHelper::addToArray() root is not a JSON Array ");
         }
         return false;
     }
-    public Object getRoot(){
-        return bIsArray ?  rootJsonArray : rootJsonObj;
-    }
 
-    public boolean isJsonArray(){
-        return bIsArray;
-    }
+    public Object getRoot(){ return bIsArray ?  rootJsonArray : rootJsonObj; }
 
-    public int getLength(){
-        return bIsArray ? rootJsonArray.length() : 0;
-    }
+    public boolean isJsonArray(){ return bIsArray; }
+
+    public int getLength(){ return bIsArray ? rootJsonArray.length() : 0; }
 
     public JsonHelper getIndex(int index){
         JsonHelper jhObj = new JsonHelper();
@@ -204,12 +215,9 @@ public class JsonHelper {
         return  bIsArray ? rootJsonArray.toString() : rootJsonObj.toString();
     }
 
-    /**
-     * ***********************************************************************************************
+    /*** ***********************************************************************************************
      * METHOD : returns JsonHelper object for the path, note to get array use '[]' at the array name end
-     * ************************************************************************************************
-     */
-
+     * *************************************************************************************************/
     public JsonHelper get(String strPath){
         JsonHelper jhTemp = new JsonHelper();
         Object obj = getJson(strPath, false);
@@ -220,11 +228,10 @@ public class JsonHelper {
         }
         return jhTemp;
     }
-    /**
-     * ***********************************************************************************************
+
+    /*************************************************************************************************
      * METHOD : returns JSON object/array or Variable based on the string provided
-     * ************************************************************************************************
-     */
+     * *************************************************************************************************/
     private Object getJson(String arg, boolean bVariable) {
         List<Token> tokens = new ArrayList<Token>();
         String token[] = arg.split("\\.");
@@ -305,20 +312,16 @@ public class JsonHelper {
         return jsonResult;
     }
 
-    /**
-     * ***********************************************************************************************
+    /*** ***********************************************************************************************
      * METHOD : to return array index string
-     * ************************************************************************************************
-     */
+     * *************************************************************************************************/
     public static String I(int index) {
         return "[" + Integer.toString(index) + "]";
     }
 
-    /**
-     * ***********************************************************************************************
+    /*** ***********************************************************************************************
      * METHOD : set JSON root object and root name
-     * ************************************************************************************************
-     */
+     * *************************************************************************************************/
     public void setRoot(JSONObject json) {
         rootJsonObj = json;
         bIsArray = false;
@@ -344,15 +347,13 @@ public class JsonHelper {
         return rootName;
     }
 
-    /**
-     * ***********************************************************************************************
+    /*** ***********************************************************************************************
      * CLASS : to store JSON tokens that will be used to find json object
-     * ************************************************************************************************
-     */
+     * *************************************************************************************************/
     public class Token {
         public String name;  // Name of the Json object or Variable
-        public int type;    // Type Json object or array
-        public int index;   // index for array
+        public int type;     // Type Json object or array
+        public int index;    // index for array
 
         Token(String tag, int type, int index) {
             this.name = tag;
@@ -361,11 +362,9 @@ public class JsonHelper {
         }
     }
 
-    /**
-     * **********************************************************************************
+    /*** **********************************************************************************
      * METHOD -- Reads a file in asset folder and loads it as root object
-     * ***********************************************************************************
-     */
+     * ************************************************************************************/
     public boolean loadJSONFile(Context context, String fileName) {
 
         boolean bResult = true;
@@ -395,10 +394,7 @@ public class JsonHelper {
                 bResult = false;
             }
         }
-
         return bResult;
     }
-
-
 
 }

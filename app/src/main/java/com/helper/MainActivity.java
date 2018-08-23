@@ -1,11 +1,18 @@
 package com.helper;
 
+import android.app.Activity;
+import android.arch.lifecycle.Lifecycle;
+import android.arch.lifecycle.LifecycleObserver;
+import android.arch.lifecycle.LifecycleOwner;
+import android.databinding.DataBindingUtil;
+import android.databinding.ObservableField;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 
+import com.helper.databinding.ActivityMainBinding;
 import com.helper.lib.Flow;
 import com.helper.lib.Logger;
 import com.helper.lib.WakeTimer;
@@ -21,33 +28,46 @@ public class MainActivity extends AppCompatActivity {
     WakeTimer wake;
     Logger log = new Logger();
     public boolean bFlip = true;
-
-    CompositeDisposable disposable = new CompositeDisposable();
+    User user;
+    CompositeDisposable disposable = new CompositeDisposable(); // disposable for Rx Android
 
     private MyComponent myComponent;
     @Inject @Named("two") MyExample myExample;
 
+    public class User {
+        public final ObservableField<String> firstName = new ObservableField<>();
+        public final ObservableField<String> lastName =  new ObservableField<>();
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
 
+        getLifecycle().addObserver(new Flow());
+        // Android data binding
+       ActivityMainBinding mainActivity = DataBindingUtil.setContentView(this, R.layout.activity_main);
+        user = new User();
+        user.firstName.set("ubaid");
+        user.lastName.set("khaliq");
+        mainActivity.setUser(user);
+
+        // Dagger
         myComponent = DaggerMyComponent.builder().build();
         myComponent.inject(MainActivity.this);
 
         // Code
-
         final View  btnOne =  findViewById(R.id.btn_one);
         final View  btnTwo =  findViewById(R.id.btn_two);
 
-        Flow flowOne =  new Flow().registerUiEvent(1, btnOne, Flow.UiEvent.TOUCH);
-        TapSensor button1 = new TapSensor(flowOne);    // pass that Observable to sensor tap, to compute taps
+        TapSensor button1 = new TapSensor(new Flow().registerUiEvent(1, btnOne, Flow.UiEvent.TOUCH));    // pass that Observable to sensor tap, to compute taps
         TapSensor button2 = new TapSensor(new Flow().registerUiEvent(2, btnTwo, Flow.UiEvent.TOUCH));
 
         button1.onData().code(new Flow.Code() {
             @Override
             public void onAction(int iAction, boolean bSuccess, int iExtra, Object data) {
                 log.d(data.toString());
+                user.firstName.set("changed");
+                user.lastName.set("changed");
             }
         });
 
