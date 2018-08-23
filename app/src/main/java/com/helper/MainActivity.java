@@ -26,7 +26,7 @@ import io.reactivex.disposables.CompositeDisposable;
 
 public class MainActivity extends AppCompatActivity {
     WakeTimer wake;
-    Logger log = new Logger();
+    Logger log = new Logger("FlowTest");
     public boolean bFlip = true;
     User user;
     CompositeDisposable disposable = new CompositeDisposable(); // disposable for Rx Android
@@ -45,7 +45,7 @@ public class MainActivity extends AppCompatActivity {
 
         getLifecycle().addObserver(new Flow());
         // Android data binding
-       ActivityMainBinding mainActivity = DataBindingUtil.setContentView(this, R.layout.activity_main);
+        ActivityMainBinding mainActivity = DataBindingUtil.setContentView(this, R.layout.activity_main);
         user = new User();
         user.firstName.set("ubaid");
         user.lastName.set("khaliq");
@@ -56,27 +56,29 @@ public class MainActivity extends AppCompatActivity {
         myComponent.inject(MainActivity.this);
 
         // Code
-        final View  btnOne =  findViewById(R.id.btn_one);
-        final View  btnTwo =  findViewById(R.id.btn_two);
+        Flow flow = new Flow();
+        flow.registerEvents(1, new String[]{"one", "two", "three"}).runType(Flow.RESULT_CHANGE);
+      //  flow.registerEvents(2, new String[]{"one", "two", "three"}).runType(Flow.RESULT_UPDATE);
+        flow.registerEvents(3, new String[]{"one", "two", "three"}).runType(Flow.EVENT_UPDATE);
 
-        TapSensor button1 = new TapSensor(new Flow().registerUiEvent(1, btnOne, Flow.UiEvent.TOUCH));    // pass that Observable to sensor tap, to compute taps
-        TapSensor button2 = new TapSensor(new Flow().registerUiEvent(2, btnTwo, Flow.UiEvent.TOUCH));
 
-        button1.onData().code(new Flow.Code() {
-            @Override
-            public void onAction(int iAction, boolean bSuccess, int iExtra, Object data) {
-                log.d(data.toString());
-                user.firstName.set("changed");
-                user.lastName.set("changed");
+        flow.code(new Flow.Code() {
+            @Override public void onAction(int iAction, boolean bSuccess, int iExtra, Object data) {
+                log.d("Action: " + iAction + " called  bSuccess: "+bSuccess +" iExtra:"+iExtra);
             }
         });
 
-        button2.onData().code(new Flow.Code() {
-            @Override
-            public void onAction(int iAction, boolean bSuccess, int iExtra, Object data) {
-                log.d(data.toString());
-            }
-        });
+        flow.event("one");
+        flow.event("two");
+        flow.event("three");
+
+        flow.event("one", false);
+        flow.event("two", false);
+        flow.event("three", false);
+
+        flow.event("one", true);
+        flow.event("two", true);
+        flow.event("three", true);
 
                 /*
                 // Codes outputs text entered in a field to another field, only if there is a gap of one second between input
