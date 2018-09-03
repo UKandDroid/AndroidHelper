@@ -68,11 +68,9 @@ import java.util.List;
 // Example 7: new Flow().runDelayed(2000).execute(() -{})
 // Example 8: new Flow().runRepeat(500).execute(() -{})
 
-public class Flow implements LifecycleObserver{
-    public static final int RESULT_CHANGE = 0; // called once all events are fired, and when events AND result change
-    public static final int RESULT_UPDATE = 1; // called once all events are fired with AND true, and every time any event updates as long as events AND is true
-    public static final int EVENT_UPDATE = 2;  // called every time an event is fired or changed
 
+public class Flow {
+    private Flow nextFlow;
     private HThread hThread;
     private View viewActRoot;
     private boolean bRunning;
@@ -85,11 +83,11 @@ public class Flow implements LifecycleObserver{
     private static final int FLAG_REPEAT = 0x00000004;
     private static final int FLAG_SUCCESS = 0x00000001;
     private static final int FLAG_RUNonUI = 0x00000002;
-    private List<Action> listActions = new ArrayList<Action>();                  // List of registered actions
+    private List<Action> listActions = new ArrayList<Action>();  // List of registered actions
     private List<KeyboardState> keyList = new ArrayList<>();
     private HashMap<View, TextWatcher> listTextListeners = new HashMap();        // list of text change listeners for a text field
     private HashMap<View, KeyboardState> listKBListeners = new HashMap();        // list of keyboard state change listeners
-    private Execute code = null;                                                 // Call back for onAction to be executed
+    private Execute code = null;                                                // Call back for onAction to be executed
 
     // INTERFACES for code execution and keyboard listener
     private interface Execute {}
@@ -117,18 +115,18 @@ public class Flow implements LifecycleObserver{
         public static final int LIST_ITEM_SELECT = 8;
         public static final int SPINNER_ITEM_SELECT = 9;
         public static final int KEYBOARD_STATE_CHANGE = 10; //   works only for android:windowSoftInputMode="adjustResize" or adjustPan
+        public static final int LAYOUT_CHANGE = 11; //   called when a view is loaded with width and height set
     }
 
     // STATE METHODS pause, resume, stop the action, should be called to release resources
-
-    @OnLifecycleEvent(Lifecycle.Event.ON_PAUSE)
     public void pause() {
         bRunning = false;
         hThread.mHandler.removeCallbacksAndMessages(null);
         hThread.mUiHandler.removeCallbacksAndMessages(null);
     }
 
-    @OnLifecycleEvent(Lifecycle.Event.ON_STOP)
+    public void resume() { bRunning = true; }
+
     public void stop() {
         code = null;
         try {
@@ -149,12 +147,6 @@ public class Flow implements LifecycleObserver{
     }
 
 
-    // METHOD sets the type of action run RESULT_CHANGE,
-    public void runType(int iType){
-        if(listActions.size() > 0)
-            listActions.get(listActions.size()-1).iRunType = iType;
-    }
-
     // METHODS run an action
     public Flow run(boolean bRunOnUi) { run(-1, true); return  this; }
     public Flow run(int iAction) { run(iAction, false); return  this; }
@@ -173,8 +165,14 @@ public class Flow implements LifecycleObserver{
     public Flow runRepeat(int iAction, boolean bRunOnUi, boolean bSuccess, int iExtra, long iDelay) { hThread.runRepeat(bRunOnUi, iAction, bSuccess, iExtra, iDelay);  return  this;}
 
     // METHODS run action delayed
-    public Flow runDelayed( long iTime) { runDelayed2(-1, true, 0, null, iTime); return  this; }
-    public Flow runDelayed(int iAction, long iTime) { runDelayed2(iAction, true, 0, null, iTime); return  this; }
+    public Flow runDelayed( long iTime) {
+        runDelayed2(-1, true, 0, null, iTime);
+        return  this;
+    }
+    public Flow runDelayed(int iAction, long iTime) {
+        runDelayed2(iAction, true, 0, null, iTime);
+        return  this;
+    }
     public Flow runDelayed(int iAction, boolean bRunOnUi, long iTime) {
         if(bRunOnUi) runDelayedOnUI(iAction, true, 0, null, iTime);
         else runDelayed2(iAction, true, 0, null, iTime);
@@ -211,24 +209,22 @@ public class Flow implements LifecycleObserver{
     }
 
     // METHODS events registration
-    public Flow registerEvents(int iAction, String events[]) { registerEvents(iAction, false, false, false, events); return this;}
-    public Flow registerEventsUpdate(int iAction, String events[]) { registerEvents(iAction, false, true, false, events); return this; }
-    public Flow registerEventsUpdate( int iAction, boolean bRunOnUI, String events[]) { registerEvents(iAction, bRunOnUI, true, false, events); return this;}
-    public Flow registerEvents(int iAction, boolean bRunOnUI, String events[]) { registerEvents(iAction, bRunOnUI, false, false, events); return this;}
-    public Flow registerEventSequence( int iAction, boolean bRunOnUI, String events[]) { registerEvents(iAction, bRunOnUI, false, true, events); return this;}
+    public void registerEvents(int iAction, String events[]) { registerEvents(iAction, false, false, false, events);}
+    public void waitForEvents(int iAction, String events[]) { registerEvents(iAction, false, true, false, events); }
+    public void waitForEvents( int iAction, boolean bRunOnUI, String events[]) { registerEvents(iAction, bRunOnUI, true, false, events);}
+    public void registerEvents(int iAction, boolean bRunOnUI, String events[]) { registerEvents(iAction, bRunOnUI, false, false, events); }
+    public void registerEventSequence( int iAction, boolean bRunOnUI, String events[]) { registerEvents(iAction, bRunOnUI, false, true, events);}
     private void registerEvents(int iAction, boolean bRunOnUI, boolean bRunOnce, boolean bSequence, String events[]){
-        unRegisterEvents(iAction);                      // to stop duplication, remove if the action already exists
+        unRegisterEvents(iAction);  // to stop duplication, remove if the action already exists
         Action aAction = new Action(iAction, events);
         aAction.bRunOnUI = bRunOnUI;
-        aAction.bFireOnce = bRunOnce;                   // fired only once, then removed
-        aAction.bSequence = bSequence;                  // events have to be in sequence for the action to be fired
+        aAction.bFireOnce = bRunOnce;                  // fired only once, then removed
+        aAction.bSequence = bSequence;                 // events have to be in sequence for the action to be fired
         listActions.add( aAction);
         StringBuffer buf = new StringBuffer(400);
         for(int i =0; i< events.length; i++){ buf.append(events[i]+", ");}
         log("ACTION: " + iAction + " registered  EVENTS = {" +buf.toString()+"}");
     }
-
-
 
     public void unRegisterEvents(int iAction){
         for (int i = 0; i< listActions.size(); i++){ // remove action if it already exists
@@ -242,10 +238,13 @@ public class Flow implements LifecycleObserver{
 
     // METHODS registers/un registers UI events for Action
     public void unRegisterUIEvent( View view, int iEvent) { unRegisterListener(view, iEvent); }
-    public void registerUiEvent(final int iStep, View view) { registerListener(false, iStep, view, UiEvent.ON_CLICK); }
-    public Flow registerUiEvent(final int iStep, View view, int iEvent) { registerListener(false, iStep, view, iEvent); return this;}
+    public void registerUiEvent( View view) { registerListener(false, -1, view, UiEvent.ON_CLICK); }
+    public void registerUiEvent(final int iAction, View view) { registerListener(false, iAction, view, UiEvent.ON_CLICK); }
+    public Flow registerUiEvent( View view, int iEvent) { registerListener(false, -1, view, iEvent); return this;}
+    public Flow registerUiEvent(final int iAction, View view, int iEvent) { registerListener(false, iAction, view, iEvent); return this;}
     public void registerUiEvent(int iStep, boolean bRunOnUI, View view) { registerListener(bRunOnUI, iStep, view, UiEvent.ON_CLICK); }
-    public void registerUiEvent(int iStep, boolean bRunOnUI, View view, int iEvent) { registerListener(bRunOnUI, iStep, view, iEvent); }
+    public Flow registerUiEvent( boolean bRunOnUI, View view, int iEvent) { registerListener(bRunOnUI, -1, view, iEvent); return this; }
+    public Flow registerUiEvent(int iAction, boolean bRunOnUI, View view, int iEvent) { registerListener(bRunOnUI, iAction, view, iEvent); return this; }
 
     // METHODS to send event
     public void event(String sEvent) { event(sEvent, true, 0, null); }
@@ -337,11 +336,8 @@ public class Flow implements LifecycleObserver{
         private int iAction;                                      // Code step to execute for this action
         private int iEventCount;                                    // How many event are for this action code to be triggered
         private boolean bSequence = false;                           // Only trigger when events occur in right order
-        private static final int SUCCESS = 1;
-        private static final int FAILURE = 2;
         //   private boolean bEventFound;
         private boolean bRunOnUI = false;                           // Code run on Background / UI thread
-        public int iRunType = RESULT_CHANGE;                 // when this action is run,
         public boolean bFireOnce = false;                           // Clear Action once fired, used for wait action
         private int iSetStatus = Event.WAITING;                     // Event set status as a whole, waiting, success, non success
         private List<Event> listEvents = new ArrayList<>();         // List to store events needed for this action
@@ -376,69 +372,54 @@ public class Flow implements LifecycleObserver{
 
         // METHOD searches all actions, if any associated with this event
         public boolean onEvent(String sEvent, Boolean bResult, int iExtra, Object obj) {
-            int iSuccess = 0;                       // How many has been successful
-            int iFiredCount = 0;                     // How many have been fired
-            boolean bEventFound = false;
+            int iFired = 0;                     // How many have been fired
+            int iSuccess = 0;                   // How many has been successful
+            boolean bFound = false;
             boolean bActionFired = false;
-
             for (int i = 0; i < iEventCount; i++) {
                 Event event = listEvents.get(i);
                 if (sEvent.equals(event.sEvent)) {  // If event is found in this event list
                     logw("{" + sEvent + "} fired for ACTION: " + iAction + " ");
-                    bEventFound = true;
+                    bFound = true;
                     event.obj = obj;
                     event.iExtra = iExtra;
                     event.iStatus = bResult ? Event.SUCCESS : Event.FAILURE;
-                } else if(bSequence && event.iStatus == Event.WAITING){                             // if its a Sequence action, no event should be empty before current event
+                } else if(bSequence && event.iStatus == Event.WAITING){                              // if its a Sequence action, no event should be empty before current event
                     if( i != 0 ){ listEvents.get(i-1).iStatus = Event.WAITING; }                    // reset last one, so they are always in sequence
                     break;
                 }
 
                 switch (event.iStatus) {
                     case Event.SUCCESS: iSuccess++;
-                    case Event.FAILURE: iFiredCount++;    // Add to fired event regard less of success or failure
+                    case Event.FAILURE: iFired++;    // Add to fired event regard less of success or failure
                         break;
                 }
 
-                if(bEventFound && bSequence)
+                if(bFound && bSequence)
                     break;
             }
 
-            if (bEventFound) {                                      // if event was found in this Action
-                logw("{" + sEvent + ":} for ACTION: " + iAction + ", Total Fired: "+iFiredCount+" iSuccess: "+iSuccess);
-                 if(iRunType == EVENT_UPDATE){                      // if this action is launched on every event update
-                    executeAction(bResult, iExtra);
-                } else if (iFiredCount == iEventCount) {            // if all events for action has been fired
-                     boolean bSuccess = (iSuccess == iEventCount);  // all events registered success
-                     int iCurStatus = bSuccess ? Action.SUCCESS : Action.FAILURE;
-
-                     switch (iRunType){
-                         case RESULT_CHANGE:
-                             if (iCurStatus != iSetStatus) {        // If there is a change in action status only then run code
-                                 iSetStatus = iCurStatus;
-                                 bActionFired = true;
-                                 executeAction(bSuccess, iSuccess);
-                             }
-                             break;
-                         case RESULT_UPDATE:
-                             bActionFired = true;
-                             executeAction(bSuccess, iSuccess);
-                             break;
-                     }
-                     if (bFireOnce) { recycle(); }                // Recycle if its flagged for it
-                 }
+            if (bFound) {                             // if event was found in this Action
+                logw("{" + sEvent + ":} for ACTION: " + iAction + ", Total Fired: "+iFired+" iSuccess: "+iSuccess);
+                if (iFired == iEventCount) {          // if all events for action has been fired
+                    boolean bSuccess = (iSuccess == iEventCount); // all events registered success
+                    int iCurStatus = bSuccess ? Event.SUCCESS : Event.FAILURE;
+                    if (iCurStatus != iSetStatus) {    // If there is a change in action status only then run code
+                        iSetStatus = iCurStatus;
+                        bActionFired = true;
+                        logw("ACTION:"+ iAction + " fired" );
+                        if (bRunOnUI) {
+                            hThread.runOnUI(iAction, bSuccess, 0, this.listEvents);
+                        } else {
+                            hThread.run(iAction, bSuccess, 0, this.listEvents);
+                        }
+                        if (bFireOnce) {
+                            recycle();                  // Recycle if its flagged for it
+                        }
+                    }
+                }
             }
             return bActionFired;
-        }
-
-        // METHOD executes action code on appropriate thread
-        private void executeAction(boolean bSuccess, int iExtra){
-            logw("ACTION:"+ iAction + " fired" );
-            if (bRunOnUI) {
-                hThread.runOnUI(iAction, bSuccess, iExtra, this.listEvents);
-            } else {
-                hThread.run(iAction, bSuccess, iExtra, this.listEvents);
-            }
         }
     }
 
@@ -549,13 +530,18 @@ public class Flow implements LifecycleObserver{
     }
 
     // METHODS for packing data for repeat event
-    private static int addExtraInt(int iValue, int iData) { return iValue | (iData << 8); }
+    private static int addExtraInt(int iValue, int iData) {
+        return iValue | (iData << 8);
+    }
+
     private static int getExtraInt(int iValue) {
         return (iValue >> 8);
     }
+
     private static boolean getFlag(int iValue, int iFlag) {
         return (iValue & iFlag) == iFlag;
     }
+
     private static int setFlag(int iValue, int iFlag, boolean bSet) {
         if (bSet) {
             return iValue | iFlag;
@@ -567,6 +553,19 @@ public class Flow implements LifecycleObserver{
     // VIEW LISTENERS set event listeners for View objects
     private void registerListener(final boolean bRunOnUI, final int iAction, final View view, int iListener) {
         switch (iListener) {
+            // Triggered when ui layout changes with width/height values > 0
+            case UiEvent.LAYOUT_CHANGE:
+                view.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
+                    @Override
+                    public void onLayoutChange(View view, int i, int i1, int i2, int i3, int i4, int i5, int i6, int i7) {
+                        if((i+i1+i2+i3) > 0) {
+                            if (bRunOnUI) {
+                                hThread.runOnUI(iAction, true, 0, view);
+                            } else {
+                                hThread.run(iAction, true, 0, view);
+                            } } }});
+                break;
+
             // triggered listener when view is clicked
             case UiEvent.ON_CLICK:
                 if(view instanceof EditText){                                                         // NOTE: for editText  first tap get focus, 2nd to trigger onClick, unless focusable is setfalse()
@@ -743,6 +742,7 @@ public class Flow implements LifecycleObserver{
             case UiEvent.SPINNER_ITEM_SELECT:((Spinner) view).setOnItemSelectedListener(null);  break;
             case UiEvent.CHECKBOX_STATE:((CheckBox) view).setOnCheckedChangeListener(null);     break;
             case UiEvent.TOUCH:view.setOnTouchListener(null);                                   break;
+            case UiEvent.LAYOUT_CHANGE:view.removeOnLayoutChangeListener(null);                 break;
         }
     }
 
@@ -751,6 +751,7 @@ public class Flow implements LifecycleObserver{
         viewActRoot.getViewTreeObserver().removeOnGlobalLayoutListener(keybListener);
         Activity act = (Activity) ((ViewGroup) viewActRoot).getChildAt(0).getContext();
         Window window = act.getWindow();
+        iSoftInputMode = window.getAttributes().softInputMode;     // save it so we can restore, when keyboard listener is removed
         if(iSoftInputMode != -1)
             window.setSoftInputMode(iSoftInputMode);
 
@@ -799,12 +800,35 @@ public class Flow implements LifecycleObserver{
         }
     };
     // METHOD for logging
-    public void log(String sLog) { log(1, sLog); }
-    private void loge(String sLog) { loge(1, sLog); }
-    private void logw(String sLog) { logw(1, sLog); }
-    private void log(int iLevel, String sLog) { if (iLevel <= LOG_LEVEL) { Log.d(LOG_TAG, sLog); } }
-    private void loge(int iLevel, String sLog) { if (iLevel <= LOG_LEVEL) { Log.e(LOG_TAG, sLog); } }
-    private void logw(int iLevel, String sLog) { if (iLevel <= LOG_LEVEL) { Log.w(LOG_TAG, sLog); } }
+    public void log(String sLog) {
+        log(1, sLog);
+    }
+
+    private void loge(String sLog) {
+        loge(1, sLog);
+    }
+
+    private void logw(String sLog) {
+        logw(1, sLog);
+    }
+
+    private void log(int iLevel, String sLog) {
+        if (iLevel <= LOG_LEVEL) {
+            Log.d(LOG_TAG, sLog);
+        }
+    }
+
+    private void loge(int iLevel, String sLog) {
+        if (iLevel <= LOG_LEVEL) {
+            Log.e(LOG_TAG, sLog);
+        }
+    }
+
+    private void logw(int iLevel, String sLog) {
+        if (iLevel <= LOG_LEVEL) {
+            Log.w(LOG_TAG, sLog);
+        }
+    }
 
 
 }
