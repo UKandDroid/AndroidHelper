@@ -27,17 +27,19 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
-// Whats new Version 1.2.8
+// Whats new Version 1.3.0
+// Get view with tag
+// added method getWidth, getHeight
 // attempt to fix bug where UiHelper won't work if root object is changed
 // fix text color resource bug
 // Removed KB detect as it's implemented in flow
 // Added support for chain calls e.g ui.setText(R.id.text, "test").setColor(iColor).setBg(R.drawable.bg)
 
 // Helper class for working with android Views
-public class UiHelper implements LifecycleObserver{
+public class UiHelper {
     private int[] arId;         // Store loaded arView arId, so they can checked against.
     private View[] arView;      // keeps reference of loaded views, so they are not loaded again..
-    private View curView;
+    public View curView;
     private Context context;
     private ViewGroup rootView;
     private static Handler mainThread;
@@ -110,10 +112,16 @@ public class UiHelper implements LifecycleObserver{
     private UiHelper setText(final View view, final String sText){ ((TextView) view).setText(sText);    return this;}
     private UiHelper setTextRes(final View view, final int iResString){ ((TextView) view).setText(context.getResources().getString(iResString)); return this; }
 
+
+    private UiHelper setGravity(final int id, final int iGravity){ setGravity(getView(id), iGravity); return this;}
+    private UiHelper setGravity(final View view, final int iGravity){ ((TextView)view).setGravity(iGravity); return this;}
+    public UiHelper setGravity( final int iGravity){ setGravity(curView, iGravity); return this; }
+
+
     // METHOD - sets Background for a View
-    public void setBackground(final int iResId){setBackground(curView, iResId);}
-    public void setBackground(final int id, final int iResId){setBackground(getView(id), iResId);}
-    private void setBackground(final View view, final int iResId){
+    public UiHelper setBackground(final int iResId){setBackground(curView, iResId); return  this; }
+    public UiHelper setBackground(final int id, final int iResId){setBackground(getView(id), iResId); return  this;}
+    private UiHelper setBackground(final View view, final int iResId){
         // Padding is lost when new background is set, so we need to reapply it.
         int pL = view.getPaddingLeft();
         int pT = view.getPaddingTop();
@@ -122,6 +130,7 @@ public class UiHelper implements LifecycleObserver{
 
         view.setBackgroundResource(iResId);
         view.setPadding(pL, pT, pR, pB);
+        return this;
     }
 
     // METHOD - sets text for Button, TextView, EditText
@@ -144,6 +153,13 @@ public class UiHelper implements LifecycleObserver{
     public UiHelper setTextColor(final int iRGB ){ return setTextColor(curView, iRGB);}
     public UiHelper setTextColor(final int id, final int iRGB ){ return setTextColor(getView(id), iRGB); }
     private UiHelper setTextColor(final View v, final int iRGB ){ ((TextView)v).setTextColor(iRGB); return this; }
+
+    // METHOD get/set width, height
+    public int getWidth(final int iResId){ return getView(iResId).getWidth(); }
+    public int getHeight(final int iResId){ return getView(iResId).getHeight();  }
+    public int getWidth(){return curView.getWidth(); }
+    public int getHeight( ){ return curView.getHeight();}
+
 
     // METHOD - sets Text color Size Button, TextView, EditText, Note dimension resources are returned as pixels, that's why TypedValue.COMPLEX_UNIT_PX for resouce
     public UiHelper setTextSizeRes(final int id, final int iRes ){ return setTextSize(id, TypedValue.COMPLEX_UNIT_PX, getDimenRes(iRes));}
@@ -239,6 +255,15 @@ public class UiHelper implements LifecycleObserver{
         return curView = arView[index];
     }
 
+    public View getViewWithTag(Object tag){
+        View v = rootView.findViewWithTag(tag);
+        if(v!= null){
+            short index = (short)(v.getId() & 0xFF);
+            arView[index] = v;
+        }
+        return curView = v;
+    }
+
     public void showKeyboard(){ showKeyboard(rootView); }
     public void showKeyboard(View v){
         if(v != null){
@@ -263,7 +288,6 @@ public class UiHelper implements LifecycleObserver{
     }
 
     // METHOD release resources
-    @OnLifecycleEvent(Lifecycle.Event.ON_STOP)
     public void release(){
         mainThread.removeCallbacksAndMessages(null);
         curView = null;
@@ -274,7 +298,6 @@ public class UiHelper implements LifecycleObserver{
         layoutProgress = null;
         progressBar = null;
         progressDialog = null;
-
         mainThread = null;
     }
 

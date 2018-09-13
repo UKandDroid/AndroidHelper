@@ -1,9 +1,6 @@
 package com.helper;
 
-import android.app.Activity;
-import android.arch.lifecycle.Lifecycle;
-import android.arch.lifecycle.LifecycleObserver;
-import android.arch.lifecycle.LifecycleOwner;
+
 import android.databinding.DataBindingUtil;
 import android.databinding.ObservableField;
 import android.os.Bundle;
@@ -12,6 +9,9 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 
+import com.facebook.litho.ComponentContext;
+import com.facebook.litho.widget.Text;
+import com.facebook.soloader.SoLoader;
 import com.helper.databinding.ActivityMainBinding;
 import com.helper.lib.Flow;
 import com.helper.lib.Logger;
@@ -43,7 +43,14 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        getLifecycle().addObserver(new Flow());
+        // Litho library
+        SoLoader.init(this, false);
+        ComponentContext context = new ComponentContext(this);
+        Text.create(context)
+                .text("Hello World")
+                .textSizeDip(50)
+                .build();
+
         // Android data binding
         ActivityMainBinding mainActivity = DataBindingUtil.setContentView(this, R.layout.activity_main);
         user = new User();
@@ -57,9 +64,9 @@ public class MainActivity extends AppCompatActivity {
 
         // Code
         Flow flow = new Flow();
-        flow.registerEvents(1, new String[]{"one", "two", "three"}).runType(Flow.RESULT_CHANGE);
-      //  flow.registerEvents(2, new String[]{"one", "two", "three"}).runType(Flow.RESULT_UPDATE);
-        flow.registerEvents(3, new String[]{"one", "two", "three"}).runType(Flow.EVENT_UPDATE);
+       // flow.registerEvents(1, new String[]{"one", "two", "three"}).runType(Flow.RESULT_CHANGE);
+        flow.registerEvents(2, new String[]{"one", "two", "three"}).runType(Flow.RESULT_UPDATE);
+      //  flow.registerEvents(3, new String[]{"one", "two", "three"}).runType(Flow.EVENT_UPDATE);
 
 
         flow.code(new Flow.Code() {
@@ -75,6 +82,10 @@ public class MainActivity extends AppCompatActivity {
         flow.event("one", false);
         flow.event("two", false);
         flow.event("three", false);
+
+        flow.event("one", true);
+        flow.event("two", true);
+        flow.event("three", true);
 
         flow.event("one", true);
         flow.event("two", true);
