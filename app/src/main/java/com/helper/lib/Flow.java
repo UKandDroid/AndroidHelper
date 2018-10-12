@@ -30,7 +30,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 // Version 2.2.0
-// added ui listener LAYOUT_CHANGE_ONCE
+// added ui listener LOAD_LAYOUT
 // Added runType for events RESULT_CHANGE, RESULT_UPDATE, EVENT_UPDATE
 // Fixed keyboard bug
 // Added execute() method that can be called after a run event to execute code immediately see example 7
@@ -104,7 +104,7 @@ public class Flow implements LifecycleObserver{
         hThread = new HThread();
     }
 
-    public void code(Code codeCallback){  code = codeCallback; }
+    public void code(Execute codeCallback){  code = codeCallback; }
     public void execute(Execute CodeOrRunCallback){ code = CodeOrRunCallback;  }
 
     public class UiEvent{
@@ -117,7 +117,7 @@ public class Flow implements LifecycleObserver{
         public static final int LIST_ITEM_SELECT = 8;
         public static final int SPINNER_ITEM_SELECT = 9;
         public static final int KEYBOARD_STATE_CHANGE = 10; //   works only for android:windowSoftInputMode="adjustResize" or adjustPan
-        public static final int LAYOUT_CHANGE_ONCE = 11; //   called when a view is loaded with width and height set
+        public static final int LOAD_LAYOUT = 11; //   called when a view is loaded with width and height set
     }
 
     // STATE METHODS pause, resume, stop the action, should be called to release resources
@@ -587,7 +587,7 @@ public class Flow implements LifecycleObserver{
     private void registerListener(final boolean bRunOnUI, final int iAction, final View view, int iListener) {
         switch (iListener) {
             // Triggered when ui layout changes with width/height values > 0 and called only once
-            case UiEvent.LAYOUT_CHANGE_ONCE:
+            case UiEvent.LOAD_LAYOUT:
                 view.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
                     @Override
                     public void onLayoutChange(View view, int i, int i1, int i2, int i3, int i4, int i5, int i6, int i7) {
@@ -776,7 +776,7 @@ public class Flow implements LifecycleObserver{
             case UiEvent.SPINNER_ITEM_SELECT:((Spinner) view).setOnItemSelectedListener(null);  break;
             case UiEvent.CHECKBOX_STATE:((CheckBox) view).setOnCheckedChangeListener(null);     break;
             case UiEvent.TOUCH:view.setOnTouchListener(null);                                   break;
-            case UiEvent.LAYOUT_CHANGE_ONCE: view.removeOnLayoutChangeListener(null);                 break;
+            case UiEvent.LOAD_LAYOUT: view.removeOnLayoutChangeListener(null);                 break;
         }
     }
 
