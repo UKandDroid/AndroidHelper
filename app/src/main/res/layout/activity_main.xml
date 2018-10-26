@@ -1,8 +1,6 @@
-<layout xmlns:android="http://schemas.android.com/apk/res/android">
-    <data>
-        <variable name="user" type="com.helper.MainActivity.User"/>
-    </data>
+
     <RelativeLayout
+        xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:tools="http://schemas.android.com/tools" android:layout_width="match_parent"
         android:layout_height="match_parent" android:paddingLeft="@dimen/activity_horizontal_margin"
         android:paddingRight="@dimen/activity_horizontal_margin"
@@ -27,7 +25,7 @@
                 android:layout_height="wrap_content"
                 android:imeOptions="actionDone"
                 android:singleLine="true"
-                android:text="@{user.firstName, default = my_default}"
+                android:text=""
                 />
 
             <EditText
@@ -36,7 +34,7 @@
                 android:layout_height="wrap_content"
                 android:imeOptions="actionDone"
                 android:singleLine="true"
-                android:text="@{user.lastName ?? user.firstName}"
+                android:text=""
                 />
 
             <Button
@@ -75,4 +73,4 @@
 
         </ListView>
     </RelativeLayout>
-</layout>
+

@@ -1,5 +1,6 @@
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
+apply plugin: 'com.getkeepsafe.dexcount'
 
 android {
     compileSdkVersion 27
@@ -42,16 +43,35 @@ dependencies {
     implementation 'com.jakewharton.rxrelay2:rxrelay:2.0.0'
     implementation 'com.jakewharton.rxbinding2:rxbinding-appcompat-v7:2.1.1'
     implementation 'com.android.support.constraint:constraint-layout:1.1.3'
+
     implementation 'com.facebook.litho:litho-core:0.19.0'
     implementation 'com.facebook.litho:litho-widget:0.19.0'
     compileOnly 'com.facebook.litho:litho-annotations:0.19.0'
-
+    implementation 'com.getkeepsafe.dexcount:dexcount-gradle-plugin:0.8.3'
     annotationProcessor 'com.facebook.litho:litho-processor:0.19.0'
 
     // SoLoader
     implementation 'com.facebook.soloader:soloader:0.5.1'
 
+    // Sections
+    implementation 'com.facebook.litho:litho-sections-core:0.19.0'
+    implementation 'com.facebook.litho:litho-sections-widget:0.19.0'
+    compileOnly 'com.facebook.litho:litho-sections-annotations:0.19.0'
+
+    annotationProcessor 'com.facebook.litho:litho-sections-processor:0.19.0'
+
 }
+
+buildscript {
+    repositories {
+        mavenCentral() // or jcenter()
+    }
+
+    dependencies {
+        classpath 'com.getkeepsafe.dexcount:dexcount-gradle-plugin:0.8.3'
+    }
+}
+
 repositories {
     mavenCentral()
     jcenter()
