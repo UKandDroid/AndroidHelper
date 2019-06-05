@@ -322,13 +322,7 @@ public class UiHelper {
         int px = Math.round(dp * (displayMetrics.xdpi / DisplayMetrics.DENSITY_DEFAULT));
         return px;
     }
-    // METHOD - Convert dp to pixels
-    public static int dpToPx(Context con, int dp){
-        Resources r =  con.getResources();
-        DisplayMetrics displayMetrics = r.getDisplayMetrics();
-        int px = Math.round(dp * (displayMetrics.xdpi / DisplayMetrics.DENSITY_DEFAULT));
-        return px;
-    }
+
 
     public boolean isMainThread(){
         return Looper.myLooper() == Looper.getMainLooper();

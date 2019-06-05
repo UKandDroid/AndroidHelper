@@ -3,6 +3,9 @@ package com.helper.lib;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
+import android.arch.lifecycle.Lifecycle;
+import android.arch.lifecycle.LifecycleObserver;
+import android.arch.lifecycle.OnLifecycleEvent;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
@@ -29,15 +32,11 @@ import java.util.List;
 
 // Version 1.2.4
 // Added documentation
-// Added support for view height and width, that causes other view to move accordingly
-// Added start delay in every animation instead added to startTime list
-// Added method set repeat count for animation
-// Added ValueAnimator
-// Added alpha animation
-public class Anim {
+public class Anim implements LifecycleObserver {
     public static final int ANIM_START = 0;
     public static final int ANIM_RUNNING = 1;
     public static final int ANIM_END = 2;
+
     // INTERFACE callback for Value Animation Updates
     public interface ValueListener { void onValueChange(int iState, float value); }
 
@@ -119,11 +118,11 @@ public class Anim {
     }
 
     /**  Adds an animation to list for view
-     * @param iType   Animation type, TYPE_HEIGHT, TYPE_SCALE, etc
-     * @param iInterpolator   interpolator for animation INTER_CYCLE, INTER_LINEAR, INTER_BOUNCE etc
-     * @param start   start value for animation
-     * @param end     end value for animation
-     * @param iDuration    animation duration in milli secs */
+     * @param iType             Animation type, TYPE_HEIGHT, TYPE_SCALE, etc
+     * @param iInterpolator     interpolator for animation INTER_CYCLE, INTER_LINEAR, INTER_BOUNCE etc
+     * @param start             start value for animation
+     * @param end               end value for animation
+     * @param iDuration         animation duration in milli secs */
     public void addAnimation(int iType, int iInterpolator, float start, float end, long iDuration){
         long iStartTime = 0;
         int iCount = listStartTime.size();
@@ -135,12 +134,12 @@ public class Anim {
     }
 
     /**  Adds an animation to list for view
-     * @param iType   Animation type, TYPE_HEIGHT, TYPE_SCALE, etc
-     * @param iInterpolator   interpolator for animation INTER_CYCLE, INTER_LINEAR, INTER_BOUNCE etc
-     * @param start   start value for animation
-     * @param end     end value for animation
-     * @param iDuration    animation duration in milli secs
-     * @param iStartTime    start time for animation, if animation needs to be delayed, or in case of multiple
+     * @param iType             Animation type, TYPE_HEIGHT, TYPE_SCALE, etc
+     * @param iInterpolator     interpolator for animation INTER_CYCLE, INTER_LINEAR, INTER_BOUNCE etc
+     * @param start             start value for animation
+     * @param end               end value for animation
+     * @param iDuration         animation duration in milli secs
+     * @param iStartTime        start time for animation, if animation needs to be delayed, or in case of multiple
      * animation does not start at the same time*/
     public void addAnimation(int iType, int iInterpolator, float start, float end,  long iDuration, long iStartTime){
         Cloneable animator = null ;
@@ -244,8 +243,8 @@ public class Anim {
     }
 
     /** For repeated animations
-     * @param iAnimIndex   index of animation to be repeated
-     * @param iCount   no of times to be repeated, REPEAT_INFINITE  for infinite loop*/
+     * @param iAnimIndex    index of animation to be repeated
+     * @param iCount        no of times to be repeated, REPEAT_INFINITE  for infinite loop*/
     public void setRepeatCount(int iAnimIndex, int iCount){
         listViewAnimation.get(iAnimIndex).setRepeatCount(iCount);
     }
@@ -276,6 +275,7 @@ public class Anim {
         }} ;
 
     /** stops animation for the view */
+    @OnLifecycleEvent(Lifecycle.Event.ON_STOP)
     public void stop(){
         if(flowAnimation != null) flowAnimation.stop();
         if(animationSet != null) animationSet.cancel();

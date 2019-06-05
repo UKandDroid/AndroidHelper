@@ -750,7 +750,7 @@ public class Flow implements LifecycleObserver{
                         } else {
                             hThread.run(iAction, event.getAction() != MotionEvent.ACTION_UP, event.getAction(), event);
                         }
-                        return true;
+                        return false;
                     }
                 });
         }

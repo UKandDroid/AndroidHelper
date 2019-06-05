@@ -166,6 +166,15 @@ public class Utils {
 
     }
 
+    // METHOD - Convert dp to pixels
+    public static int dpToPx(Context con, int dp){
+        Resources r =  con.getResources();
+        DisplayMetrics displayMetrics = r.getDisplayMetrics();
+        int px = Math.round(dp * (displayMetrics.xdpi / DisplayMetrics.DENSITY_DEFAULT));
+        return px;
+    }
+
+
     // METHOD checks if internet is accessible, not just connected (Note: Dont use this method on Main Thread)
     public static boolean isNetConnected(Context context) {
         ConnectivityManager cm = (ConnectivityManager)context
