@@ -12,7 +12,7 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.example.ubaid.jhelper"
+        applicationId "com.example.ubaid.helperLibrary"
         minSdkVersion 21
         targetSdkVersion 23
         versionCode 1

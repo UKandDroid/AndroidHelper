@@ -36,7 +36,10 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         Anim anim = new Anim();
-     anim.setView(v);
+        anim.addAnimation( Anim.TYPE_SCALE, Anim.INTER_OVERSHOOT, 1.0f, 0.6f, 700,1000);
+        anim.addAnimation( Anim.TYPE_SCALE, Anim.INTER_OVERSHOOT, 1.0f, 1.4f, 700, 2000);
+        anim.setView(findViewById(R.id.btn_one));
+        anim.start();
   /*
         // Android data binding
         ActivityMainBinding mainActivity = DataBindingUtil.setContentView(this, R.layout.activity_main);

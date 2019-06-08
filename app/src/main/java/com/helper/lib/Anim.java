@@ -3,6 +3,7 @@ package com.helper.lib;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
+import android.annotation.SuppressLint;
 import android.arch.lifecycle.Lifecycle;
 import android.arch.lifecycle.LifecycleObserver;
 import android.arch.lifecycle.OnLifecycleEvent;
@@ -16,9 +17,11 @@ import android.view.animation.Animation;
 import android.view.animation.AnimationSet;
 import android.view.animation.AnticipateInterpolator;
 import android.view.animation.AnticipateOvershootInterpolator;
+import android.view.animation.BaseInterpolator;
 import android.view.animation.BounceInterpolator;
 import android.view.animation.CycleInterpolator;
 import android.view.animation.DecelerateInterpolator;
+import android.view.animation.Interpolator;
 import android.view.animation.LinearInterpolator;
 import android.view.animation.OvershootInterpolator;
 import android.view.animation.RotateAnimation;
@@ -30,7 +33,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 
-// Version 1.2.4
+// Version 1.2.5
+// Removed Flow dependency
 // Added documentation
 public class Anim implements LifecycleObserver {
     public static final int ANIM_START = 0;
@@ -64,7 +68,6 @@ public class Anim implements LifecycleObserver {
     private static String LOG_TAG = "Anim";
 
     private View view;
-    private Flow flowAnimation;
     private AnimationSet animationSet;
     private float fAnimValue = 0;
     private ValueListener valueListener = null;
@@ -141,13 +144,16 @@ public class Anim implements LifecycleObserver {
      * @param iDuration         animation duration in milli secs
      * @param iStartTime        start time for animation, if animation needs to be delayed, or in case of multiple
      * animation does not start at the same time*/
-    public void addAnimation(int iType, int iInterpolator, float start, float end,  long iDuration, long iStartTime){
+    public void addAnimation(int iType, int iInterpolator, float start, float end, long iDuration, long iStartTime){
         Cloneable animator = null ;
 
         switch (iType){
+            case TYPE_VALUE:
             case TYPE_HEIGHT:
+            case TYPE_WIDTH:
                 animator = ValueAnimator.ofFloat(start, end);
                 break;
+
             case TYPE_SCALE:
                 animator = new ScaleAnimation(start, end, start, end, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
                 break;
@@ -176,23 +182,27 @@ public class Anim implements LifecycleObserver {
                 animator = new AlphaAnimation( start, end);
                 break;
 
-            case TYPE_VALUE:
-                animator = ValueAnimator.ofFloat(start, end);
-                break;
         }
 
+        Interpolator interpolator;
         if(animator != null){
             switch (iInterpolator){
-                case INTER_CYCLE: ((Animation)animator).setInterpolator(new CycleInterpolator(1)); break;
-                case INTER_LINEAR: ((Animation)animator).setInterpolator(new LinearInterpolator()); break;
-                case INTER_BOUNCE: ((Animation)animator).setInterpolator(new BounceInterpolator()); break;
-                case INTER_OVERSHOOT: ((Animation)animator).setInterpolator(new OvershootInterpolator()); break;
-                case INTER_ACCELERATE: ((Animation)animator).setInterpolator(new AccelerateInterpolator()); break;
-                case INTER_DECELERATE: ((Animation)animator).setInterpolator(new DecelerateInterpolator()); break;
-                case INTER_ANTICIPATE: ((Animation)animator).setInterpolator(new AnticipateInterpolator()); break;
-                case INTER_ACC_DECELERATE: ((Animation)animator).setInterpolator(new AccelerateDecelerateInterpolator()); break;
-                case INTER_ANTICIPATE_OVERSHOOT: ((Animation)animator).setInterpolator(new AnticipateOvershootInterpolator()); break;
+                case INTER_CYCLE: interpolator = new CycleInterpolator(1); break;
+                case INTER_LINEAR: interpolator = new LinearInterpolator(); break;
+                case INTER_BOUNCE: interpolator = new BounceInterpolator(); break;
+                case INTER_OVERSHOOT: interpolator = new OvershootInterpolator(); break;
+                case INTER_ACCELERATE: interpolator = new AccelerateInterpolator(); break;
+                case INTER_DECELERATE: interpolator = new DecelerateInterpolator(); break;
+                case INTER_ANTICIPATE: interpolator = new AnticipateInterpolator(); break;
+                case INTER_ACC_DECELERATE: interpolator = new AccelerateDecelerateInterpolator(); break;
+                case INTER_ANTICIPATE_OVERSHOOT: interpolator = new AnticipateOvershootInterpolator(); break;
+                default:interpolator = new LinearInterpolator(); break;
             }
+
+            if(animator instanceof ValueAnimator)
+                ((ValueAnimator)animator).setInterpolator(interpolator);
+            else
+                ((Animation)animator).setInterpolator(interpolator);
 
             switch (iType){
                 case TYPE_VALUE:
@@ -204,6 +214,7 @@ public class Anim implements LifecycleObserver {
                     if(valueListener!= null){ valueListener.onValueChange(ANIM_START, fAnimValue);}
                     break;
 
+                case TYPE_WIDTH:
                 case TYPE_HEIGHT:
                     final ViewGroup.LayoutParams param = view.getLayoutParams();
                     ((Animator) animator).setDuration(iDuration);
@@ -212,30 +223,15 @@ public class Anim implements LifecycleObserver {
                     ((ValueAnimator) animator).addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
                         @Override
                         public void onAnimationUpdate(ValueAnimator valueAnimator) {
-                            param.height = ((Float)valueAnimator.getAnimatedValue()).intValue();
+                            if(iType == TYPE_HEIGHT) { param.height = ((Float) valueAnimator.getAnimatedValue()).intValue();
+                            } else { param.width = ((Float)valueAnimator.getAnimatedValue()).intValue(); }
                             view.setLayoutParams(param);
                         }});
                     break;
-
-                case TYPE_WIDTH:
-                    final ViewGroup.LayoutParams param2 = view.getLayoutParams();
-                    ((Animator) animator).setDuration(iDuration);
-                    ((Animator) animator).setStartDelay(iStartTime);
-                    listValueAnimation.add(((ValueAnimator) animator));
-                    ((ValueAnimator) animator).addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
-                        @Override
-                        public void onAnimationUpdate(ValueAnimator valueAnimator) {
-                            param2.width = ((Float)valueAnimator.getAnimatedValue()).intValue();
-                            view.setLayoutParams(param2);
-                        }});
-                    break;
-
-
                 default:
                     ((Animation) animator).setFillAfter(true);                // animation stays as it ended, view gone/Invisible wont work, unless animation stop is called
                     ((Animation) animator).setDuration(iDuration);
                     listDuration.add(iDuration);
-                    listStartTime.add(0l);                   // start delay is added in every animation instead as start offset
                     ((Animation) animator).setStartOffset(iStartTime);     // start delay for every animation
                     listViewAnimation.add(((Animation)animator));
             }
@@ -258,26 +254,20 @@ public class Anim implements LifecycleObserver {
 
         // Start view based animations
         animationSet = new AnimationSet(false);
-        flowAnimation = new Flow(actionCode);
-        for(int i=0; i < listStartTime.size(); i++){
-            flowAnimation.runDelayed(i, true, listStartTime.get(i));
-        }
-    }
-
-    private Flow.Code actionCode = new Flow.Code() {
-        @Override public void onAction(int iAction, boolean bSuccess, int iExtra, Object data) {
-            Animation anim =  listViewAnimation.get(iAction);
+        for(int i=0; i < listViewAnimation.size(); i++){
+            Animation anim =  listViewAnimation.get(i);
             animationSet.addAnimation(anim);
             view.clearAnimation();
             view.setAnimation(animationSet);
             animationSet.setFillAfter(true);
             animationSet.start();
-        }} ;
+        }
+    }
+
 
     /** stops animation for the view */
     @OnLifecycleEvent(Lifecycle.Event.ON_STOP)
     public void stop(){
-        if(flowAnimation != null) flowAnimation.stop();
         if(animationSet != null) animationSet.cancel();
         if(valueAnim != null) valueAnim.cancel();
         if(view != null) view.clearAnimation();
