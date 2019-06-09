@@ -1,46 +1,20 @@
 package com.helper.lib;
 
-import android.app.Activity;
+import android.arch.lifecycle.Lifecycle;
 import android.arch.lifecycle.LifecycleObserver;
-import android.graphics.Rect;
+import android.arch.lifecycle.OnLifecycleEvent;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
-import android.text.Editable;
-import android.text.TextWatcher;
 import android.util.Log;
-import android.view.KeyEvent;
-import android.view.MotionEvent;
-import android.view.View;
-import android.view.ViewGroup;
-import android.view.ViewTreeObserver;
-import android.view.Window;
-import android.view.WindowManager;
-import android.view.inputmethod.EditorInfo;
-import android.widget.AdapterView;
-import android.widget.CheckBox;
-import android.widget.CompoundButton;
-import android.widget.EditText;
-import android.widget.ListView;
-import android.widget.Spinner;
-import android.widget.TextView;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-// Version 2.2.0
+// Version 2.3.0
+// removed UiFlow to separate class
 // added ui listener LOAD_LAYOUT
 // Added runType for events RESULT_CHANGE, RESULT_UPDATE, EVENT_UPDATE
-// Fixed keyboard bug
-// Added execute() method that can be called after a run event to execute code immediately see example 7
-// bug fix, where run call was not called at all, if ui flag was set false
-// Change window SoftInputMode when keyboard listener is set
-// added un-register events
-// Fixed keyboard show hide bug
-// KEYBOARD_STATE_CHANGE ui event, needs activity root view to work, works only for android:windowSoftInputMode="adjustResize" or adjustPan
-// changed method signatures to be consistent
-// TEXT_ENTERED will work with lose Focus and keyboard done button, if KEYBOARD_STATE_CHANGE event is not set first
 
 // Added Help examples
 // ## EXAMPLES ##
@@ -70,12 +44,10 @@ import java.util.List;
 
 public class Flow implements LifecycleObserver{
     public static final int RESULT_CHANGE = 0; // called once all events are fired, and when events AND result change
-    public static final int RESULT_UPDATE = 1; // called once all events are fired with AND true, and every time any event updates as long as events AND is true
+    public static final int RESULT_UPDATE = 1; // called once all events are fired with true, and every time any event updates as long as events AND is true
     public static final int EVENT_UPDATE = 2;  // called every time an event is fired or changed
     private boolean bRunning;
-
     protected HThread hThread;
-
     private static int iThreadCount = 0;
     private static final int LOG_LEVEL = 4;
     private static final String LOG_TAG = "Flow";
@@ -114,14 +86,19 @@ public class Flow implements LifecycleObserver{
     }
 
     // STATE METHODS pause, resume, stop the action, should be called to release resources
+    @OnLifecycleEvent(Lifecycle.Event.ON_PAUSE)
     public void pause() {
         hThread.mHandler.removeCallbacksAndMessages(null);
         hThread.mUiHandler.removeCallbacksAndMessages(null);
         bRunning = false;
     }
 
-    public void resume() { bRunning = true; }
+    @OnLifecycleEvent(Lifecycle.Event.ON_RESUME)
+    public void resume() {
+        bRunning = true;
+    }
 
+    @OnLifecycleEvent(Lifecycle.Event.ON_STOP)
     public void stop() {
         code = null;
         try {
@@ -139,7 +116,7 @@ public class Flow implements LifecycleObserver{
     }
 
 
-    // METHOD sets the type of action run RESULT_CHANGE,
+    // METHOD sets the type of action run RESULT_CHANGE, RESULT_UPDATE, EVENT_UPDATE
     public void runType(int iType){
         if(listActions.size() > 0)
             listActions.get(listActions.size()-1).iRunType = iType;
@@ -238,7 +215,7 @@ public class Flow implements LifecycleObserver{
             }
         }
     }
-    
+
     // METHODS to send event
     public void event(String sEvent) { event(sEvent, true, 0, null); }
     public void event(String sEvent, boolean bSuccess) { event(sEvent, bSuccess, 0, null); }
