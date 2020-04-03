@@ -50,7 +50,6 @@ open class Flow @JvmOverloads constructor(codeCallback: Code? = null) : Lifecycl
     // INTERFACES for code execution and keyboard listener
     interface Execute
 
-
     interface Run : Execute {
         fun onAction()
     }
@@ -59,11 +58,11 @@ open class Flow @JvmOverloads constructor(codeCallback: Code? = null) : Lifecycl
         fun onAction(iAction: Int, bSuccess: Boolean, iExtra: Int, data: Any?)
     }
 
-    fun code(codeCallback: Execute?) {
+    fun code(codeCallback: Execute) {
         code = codeCallback
     }
 
-    fun execute(CodeOrRunCallback: Execute?) {
+    fun execute(CodeOrRunCallback: Execute) {
         code = CodeOrRunCallback
     }
 
@@ -350,10 +349,8 @@ open class Flow @JvmOverloads constructor(codeCallback: Code? = null) : Lifecycl
 
     // CLASS for events for action, when all events occur action is triggered
     inner class Action {
-        var iAction // Code step to execute for this action
-                : Int
-        private var iEventCount // How many event are for this action code to be triggered
-                : Int
+        var iAction : Int // Code step to execute for this action
+        private var iEventCount : Int // How many event are for this action code to be triggered
         var bSequence = false // Only trigger when events occur in right order
         //   private boolean bEventFound;
         var bRunOnUI = false // Code run on Background / UI thread
@@ -361,7 +358,6 @@ open class Flow @JvmOverloads constructor(codeCallback: Code? = null) : Lifecycl
         var bFireOnce = false // Clear Action once fired, used for wait action
         private var iLastStatus = Event.WAITING // Event set status as a whole, waiting, success, non success
         private var listEvents: MutableList<Event?>? = ArrayList() // List to store events needed for this action
-
 
 
         // CONSTRUCTOR
@@ -405,7 +401,7 @@ open class Flow @JvmOverloads constructor(codeCallback: Code? = null) : Lifecycl
                     bEventFound = true
                     event.obj = obj
                     event.iExtra = iExtra
-                    event.iStatus = if (bResult) Event.SUCCESS else Event.FAILURE
+                    event.iStatus = if (bResult) SUCCESS else Event.FAILURE
                 } else if (bSequence && event.iStatus == Event.WAITING) { // if its a Sequence action, no event should be empty before current event
                     if (i != 0) {
                         listEvents!![i - 1]!!.iStatus = Event.WAITING
@@ -413,7 +409,7 @@ open class Flow @JvmOverloads constructor(codeCallback: Code? = null) : Lifecycl
                     break
                 }
                 when (event.iStatus) {
-                    Event.SUCCESS -> {
+                    SUCCESS -> {
                         iSuccess++
                         iFiredCount++ // Add to fired event regard less of success or failure
                     }
