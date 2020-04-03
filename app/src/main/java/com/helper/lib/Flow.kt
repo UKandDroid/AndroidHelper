@@ -1,37 +1,34 @@
 package com.stryde.library.device
 
 
-import android.arch.lifecycle.Lifecycle
-import android.arch.lifecycle.LifecycleObserver
-import android.arch.lifecycle.OnLifecycleEvent
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
 import android.os.Message
 import android.util.Log
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleObserver
+import androidx.lifecycle.OnLifecycleEvent
 import com.stryde.library.device.Flow.Event.Companion.FAILURE
 import com.stryde.library.device.Flow.Event.Companion.SUCCESS
 import java.util.*
 
 // Version 2.4.0
-// Added <Type> based events
-// get events for action, get action error methods
-// removed UiFlow to separate class
-// added ui listener LOAD_LAYOUT
+// Added <Generic Type> based events
+// Added getEventsForAction(), getErrorEventForAction()
 // Added runType for events RESULT_CHANGE, RESULT_UPDATE, EVENT_UPDATE
 // Added Help examples
 // ## EXAMPLES ##
-//Flow<ExternalEvents>flow = new Flow(flowCode)
-// Example 1: flow.registerEvents(1, "email_entered", "password_entered", "verify_code_entered" ) action 1 gets called when all those events occur
-//          : flow.onEvent("email_entered", true, extra(opt), object(opt))  is trigger for the registered event "email_entered",
-//          :  when all three events are triggered with flow.onEvent(...., true), action 1 is executed with bSuccess = true
-//          :  after 3 event true(s), if one onEvent(...., false) sends false, action 1 will be executed with bSuccess = false
+//Flow<TriggerEvents>flow = new Flow(flowCode)
+// Example 1: flow.registerAction(1, "email_entered", "password_entered", "verify_code_entered" ) action 1 gets called when all those events occur
+//          : flow.event("email_entered", true, extra(opt), object(opt))  is trigger for the registered event "email_entered",
+//          :  when all three events are triggered with flow.event(...., true), action 1 is executed with bSuccess = true
+//          :  after 3 event true(s), if one event(...., false) sends false, action 1 will be executed with bSuccess = false
 //          :  now action 1 will only trigger again when all onEvents(...., true) are true, i.e the events which sent false, send true again
-// Example 2: flow.registerUiEvent(2, spinnerView, Flow.Event.SPINNER_ITEM_SELECT) action two gets called when ever a spinner item is selected
-// Example 3: flow.run(3, true(opt), extra(opt), object(opt)) runs an action on background thread, same as registering for one event and triggering that event
-// Example 4: flow.runOnUi(4, true(opt), extra(opt), object(opt)) runs code on Ui thread
-// Example 5: flow.runDelayed(5, true(opt), extra(opt), 4000) runs delayed code
-// Example 6: flow.runDelayedOnUi(6, true(opt), extra(opt), 4000) runs delayed code on Ui thread
+// Example : flow.run(3, true(opt), extra(opt), object(opt)) runs an action on background thread, same as registering for one event and triggering that event
+// Example : flow.runOnUi(4, true(opt), extra(opt), object(opt)) runs code on Ui thread
+// Example : flow.runDelayed(5, true(opt), extra(opt), 4000) runs delayed code
+// Example : flow.runDelayedOnUi(6, true(opt), extra(opt), 4000) runs delayed code on Ui thread
 // Flow.Code flowCode = new Flow.Code(){
 //  @override public void onAction(int iAction, boolean bSuccess, int iExtra, Object data){
 //  switch(iAction){
@@ -41,9 +38,13 @@ import java.util.*
 //      case 4: ........ break;  // this will run on ui thread whenever runOnUi(4) is called
 //      case 5: ........ break;  // this will run on delayed by 4 secs
 // }  }
-// Example 7: new Flow().runDelayed(2000).execute(() -{})
-// Example 8: new Flow().runRepeat(500).execute(() -{})
-open class Flow<ExternalEvents> @JvmOverloads constructor(codeCallback: Execute? = null) : LifecycleObserver {
+// Example :  Flow().runDelayed(2000).execute(() -{})
+// Example :  Flow().runRepeat(500).execute(() -{})
+// Example :  flow.getEventsForAction(1) // returns all events associated with the action
+// Example :  flow.getErrorEventForAction(1) // returns first event that is stopping the action being fired, either its not fired or fired with false
+
+
+open class Flow<TriggerEvents> @JvmOverloads constructor(codeCallback: Execute? = null) : LifecycleObserver {
     private var bRunning = true
     @JvmField
     protected var hThread: HThread
@@ -105,82 +106,82 @@ open class Flow<ExternalEvents> @JvmOverloads constructor(codeCallback: Execute?
     }
 
     // METHODS run an action
-    fun run(bRunOnUi: Boolean): Flow<ExternalEvents> {
+    fun run(bRunOnUi: Boolean): Flow<TriggerEvents> {
         run(-1, true)
         return this
     }
 
-    fun run(iAction: Int):Flow<ExternalEvents>{
+    fun run(iAction: Int):Flow<TriggerEvents>{
         run(iAction, false)
         return this
     }
 
-    fun run(iAction: Int, bRunOnUi: Boolean):Flow<ExternalEvents>{
+    fun run(iAction: Int, bRunOnUi: Boolean):Flow<TriggerEvents>{
         run(iAction, bRunOnUi, true, 0, null)
         return this
     }
 
-    fun run(iAction: Int, iExtra: Int, obj: Any?):Flow<ExternalEvents>{
+    fun run(iAction: Int, iExtra: Int, obj: Any?):Flow<TriggerEvents>{
         run(iAction, false, true, iExtra, obj)
         return this
     }
 
-    fun run(iAction: Int, bRunOnUi: Boolean, bSuccess: Boolean, iExtra: Int, obj: Any?):Flow<ExternalEvents>{
+    fun run(iAction: Int, bRunOnUi: Boolean, bSuccess: Boolean, iExtra: Int, obj: Any?):Flow<TriggerEvents>{
         if (bRunOnUi) hThread.runOnUI(iAction, bSuccess, iExtra, obj) else hThread.run(iAction, bSuccess, iExtra, obj)
         return this
     }
 
-    fun runRepeat(iDelay: Long):Flow<ExternalEvents>{
+    fun runRepeat(iDelay: Long):Flow<TriggerEvents>{
         hThread.runRepeat(false, -1, true, 0, iDelay)
         return this
     }
 
-    fun runRepeat(iAction: Int, iDelay: Long):Flow<ExternalEvents>{
+    fun runRepeat(iAction: Int, iDelay: Long):Flow<TriggerEvents>{
         hThread.runRepeat(false, iAction, true, 0, iDelay)
         return this
     }
 
-    fun runRepeat(iAction: Int, bRunOnUi: Boolean, iDelay: Long):Flow<ExternalEvents>{
+    fun runRepeat(iAction: Int, bRunOnUi: Boolean, iDelay: Long):Flow<TriggerEvents>{
         hThread.runRepeat(bRunOnUi, iAction, true, 0, iDelay)
         return this
     }
 
-    fun runRepeat(iAction: Int, bSuccess: Boolean, iExtra: Int, iDelay: Long):Flow<ExternalEvents>{
+    fun runRepeat(iAction: Int, bSuccess: Boolean, iExtra: Int, iDelay: Long):Flow<TriggerEvents>{
         hThread.runRepeat(false, iAction, bSuccess, iExtra, iDelay)
         return this
     }
 
-    fun runRepeat(iAction: Int, bRunOnUi: Boolean, bSuccess: Boolean, iExtra: Int, iDelay: Long):Flow<ExternalEvents>{
+    fun runRepeat(iAction: Int, bRunOnUi: Boolean, bSuccess: Boolean, iExtra: Int, iDelay: Long):Flow<TriggerEvents>{
         hThread.runRepeat(bRunOnUi, iAction, bSuccess, iExtra, iDelay)
         return this
     }
 
     // METHODS run action delayed
-    fun runDelayed(iTime: Long):Flow<ExternalEvents>{
+    fun runDelayed(iTime: Long):Flow<TriggerEvents>{
         runDelayed2(-1, true, 0, null, iTime)
         return this
     }
 
-    fun runDelayed(iAction: Int, iTime: Long):Flow<ExternalEvents>{
+    fun runDelayed(iAction: Int, iTime: Long):Flow<TriggerEvents>{
         runDelayed2(iAction, true, 0, null, iTime)
         return this
     }
 
-    fun runDelayed(iAction: Int, bRunOnUi: Boolean, iTime: Long):Flow<ExternalEvents>{
+    fun runDelayed(iAction: Int, bRunOnUi: Boolean, iTime: Long):Flow<TriggerEvents>{
         if (bRunOnUi) runDelayedOnUI(iAction, true, 0, null, iTime) else runDelayed2(iAction, true, 0, null, iTime)
         return this
     }
 
-    fun runDelayed(iAction: Int, bSuccess: Boolean, iExtra: Int, `object`: Any?, iTime: Long):Flow<ExternalEvents>{
+    fun runDelayed(iAction: Int, bSuccess: Boolean, iExtra: Int, `object`: Any?, iTime: Long):Flow<TriggerEvents>{
         runDelayed2(iAction, bSuccess, iExtra, `object`, iTime)
         return this
     }
 
-    fun runDelayed(bRunOnUi: Boolean, bSuccess: Boolean, iExtra: Int, `object`: Any?, iTime: Long):Flow<ExternalEvents>{
+    fun runDelayed(bRunOnUi: Boolean, bSuccess: Boolean, iExtra: Int, `object`: Any?, iTime: Long):Flow<TriggerEvents>{
         return runDelayed(-1, bRunOnUi, bSuccess, iExtra, `object`, iTime)
     }
 
-    fun runDelayed(iAction: Int, bRunOnUi: Boolean, bSuccess: Boolean, iExtra: Int, `object`: Any?, iTime: Long):Flow<ExternalEvents>{
+    fun runDelayed(iAction: Int, bRunOnUi: Boolean, bSuccess: Boolean, iExtra: Int, `object`: Any?, iTime: Long):Flow<TriggerEvents>{
         if (bRunOnUi) runDelayedOnUI(iAction, bSuccess, iExtra, `object`, iTime) else runDelayed2(iAction, bSuccess, iExtra, `object`, iTime)
         return this
     }
@@ -206,39 +207,39 @@ open class Flow<ExternalEvents> @JvmOverloads constructor(codeCallback: Execute?
     }
 
     // METHODS events registration
-    fun registerAction(iAction: Int, events: Array<ExternalEvents>):Flow<ExternalEvents>{
+    fun registerAction(iAction: Int, events: Array<TriggerEvents>):Flow<TriggerEvents>{
         registerAction(iAction, false, false, false, events)
         return this
     }
 
-    fun waitForEvents(iAction: Int, events: Array<ExternalEvents>):Flow<ExternalEvents>{
+    fun waitForEvents(iAction: Int, events: Array<TriggerEvents>):Flow<TriggerEvents>{
         registerAction(iAction, false, true, false, events)
         return this
     }
 
-    fun waitForEvents(iAction: Int, bRunOnUI: Boolean, events: Array<ExternalEvents>):Flow<ExternalEvents>{
+    fun waitForEvents(iAction: Int, bRunOnUI: Boolean, events: Array<TriggerEvents>):Flow<TriggerEvents>{
         registerAction(iAction, bRunOnUI, true, false, events)
         return this
     }
 
-    fun registerAction(iAction: Int, bRunOnUI: Boolean, events: Array<ExternalEvents>):Flow<ExternalEvents>{
+    fun registerAction(iAction: Int, bRunOnUI: Boolean, events: Array<TriggerEvents>):Flow<TriggerEvents>{
         registerAction(iAction, bRunOnUI, false, false, events)
         return this
     }
 
-    fun registerEventSequence(iAction: Int, bRunOnUI: Boolean, events: Array<ExternalEvents>):Flow<ExternalEvents>{
+    fun registerEventSequence(iAction: Int, bRunOnUI: Boolean, events: Array<TriggerEvents>):Flow<TriggerEvents>{
         registerAction(iAction, bRunOnUI, false, true, events)
         return this
     }
 
     fun getEventsForAction(iAction: Int) = listActions?.first { it.iAction == iAction }?.getEventsList()
 
-    // Returns first found event that has not been fired with true
-    fun getActionError(iAction: Int) = getEventsForAction(iAction)?.first {!it.isFired() }?.sEvent
+    // Returns first found event that is stopping the action from triggering
+    fun getErrorEventForAction(iAction: Int) = getEventsForAction(iAction)?.first {!it.isFired() }?.sEvent
     fun getActionEventWaiting(iAction: Int) = getEventsForAction(iAction)?.first {!it.isFired() }?.sEvent
 
 
-    private fun registerAction(iAction: Int, bRunOnUI: Boolean, bRunOnce: Boolean, bSequence: Boolean, events: Array<ExternalEvents>) {
+    private fun registerAction(iAction: Int, bRunOnUI: Boolean, bRunOnce: Boolean, bSequence: Boolean, events: Array<TriggerEvents>) {
         unRegisterAction(iAction) // to stop duplication, remove if the action already exists
         val aAction = Action(iAction, events)
         aAction.bRunOnUI = bRunOnUI
@@ -264,7 +265,7 @@ open class Flow<ExternalEvents> @JvmOverloads constructor(codeCallback: Execute?
 
     // METHODS to send event
     @JvmOverloads
-    fun event(sEvent: ExternalEvents, bSuccess: Boolean = true, iExtra: Int = 0, obj: Any? = null) {
+    fun event(sEvent: TriggerEvents, bSuccess: Boolean = true, iExtra: Int = 0, obj: Any? = null) {
         if (!bRunning) return
         log("EVENT:  $sEvent $bSuccess")
         val iSize = listActions!!.size
@@ -355,12 +356,12 @@ open class Flow<ExternalEvents> @JvmOverloads constructor(codeCallback: Execute?
         var iRunType = RESULT_CHANGE // when this action is run,
         var bFireOnce = false // Clear Action once fired, used for wait action
         private var iLastStatus = Event.WAITING // Event set status as a whole, waiting, success, non success
-        private var listEvents: MutableList<Event<ExternalEvents>>? = ArrayList() // List to store events needed for this action
+        private var listEvents: MutableList<Event<TriggerEvents>>? = ArrayList() // List to store events needed for this action
 
         fun getEventsList() = listEvents
 
         // CONSTRUCTOR
-        constructor(iCodeStep: Int, events: Array<ExternalEvents>) {
+        constructor(iCodeStep: Int, events: Array<TriggerEvents>) {
             bSequence = false
             iAction = iCodeStep
             iEventCount = events.size
@@ -369,7 +370,7 @@ open class Flow<ExternalEvents> @JvmOverloads constructor(codeCallback: Execute?
             }
         }
 
-        constructor(iCodeStep: Int, events: Array<ExternalEvents?>, bOrder: Boolean) {
+        constructor(iCodeStep: Int, events: Array<TriggerEvents?>, bOrder: Boolean) {
             bSequence = bOrder
             iAction = iCodeStep
             iEventCount = events.size
@@ -388,7 +389,7 @@ open class Flow<ExternalEvents> @JvmOverloads constructor(codeCallback: Execute?
         }
 
         // METHOD searches all actions, if any associated with this event
-        fun onEvent(sEvent: ExternalEvents, bResult: Boolean, iExtra: Int, obj: Any?): Boolean {
+        fun onEvent(sEvent: TriggerEvents, bResult: Boolean, iExtra: Int, obj: Any?): Boolean {
             var iFiredCount = 0 // How many have been fired
             var iSuccess = 0 // How many has been successful
             var bEventFound = false
