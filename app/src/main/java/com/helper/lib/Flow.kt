@@ -1,16 +1,19 @@
-package com.stryde.library.device
 
 
+import Flow.Event.Companion.FAILURE
+import Flow.Event.Companion.SUCCESS
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
 import android.os.Message
 import android.util.Log
-import com.stryde.library.device.Flow.Event.Companion.FAILURE
-import com.stryde.library.device.Flow.Event.Companion.SUCCESS
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleObserver
+import androidx.lifecycle.OnLifecycleEvent
+import androidx.recyclerview.widget.RecyclerView
 import java.util.*
 
-// Version 2.4.0
+// Version 2.4.1
 // Added <Generic Type> based events
 // Added getEventsForAction(), getErrorEventForAction()
 // Added runType for events RESULT_CHANGE, RESULT_UPDATE, EVENT_UPDATE
@@ -120,7 +123,7 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
         return this
     }
 
-    fun run(iAction: Int, bUiThread: Boolean, bSuccess: Boolean, iExtra: Int, obj: Any?):Flow<ActionEvents>{
+    fun run(iAction: Int, bUiThread: Boolean, bSuccess: Boolean, iExtra: Int, obj: Any?) : Flow<ActionEvents>{
         if (bUiThread) hThread.runOnUI(iAction, bSuccess, iExtra, obj) else hThread.run(iAction, bSuccess, iExtra, obj)
         return this
     }
@@ -226,12 +229,11 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
         return this
     }
 
+    fun resetAction(iAction: Int) { getAction(iAction).reset() }    // Resets action by resetting all events to initial WAITING state
     fun getAction(iAction: Int) = listActions.first { it.iAction == iAction }
     fun getActionEvents(iAction: Int) = getAction(iAction).getEventsList()
-    fun getActionWaitingEvent(iAction: Int) = getActionErrorEvent(iAction)   // Returns first found event that is stopping the action from triggering
-    fun getActionErrorEvent(iAction: Int) = getAction(iAction).getErrorOrWaitingEvent() // // Returns first found event that is stopping the action from triggering
-    fun resetAction(iAction: Int) { getAction(iAction).reset() } // Resets action by resetting all events to initial Waiting state
-
+    fun getActionWaitingEvent(iAction: Int) = getAction(iAction).getWaitingEvent() // Returns first found event that is stopping the action from triggering
+                                                                                    // in case of multiple events only first will be returned
     private fun registerAction(iAction: Int, bUiThread: Boolean, bRunOnce: Boolean, bSequence: Boolean, events: Array<ActionEvents>) {
         unRegisterAction(iAction) // to stop duplication, remove if the action already exists
         val aAction = Action(iAction, events)
@@ -381,10 +383,10 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
         fun getEventData(events: ActionEvents) : Any? {
             return listEvents.find { it.event == events }?.obj
         }
+        // returns first event that has not been fired or fired with false
+        fun getWaitingEvent() = listEvents.firstOrNull{ !it.isFired() }?.event
 
-        fun getErrorOrWaitingEvent() = listEvents.first{ !it.isFired() }.event
-
-        fun isWaitingFor(event: ActionEvents) = getErrorOrWaitingEvent() == event
+        fun isWaitingFor(event: ActionEvents) = getWaitingEvent() == event
 
         fun reset(){
             for (i in listEvents){
