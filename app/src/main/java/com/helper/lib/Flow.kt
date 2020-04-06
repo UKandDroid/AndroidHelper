@@ -7,10 +7,7 @@ import android.os.HandlerThread
 import android.os.Looper
 import android.os.Message
 import android.util.Log
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleObserver
-import androidx.lifecycle.OnLifecycleEvent
-import androidx.recyclerview.widget.RecyclerView
+import java.lang.ref.WeakReference
 import java.util.*
 
 // Version 2.4.1
@@ -48,7 +45,7 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
     private var bRunning = true
     private var hThread: HThread
     private var listActions: MutableList<Action> = ArrayList() // List of registered actions
-    private var code: FlowCode? = null // Call back for onAction to be executed
+    private var code: WeakReference<FlowCode?>? = null // Call back for onAction to be executed
 
     // INTERFACE for code execution
     interface FlowCode  {
@@ -57,12 +54,12 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
     }
 
     init {
-        code = codeCallback
+        code = WeakReference(codeCallback)
         hThread = HThread()
     }
 
     fun execute(flowCode: FlowCode) {
-        code = flowCode
+        code = WeakReference(flowCode)
     }
 
     // STATE METHODS pause, resume, stop the action, should be called to release resources
@@ -229,11 +226,12 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
         return this
     }
 
-    fun resetAction(iAction: Int) { getAction(iAction).reset() }    // Resets action by resetting all events to initial WAITING state
     fun getAction(iAction: Int) = listActions.first { it.iAction == iAction }
     fun getActionEvents(iAction: Int) = getAction(iAction).getEventsList()
-    fun getActionWaitingEvent(iAction: Int) = getAction(iAction).getWaitingEvent() // Returns first found event that is stopping the action from triggering
-                                                                                    // in case of multiple events only first will be returned
+    fun getActionWaitingEvent(iAction: Int) = getActionErrorEvent(iAction)   // Returns first found event that is stopping the action from triggering
+    fun getActionErrorEvent(iAction: Int) = getAction(iAction).getErrorOrWaitingEvent() // // Returns first found event that is stopping the action from triggering
+    fun resetAction(iAction: Int) { getAction(iAction).reset() } // Resets action by resetting all events to initial Waiting state
+
     private fun registerAction(iAction: Int, bUiThread: Boolean, bRunOnce: Boolean, bSequence: Boolean, events: Array<ActionEvents>) {
         unRegisterAction(iAction) // to stop duplication, remove if the action already exists
         val aAction = Action(iAction, events)
@@ -304,7 +302,7 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
             }
         }
 
-        fun reset(){
+        fun resetEvent(){
             obj = null
             extra = 0
             status = WAITING
@@ -384,13 +382,13 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
             return listEvents.find { it.event == events }?.obj
         }
         // returns first event that has not been fired or fired with false
-        fun getWaitingEvent() = listEvents.firstOrNull{ !it.isFired() }?.event
+        fun getErrorOrWaitingEvent() = listEvents.firstOrNull{ !it.isFired() }?.event
 
-        fun isWaitingFor(event: ActionEvents) = getWaitingEvent() == event
+        fun isWaitingFor(event: ActionEvents) = getErrorOrWaitingEvent() == event
 
         fun reset(){
             for (i in listEvents){
-                i.reset()
+                i.resetEvent()
             }
         }
 
@@ -536,12 +534,12 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
                     mHandler.removeMessages(msg.what) // Clear any pending messages
                     mHandler.sendMessageDelayed(msg2, msg.arg1.toLong())
                 }
-                code!!.onAction()
-                code!!.onAction(msg.what, getFlag(msg.arg2, FLAG_SUCCESS), getExtraInt(msg.arg2), msg.obj)
+                code?.get()?.onAction()
+                code?.get()?.onAction(msg.what, getFlag(msg.arg2, FLAG_SUCCESS), getExtraInt(msg.arg2), msg.obj)
 
             } else {
-                code!!.onAction()
-                code!!.onAction(msg.what, msg.arg2 == 1, msg.arg1, msg.obj)
+                code?.get()?.onAction()
+                code?.get()?.onAction(msg.what, msg.arg2 == 1, msg.arg1, msg.obj)
             }
             return true
         }
