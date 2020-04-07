@@ -112,55 +112,38 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
         hThread.runRepeat(bUiThread, iAction, bSuccess, iExtra, iDelay)
         return this
     }
-    
+
     @JvmOverloads
     fun runDelayed(iAction: Int = -1, bUiThread: Boolean = false, bSuccess: Boolean = true, iExtra: Int =0, any: Any? = null, iTime: Long):Flow<ActionEvents>{
-        if (bUiThread) runDelayedOnUI(iAction, bSuccess, iExtra, any, iTime) else runDelayed2(iAction, bSuccess, iExtra, any, iTime)
+         runDelayedOnUI(iAction, bUiThread, bSuccess, iExtra, any, iTime)
         return this
     }
 
-    private fun runDelayedOnUI(iAction: Int, bSuccess: Boolean, iExtra: Int, any: Any?, iTime: Long) {
+    private fun runDelayedOnUI(iAction: Int, bUiThread: Boolean = false, bSuccess: Boolean, iExtra: Int, any: Any?, iTime: Long) {
         val msg = Message.obtain()
         msg.what = iAction
         msg.arg1 = iExtra
         msg.arg2 = if (bSuccess) 1 else 0
         msg.obj = any
-        hThread.mUiHandler.removeMessages(iAction) // Remove any pending messages in queue
-        hThread.mUiHandler.sendMessageDelayed(msg, iTime)
+        val handler = if(bUiThread) hThread.mUiHandler else hThread.mHandler
+        handler.removeMessages(iAction) // Remove any pending messages in queue
+        handler.sendMessageDelayed(msg, iTime)
     }
 
-    private fun runDelayed2(iAction: Int, bSuccess: Boolean, iExtra: Int, any: Any?, iTime: Long) {
-        val msg = Message.obtain()
-        msg.what = iAction
-        msg.arg1 = iExtra
-        msg.arg2 = if (bSuccess) 1 else 0
-        msg.obj = any
-        hThread.mHandler.removeMessages(iAction) // Remove any pending messages in queue
-        hThread.mHandler.sendMessageDelayed(msg, iTime)
-    }
-
-    // METHODS events registration
-    fun registerAction(iAction: Int, events: Array<ActionEvents>):Flow<ActionEvents>{
-        registerAction(iAction, false, false, false, events)
-        return this
-    }
-
-    fun waitForEvents(iAction: Int, events: Array<ActionEvents>):Flow<ActionEvents>{
-        registerAction(iAction, false, true, false, events)
-        return this
-    }
-
-    fun waitForEvents(iAction: Int, bUiThread: Boolean, events: Array<ActionEvents>):Flow<ActionEvents>{
-        registerAction(iAction, bUiThread, true, false, events)
-        return this
-    }
-
-    fun registerAction(iAction: Int, bUiThread: Boolean, events: Array<ActionEvents>):Flow<ActionEvents>{
+    @JvmOverloads
+    fun registerAction(iAction: Int, bUiThread: Boolean = false, events: Array<ActionEvents>):Flow<ActionEvents>{
         registerAction(iAction, bUiThread, false, false, events)
         return this
     }
 
-    fun registerEventSequence(iAction: Int, bUiThread: Boolean, events: Array<ActionEvents>):Flow<ActionEvents>{
+    @JvmOverloads
+    fun waitForEvents(iAction: Int, bUiThread: Boolean = false, events: Array<ActionEvents>):Flow<ActionEvents>{
+        registerAction(iAction, bUiThread, true, false, events)
+        return this
+    }
+
+
+    fun registerActionSequence(iAction: Int, bUiThread: Boolean, events: Array<ActionEvents>):Flow<ActionEvents>{
         registerAction(iAction, bUiThread, false, true, events)
         return this
     }
