@@ -17,21 +17,28 @@ class MainActivity : AppCompatActivity() {
     var bFlip = true
 
 
+    enum class  Events{
+        EVENT_ONE, EVENT_TWO
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         val anim = Anim()
 
-        val flow = Flow<String>()
+        val flow = Flow<Events>()
 
-        flow.runDelayed(1,true, "run_it_1", 2000){}
-        flow.runDelayed(2,true, "run_it_2", 2000){}
+        flow.registerAction(3, false, listOf(Events.EVENT_ONE, Events.EVENT_TWO))
+        flow.runDelayed(1,true,  1000)
+        flow.runDelayed(2,true,  2000)
+        flow.runDelayed(4,true,  3000)
 
+        flow.event(Events.EVENT_ONE)
+        flow.event(Events.EVENT_TWO)
 
         flow.execute(object : Flow.FlowCode {
             override fun onAction(iAction: Int, bSuccess: Boolean, iExtra: Int, data: Any?) {
-                Log.d("android-helper", "Delayed call  $iAction $bSuccess $iExtra $data")
-
+                Log.w("flow", "flow-call  $iAction $bSuccess $iExtra")
             }
         })
 
