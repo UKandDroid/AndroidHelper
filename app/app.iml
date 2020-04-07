@@ -4,8 +4,8 @@
     <facet type="android-gradle" name="Android-Gradle">
       <configuration>
         <option name="GRADLE_PROJECT_PATH" value=":app" />
-        <option name="LAST_SUCCESSFUL_SYNC_AGP_VERSION" value="3.1.3" />
-        <option name="LAST_KNOWN_AGP_VERSION" value="3.1.3" />
+        <option name="LAST_SUCCESSFUL_SYNC_AGP_VERSION" value="3.6.1" />
+        <option name="LAST_KNOWN_AGP_VERSION" value="3.6.1" />
       </configuration>
     </facet>
     <facet type="android" name="Android">
@@ -29,18 +29,18 @@
         <compilerSettings />
         <compilerArguments>
           <option name="destination" value="$MODULE_DIR$/build/tmp/kotlin-classes/debug" />
+          <option name="classpath" value="$USER_HOME$/.gradle/caches/transforms-2/files-2.1/8e395f452225d8f6a1e76d24d7e301d5/adapters-3.6.1-api.jar:/Users/ubaidkhaliq/.gradle/caches/transforms-2/files-2.1/7909850b4bc91b342e5fed4faffe8aa5/library-3.6.1-api.jar:/Users/ubaidkhaliq/.gradle/caches/modules-2/files-2.1/com.android.databinding/baseLibrary/3.6.1/9c6efee542b289501ae75db7743e0c528d78d361/baseLibrary-3.6.1.jar:/Users/ubaidkhaliq/.gradle/caches/modules-2/files-2.1/com.facebook.litho/litho-annotations/0.19.0/5c41c27af4f116f765dc500aa670a99c6d004093/litho-annotations-0.19.0.jar:/Users/ubaidkhaliq/.gradle/caches/modules-2/files-2.1/com.facebook.litho/litho-sections-annotations/0.19.0/4deb07f448112ad659e46fef1cf52510552a4ce5/litho-sections-annotations-0.19.0.jar:/Users/ubaidkhaliq/.gradle/caches/transforms-2/files-2.1/aba4ae9865a7c7af6e66affb26147cdd/viewbinding-3.6.1-api.jar:/Users/ubaidkhaliq/.gradle/caches/transforms-2/files-2.1/c5bd2e2f773fdd256289ae3dea046a78/rxbinding-appcompat-v7-2.1.1-api.jar:/Users/ubaidkhaliq/.gradle/caches/transforms-2/files-2.1/94c4a743607aab010d5f3a1b3fc3b459/appcompat-v7-27.1.1-api.jar:/Users/ubaidkhaliq/.gradle/caches/transforms-2/files-2.1/611554ba8c440fc7d8b01f3af3e01043/extensions-1.1.1-api.jar:/Users/ubaidkhaliq/.gradle/caches/transforms-2/files-2.1/0d57907ddcced2b423e86d8dd7f93c5c/support-fragment-27.1.1-api.jar:/Users/ubaidkhaliq/.gradle/caches/transforms-2/files-2.1/0a81fa1888da1384bc0ecad8c8b8dccb/animated-vector-drawable-27.1.1-api.jar:/Users/ubaidkhaliq/.gradle/caches/transforms-2/files-2.1/966ca9fe442bddfe8efd0ae0054566a8/support-core-ui-27.1.1-api.jar:/Users/ubaidkhaliq/.gradle/caches/transforms-2/files-2.1/f3133533dd9ff099faacfb88984e0dcc/support-core-utils-27.1.1-api.jar:/Users/ubaidkhaliq/.gradle/caches/transforms-2/files-2.1/cb22a67b860046d72fbd0b3e4fdf9039/support-vector-drawable-27.1.1-api.jar:/Users/ubaidkhaliq/.gradle/caches/transforms-2/files-2.1/93b0545aad5d1d9ee308750669b4d341/support-compat-27.1.1-api.jar:/Users/ubaidkhaliq/.gradle/caches/transforms-2/files-2.1/9c07c3bbc5426e627fff4a4572bda1cb/runtime-1.1.1-api.jar:/Users/ubaidkhaliq/.gradle/caches/transforms-2/files-2.1/ee0a099a3523a6344863e3883935d826/rxbinding-2.1.1-api.jar:/Users/ubaidkhaliq/.gradle/caches/transforms-2/files-2.1/67296de1b089274ce7cda6b5d33a45a8/livedata-1.1.1-api.jar:/Users/ubaidkhaliq/.gradle/caches/transforms-2/files-2.1/9504d5841f06b9aacd5569c0891039b2/livedata-core-1.1.1-api.jar:/Users/ubaidkhaliq/.gradle/caches/transforms-2/files-2.1/05e7ef6e46e35e5866c27502bd5b8957/runtime-1.1.1-api.jar:/Users/ubaidkhaliq/.gradle/caches/modules-2/files-2.1/android.arch.core/common/1.1.1/e55b70d1f5620db124b3e85a7f4bdc7bd48d9f95/common-1.1.1.jar:/Users/ubaidkhaliq/.gradle/caches/modules-2/files-2.1/android.arch.lifecycle/common/1.1.1/207a6efae6a3555e326de41f76bdadd9a239cbce/common-1.1.1.jar:/Users/ubaidkhaliq/.gradle/caches/transforms-2/files-2.1/5117f28973fb141b7fa1de14cdce4b7a/viewmodel-1.1.1-api.jar:/Users/ubaidkhaliq/.gradle/caches/modules-2/files-2.1/com.android.support/support-annotations/27.1.1/39ded76b5e1ce1c5b2688e1d25cdc20ecee32007/support-annotations-27.1.1.jar:/Users/ubaidkhaliq/.gradle/caches/modules-2/files-2.1/eu.the4thfloor.volley/com.android.volley/2015.05.28/b0b08cc0ac897e596abe6b263a9507cba875b705/com.android.volley-2015.05.28.jar:/Users/ubaidkhaliq/.gradle/caches/modules-2/files-2.1/com.google.dagger/dagger/2.15/13cc1f509deda05c1fe5a315519d7cb743b8333b/dagger-2.15.jar:/Users/ubaidkhaliq/.gradle/caches/modules-2/files-2.1/javax.inject/javax.inject/1/6975da39a7040257bd51d21a231b76c915872d38/javax.inject-1.jar:/Users/ubaidkhaliq/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib-jdk7/1.3.10/4d147bf43060dc43d61b096e24da1e67dfe0c032/kotlin-stdlib-jdk7-1.3.10.jar:/Users/ubaidkhaliq/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/1.3.10/b178c1501609c6e4ee8be635513cb023a466457d/kotlin-stdlib-1.3.10.jar:/Users/ubaidkhaliq/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib-common/1.3.10/1b19d99229dcedad7caf50534dce38fe82845269/kotlin-stdlib-common-1.3.10.jar:/Users/ubaidkhaliq/.gradle/caches/modules-2/files-2.1/org.jetbrains/annotations/13.0/919f0dfe192fb4e063e7dacadee7f8bb9a2672a9/annotations-13.0.jar:/Users/ubaidkhaliq/.gradle/caches/transforms-2/files-2.1/205b7713a8f79b0c727fdedf0470452d/rxandroid-2.0.2-api.jar:/Users/ubaidkhaliq/.gradle/caches/modules-2/files-2.1/com.jakewharton.rxrelay2/rxrelay/2.0.0/2ed3d43181bb62afb00f675d17f3e6c2ffadd889/rxrelay-2.0.0.jar:/Users/ubaidkhaliq/.gradle/caches/modules-2/files-2.1/io.reactivex.rxjava2/rxjava/2.1.9/afd2ab255e6b94b064ea87c2ccd84ac0d163a427/rxjava-2.1.9.jar:/Users/ubaidkhaliq/.gradle/caches/modules-2/files-2.1/org.reactivestreams/reactive-streams/1.0.2/323964c36556eb0e6209f65c1cef72b53b461ab8/reactive-streams-1.0.2.jar:/Users/ubaidkhaliq/.gradle/caches/transforms-2/files-2.1/d717ad6d134db34850763ae6e7af1124/constraint-layout-1.1.3-api.jar:/Users/ubaidkhaliq/.gradle/caches/modules-2/files-2.1/com.android.support.constraint/constraint-layout-solver/1.1.3/bde0667d7414c16ed62d3cfe993cff7f9d732373/constraint-layout-solver-1.1.3.jar:/Users/ubaidkhaliq/.gradle/caches/transforms-2/files-2.1/cdf2bc5bfbd0b7c10ee036a7f09b5d69/litho-core-0.19.0-api.jar:/Users/ubaidkhaliq/.gradle/caches/transforms-2/files-2.1/ad37c960a8f01c8180184dc66572c97b/yoga-1.9.0-api.jar:/Users/ubaidkhaliq/.gradle/caches/transforms-2/files-2.1/d17b22c2f52231adb194121aadf8baac/soloader-0.5.1-api.jar:/Users/ubaidkhaliq/.gradle/caches/transforms-2/files-2.1/3de262047464bdad6771f192d6e87071/litho-widget-0.19.0-api.jar:/Users/ubaidkhaliq/.gradle/caches/modules-2/files-2.1/com.getkeepsafe.dexcount/dexcount-gradle-plugin/0.8.3/2161e2dcf1733da8e975e933b8e758a68235de06/dexcount-gradle-plugin-0.8.3.jar:/Users/ubaidkhaliq/.gradle/caches/transforms-2/files-2.1/c59294ed585a95f5159efbc61edef8aa/litho-sections-core-0.19.0-api.jar:/Users/ubaidkhaliq/.gradle/caches/transforms-2/files-2.1/8394113554fe9947807dcff511be50ce/litho-sections-widget-0.19.0-api.jar:/Users/ubaidkhaliq/Library/Android/sdk/platforms/android-27/android.jar:/Users/ubaidkhaliq/Library/Android/sdk/build-tools/28.0.3/core-lambda-stubs.jar" />
           <option name="noStdlib" value="true" />
           <option name="noReflect" value="true" />
           <option name="moduleName" value="app_debug" />
-          <option name="languageVersion" value="1.2" />
-          <option name="apiVersion" value="1.2" />
+          <option name="languageVersion" value="1.3" />
+          <option name="apiVersion" value="1.3" />
           <option name="pluginOptions">
             <array />
           </option>
           <option name="pluginClasspaths">
             <array />
           </option>
-          <option name="coroutinesState" value="warn" />
           <option name="errors">
             <ArgumentParseErrors />
           </option>
@@ -49,24 +49,21 @@
     </facet>
   </component>
   <component name="NewModuleRootManager" LANGUAGE_LEVEL="JDK_1_8">
-    <output url="file://$MODULE_DIR$/build/intermediates/classes/debug" />
-    <output-test url="file://$MODULE_DIR$/build/intermediates/classes/test/debug" />
+    <output url="file://$MODULE_DIR$/build/intermediates/javac/debug/classes" />
+    <output-test url="file://$MODULE_DIR$/build/intermediates/javac/debugUnitTest/classes" />
     <exclude-output />
     <content url="file://$MODULE_DIR$">
-      <sourceFolder url="file://$MODULE_DIR$/build/generated/source/dataBinding/baseClasses/debug" isTestSource="false" generated="true" />
       <sourceFolder url="file://$MODULE_DIR$/build/generated/source/buildConfig/debug" isTestSource="false" generated="true" />
-      <sourceFolder url="file://$MODULE_DIR$/build/generated/source/aidl/debug" isTestSource="false" generated="true" />
-      <sourceFolder url="file://$MODULE_DIR$/build/generated/source/rs/debug" isTestSource="false" generated="true" />
-      <sourceFolder url="file://$MODULE_DIR$/build/generated/source/apt/debug" isTestSource="false" generated="true" />
+      <sourceFolder url="file://$MODULE_DIR$/build/generated/ap_generated_sources/debug/out" isTestSource="false" generated="true" />
+      <sourceFolder url="file://$MODULE_DIR$/build/generated/renderscript_source_output_dir/debug/out" isTestSource="false" generated="true" />
+      <sourceFolder url="file://$MODULE_DIR$/build/generated/aidl_source_output_dir/debug/out" isTestSource="false" generated="true" />
       <sourceFolder url="file://$MODULE_DIR$/build/generated/res/rs/debug" type="java-resource" generated="true" />
-      <sourceFolder url="file://$MODULE_DIR$/build/generated/res/resValues/debug" type="java-resource" generated="true" />
-      <sourceFolder url="file://$MODULE_DIR$/build/generated/source/aidl/androidTest/debug" isTestSource="true" generated="true" />
-      <sourceFolder url="file://$MODULE_DIR$/build/generated/source/apt/androidTest/debug" isTestSource="true" generated="true" />
-      <sourceFolder url="file://$MODULE_DIR$/build/generated/source/rs/androidTest/debug" isTestSource="true" generated="true" />
+      <sourceFolder url="file://$MODULE_DIR$/build/generated/ap_generated_sources/debugAndroidTest/out" isTestSource="true" generated="true" />
+      <sourceFolder url="file://$MODULE_DIR$/build/generated/aidl_source_output_dir/debugAndroidTest/out" isTestSource="true" generated="true" />
       <sourceFolder url="file://$MODULE_DIR$/build/generated/source/buildConfig/androidTest/debug" isTestSource="true" generated="true" />
+      <sourceFolder url="file://$MODULE_DIR$/build/generated/renderscript_source_output_dir/debugAndroidTest/out" isTestSource="true" generated="true" />
       <sourceFolder url="file://$MODULE_DIR$/build/generated/res/rs/androidTest/debug" type="java-test-resource" generated="true" />
-      <sourceFolder url="file://$MODULE_DIR$/build/generated/res/resValues/androidTest/debug" type="java-test-resource" generated="true" />
-      <sourceFolder url="file://$MODULE_DIR$/build/generated/source/apt/test/debug" isTestSource="true" generated="true" />
+      <sourceFolder url="file://$MODULE_DIR$/build/generated/ap_generated_sources/debugUnitTest/out" isTestSource="true" generated="true" />
       <sourceFolder url="file://$MODULE_DIR$/src/debug/res" type="java-resource" />
       <sourceFolder url="file://$MODULE_DIR$/src/debug/resources" type="java-resource" />
       <sourceFolder url="file://$MODULE_DIR$/src/debug/assets" type="java-resource" />
@@ -113,54 +110,49 @@
     </content>
     <orderEntry type="jdk" jdkName="Android API 27 Platform" jdkType="Android SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" name="Gradle: com.android.databinding:baseLibrary:3.1.3@jar" level="project" />
+    <orderEntry type="library" name="Gradle: com.android.databinding:baseLibrary:3.6.1@jar" level="project" />
     <orderEntry type="library" name="Gradle: com.facebook.litho:litho-annotations:0.19.0@jar" level="project" />
     <orderEntry type="library" name="Gradle: com.facebook.litho:litho-sections-annotations:0.19.0@jar" level="project" />
-    <orderEntry type="library" name="Gradle: eu.the4thfloor.volley:com.android.volley:2015.05.28@jar" level="project" />
-    <orderEntry type="library" name="Gradle: com.google.dagger:dagger:2.15@jar" level="project" />
-    <orderEntry type="library" name="Gradle: org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.2.51@jar" level="project" />
-    <orderEntry type="library" name="Gradle: com.jakewharton.rxrelay2:rxrelay:2.0.0@jar" level="project" />
-    <orderEntry type="library" name="Gradle: io.reactivex.rxjava2:rxjava:2.1.9@jar" level="project" />
-    <orderEntry type="library" name="Gradle: com.getkeepsafe.dexcount:dexcount-gradle-plugin:0.8.3@jar" level="project" />
     <orderEntry type="library" name="Gradle: android.arch.core:common:1.1.1@jar" level="project" />
     <orderEntry type="library" name="Gradle: android.arch.lifecycle:common:1.1.1@jar" level="project" />
     <orderEntry type="library" name="Gradle: com.android.support:support-annotations:27.1.1@jar" level="project" />
+    <orderEntry type="library" name="Gradle: eu.the4thfloor.volley:com.android.volley:2015.05.28@jar" level="project" />
+    <orderEntry type="library" name="Gradle: com.google.dagger:dagger:2.15@jar" level="project" />
     <orderEntry type="library" name="Gradle: javax.inject:javax.inject:1@jar" level="project" />
-    <orderEntry type="library" name="Gradle: org.jetbrains.kotlin:kotlin-stdlib:1.2.51@jar" level="project" />
+    <orderEntry type="library" name="Gradle: org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.3.10@jar" level="project" />
+    <orderEntry type="library" name="Gradle: org.jetbrains.kotlin:kotlin-stdlib:1.3.10@jar" level="project" />
+    <orderEntry type="library" name="Gradle: org.jetbrains.kotlin:kotlin-stdlib-common:1.3.10@jar" level="project" />
+    <orderEntry type="library" name="Gradle: org.jetbrains:annotations:13.0@jar" level="project" />
+    <orderEntry type="library" name="Gradle: com.jakewharton.rxrelay2:rxrelay:2.0.0@jar" level="project" />
+    <orderEntry type="library" name="Gradle: io.reactivex.rxjava2:rxjava:2.1.9@jar" level="project" />
     <orderEntry type="library" name="Gradle: org.reactivestreams:reactive-streams:1.0.2@jar" level="project" />
     <orderEntry type="library" name="Gradle: com.android.support.constraint:constraint-layout-solver:1.1.3@jar" level="project" />
-    <orderEntry type="library" name="Gradle: com.facebook.infer.annotation:infer-annotation:0.11.2@jar" level="project" />
-    <orderEntry type="library" name="Gradle: com.google.code.gson:gson:2.8.2@jar" level="project" />
-    <orderEntry type="library" name="Gradle: com.google.code.findbugs:jsr305:3.0.1@jar" level="project" />
-    <orderEntry type="library" name="Gradle: com.facebook.fbui.textlayoutbuilder:staticlayout-proxy:1.4.0@jar" level="project" />
-    <orderEntry type="library" name="Gradle: org.jetbrains.kotlin:kotlin-stdlib-common:1.2.51@jar" level="project" />
-    <orderEntry type="library" name="Gradle: org.jetbrains:annotations:13.0@jar" level="project" />
-    <orderEntry type="library" name="Gradle: com.android.databinding:adapters:3.1.3@aar" level="project" />
-    <orderEntry type="library" name="Gradle: com.android.databinding:library:3.1.3@aar" level="project" />
+    <orderEntry type="library" name="Gradle: com.getkeepsafe.dexcount:dexcount-gradle-plugin:0.8.3@jar" level="project" />
+    <orderEntry type="library" name="Gradle: com.android.databinding:adapters:3.6.1@aar" level="project" />
+    <orderEntry type="library" name="Gradle: com.android.databinding:library:3.6.1@aar" level="project" />
+    <orderEntry type="library" name="Gradle: com.android.databinding:viewbinding:3.6.1@aar" level="project" />
     <orderEntry type="library" name="Gradle: com.jakewharton.rxbinding2:rxbinding-appcompat-v7:2.1.1@aar" level="project" />
     <orderEntry type="library" name="Gradle: com.android.support:appcompat-v7:27.1.1@aar" level="project" />
-    <orderEntry type="library" name="Gradle: com.jakewharton.rxbinding2:rxbinding:2.1.1@aar" level="project" />
-    <orderEntry type="library" name="Gradle: io.reactivex.rxjava2:rxandroid:2.0.2@aar" level="project" />
-    <orderEntry type="library" name="Gradle: com.android.support.constraint:constraint-layout:1.1.3@aar" level="project" />
     <orderEntry type="library" name="Gradle: android.arch.lifecycle:extensions:1.1.1@aar" level="project" />
-    <orderEntry type="library" name="Gradle: com.facebook.litho:litho-sections-widget:0.19.0@aar" level="project" />
-    <orderEntry type="library" name="Gradle: com.facebook.litho:litho-sections-core:0.19.0@aar" level="project" />
-    <orderEntry type="library" name="Gradle: com.facebook.litho:litho-widget:0.19.0@aar" level="project" />
-    <orderEntry type="library" name="Gradle: com.facebook.litho:litho-core:0.19.0@aar" level="project" />
-    <orderEntry type="library" name="Gradle: com.facebook.yoga:yoga:1.9.0@aar" level="project" />
-    <orderEntry type="library" name="Gradle: com.facebook.soloader:soloader:0.5.1@aar" level="project" />
-    <orderEntry type="library" name="Gradle: com.android.support:recyclerview-v7:27.1.1@aar" level="project" />
-    <orderEntry type="library" name="Gradle: com.android.support:animated-vector-drawable:27.1.1@aar" level="project" />
     <orderEntry type="library" name="Gradle: com.android.support:support-fragment:27.1.1@aar" level="project" />
+    <orderEntry type="library" name="Gradle: com.android.support:animated-vector-drawable:27.1.1@aar" level="project" />
     <orderEntry type="library" name="Gradle: com.android.support:support-core-ui:27.1.1@aar" level="project" />
     <orderEntry type="library" name="Gradle: com.android.support:support-core-utils:27.1.1@aar" level="project" />
     <orderEntry type="library" name="Gradle: com.android.support:support-vector-drawable:27.1.1@aar" level="project" />
     <orderEntry type="library" name="Gradle: com.android.support:support-compat:27.1.1@aar" level="project" />
     <orderEntry type="library" name="Gradle: android.arch.lifecycle:runtime:1.1.1@aar" level="project" />
+    <orderEntry type="library" name="Gradle: com.jakewharton.rxbinding2:rxbinding:2.1.1@aar" level="project" />
     <orderEntry type="library" name="Gradle: android.arch.lifecycle:livedata:1.1.1@aar" level="project" />
     <orderEntry type="library" name="Gradle: android.arch.lifecycle:livedata-core:1.1.1@aar" level="project" />
     <orderEntry type="library" name="Gradle: android.arch.core:runtime:1.1.1@aar" level="project" />
     <orderEntry type="library" name="Gradle: android.arch.lifecycle:viewmodel:1.1.1@aar" level="project" />
-    <orderEntry type="library" name="Gradle: com.facebook.fbui.textlayoutbuilder:textlayoutbuilder:1.4.0@aar" level="project" />
+    <orderEntry type="library" name="Gradle: io.reactivex.rxjava2:rxandroid:2.0.2@aar" level="project" />
+    <orderEntry type="library" name="Gradle: com.android.support.constraint:constraint-layout:1.1.3@aar" level="project" />
+    <orderEntry type="library" name="Gradle: com.facebook.litho:litho-core:0.19.0@aar" level="project" />
+    <orderEntry type="library" name="Gradle: com.facebook.yoga:yoga:1.9.0@aar" level="project" />
+    <orderEntry type="library" name="Gradle: com.facebook.soloader:soloader:0.5.1@aar" level="project" />
+    <orderEntry type="library" name="Gradle: com.facebook.litho:litho-widget:0.19.0@aar" level="project" />
+    <orderEntry type="library" name="Gradle: com.facebook.litho:litho-sections-core:0.19.0@aar" level="project" />
+    <orderEntry type="library" name="Gradle: com.facebook.litho:litho-sections-widget:0.19.0@aar" level="project" />
   </component>
 </module>

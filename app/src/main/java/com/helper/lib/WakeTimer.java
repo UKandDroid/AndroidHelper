@@ -1,5 +1,6 @@
 package com.helper.lib;
 
+import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
@@ -28,7 +29,7 @@ public class WakeTimer extends BroadcastReceiver {
     private AlarmManager alarmMgr;
     private static Context context;
     private PendingIntent alarmIntent;
-    private static Flow.Code actionCode;
+    private static Code actionCode;
     private static int iCurAction = -1;
     private static long iCurActionTime = 0;
     private static PowerManager.WakeLock wakeLock;
@@ -57,7 +58,13 @@ public class WakeTimer extends BroadcastReceiver {
     }
 
     // METHOD to initialise the class, as class is singleton
-    public static WakeTimer init(Context con, Flow.Code flowCode){
+
+
+    interface Code{
+        void onAction(int action, String tag);
+    }
+
+    public static WakeTimer init(Context con, Code flowCode){
         context = con;
         ALARM_INTENT = context.getPackageName() + ALARM_INTENT;
         instance = new WakeTimer();
@@ -70,7 +77,7 @@ public class WakeTimer extends BroadcastReceiver {
 
         context.registerReceiver(new WakeTimer(), new IntentFilter(ALARM_INTENT));
         PowerManager pm = (PowerManager)context.getSystemService(Context.POWER_SERVICE);
-        wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK , "Wake");
+        wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK , "Wake:WakeTimer");
 
         // loadPendingActions();
         instance.setNextTimer();
@@ -171,7 +178,7 @@ public class WakeTimer extends BroadcastReceiver {
         iCurAction = -1;                                                                            // Set -1, so we cannot cancel current action in execution code
         //  as its the action being executed
         if(actionCode != null)
-            actionCode.onAction(intent.getIntExtra("action", 0), true, 0, intent.getStringExtra("tag"));
+            actionCode.onAction(intent.getIntExtra("action", 0), intent.getStringExtra("tag"));
 
         if(listRepeatTime.get(0)> 0){                                       // its a repeat message, add it again
             runDelayed(listAction.get(0), listRepeatTime.get(0), true, intent.getStringExtra("tag"));

@@ -358,19 +358,5 @@ public class UiHelper {
         }
     }
 
-    // METHOD - executes delayed code on Main thread
-    public static void runDelayedOnUI(long iTime, final Flow.Run code){
-        mainThread.postDelayed(new Runnable() {
-            @Override
-            public void run() { code.onAction(); }}, iTime);
-    }
-
-
-    // METHOD - runs code on main thread, use for updating UI from non-UI thread
-    public static void runOnUI( final Flow.Run code ){
-        mainThread.post(new Runnable() {
-            @Override
-            public void run() { code.onAction(); }});
-    }
-
+   
 }
