@@ -101,83 +101,20 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
         if (listActions.size > 0) listActions[listActions.size - 1].resultType = type
     }
 
-    // METHODS run an action
-    fun run(bRunOnUi: Boolean): Flow<ActionEvents> {
-        run(-1, true)
-        return this
-    }
-
-    fun run(iAction: Int):Flow<ActionEvents>{
-        run(iAction, false)
-        return this
-    }
-
-    fun run(iAction: Int, bUiThread: Boolean):Flow<ActionEvents>{
-        run(iAction, bUiThread, true, 0, null)
-        return this
-    }
-
-    fun run(iAction: Int, iExtra: Int, obj: Any?):Flow<ActionEvents>{
-        run(iAction, false, true, iExtra, obj)
-        return this
-    }
-
-    fun run(iAction: Int, bUiThread: Boolean, bSuccess: Boolean, iExtra: Int, obj: Any?) : Flow<ActionEvents>{
+    @JvmOverloads
+    fun run(iAction: Int = -1, bUiThread: Boolean = false, bSuccess: Boolean = true, iExtra: Int =0, obj: Any? = null) : Flow<ActionEvents>{
         if (bUiThread) hThread.runOnUI(iAction, bSuccess, iExtra, obj) else hThread.run(iAction, bSuccess, iExtra, obj)
         return this
     }
 
-    fun runRepeat(iDelay: Long):Flow<ActionEvents>{
-        hThread.runRepeat(false, -1, true, 0, iDelay)
-        return this
-    }
-
-    fun runRepeat(iAction: Int, iDelay: Long):Flow<ActionEvents>{
-        hThread.runRepeat(false, iAction, true, 0, iDelay)
-        return this
-    }
-
-    fun runRepeat(iAction: Int, bUiThread: Boolean, iDelay: Long):Flow<ActionEvents>{
-        hThread.runRepeat(bUiThread, iAction, true, 0, iDelay)
-        return this
-    }
-
-    fun runRepeat(iAction: Int, bSuccess: Boolean, iExtra: Int, iDelay: Long):Flow<ActionEvents>{
-        hThread.runRepeat(false, iAction, bSuccess, iExtra, iDelay)
-        return this
-    }
-
-    fun runRepeat(iAction: Int, bUiThread: Boolean, bSuccess: Boolean, iExtra: Int, iDelay: Long):Flow<ActionEvents>{
+    @JvmOverloads
+    fun runRepeat(iAction: Int = -1, bUiThread: Boolean = false, bSuccess: Boolean = true, iExtra: Int =0, iDelay: Long):Flow<ActionEvents>{
         hThread.runRepeat(bUiThread, iAction, bSuccess, iExtra, iDelay)
         return this
     }
-
-    // METHODS run action delayed
-    fun runDelayed(iTime: Long):Flow<ActionEvents>{
-        runDelayed2(-1, true, 0, null, iTime)
-        return this
-    }
-
-    fun runDelayed(iAction: Int, iTime: Long):Flow<ActionEvents>{
-        runDelayed2(iAction, true, 0, null, iTime)
-        return this
-    }
-
-    fun runDelayed(iAction: Int, bUiThread: Boolean, iTime: Long):Flow<ActionEvents>{
-        if (bUiThread) runDelayedOnUI(iAction, true, 0, null, iTime) else runDelayed2(iAction, true, 0, null, iTime)
-        return this
-    }
-
-    fun runDelayed(iAction: Int, bSuccess: Boolean, iExtra: Int, any: Any?, iTime: Long):Flow<ActionEvents>{
-        runDelayed2(iAction, bSuccess, iExtra, any, iTime)
-        return this
-    }
-
-    fun runDelayed(bUiThread: Boolean, bSuccess: Boolean, iExtra: Int, any: Any?, iTime: Long):Flow<ActionEvents>{
-        return runDelayed(-1, bUiThread, bSuccess, iExtra, any, iTime)
-    }
-
-    fun runDelayed(iAction: Int, bUiThread: Boolean, bSuccess: Boolean, iExtra: Int, any: Any?, iTime: Long):Flow<ActionEvents>{
+    
+    @JvmOverloads
+    fun runDelayed(iAction: Int = -1, bUiThread: Boolean = false, bSuccess: Boolean = true, iExtra: Int =0, any: Any? = null, iTime: Long):Flow<ActionEvents>{
         if (bUiThread) runDelayedOnUI(iAction, bSuccess, iExtra, any, iTime) else runDelayed2(iAction, bSuccess, iExtra, any, iTime)
         return this
     }
