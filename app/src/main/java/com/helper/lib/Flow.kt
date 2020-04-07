@@ -11,7 +11,7 @@ import android.text.BoringLayout
 import android.util.Log
 import java.lang.ref.WeakReference
 import java.util.*
-typealias singleCallback = (bSuccess: BoringLayout) -> Unit
+typealias SingleCallback = (bSuccess: BoringLayout) -> Unit
 
 // Version 2.4.1
 // Added <Generic Type> based events
@@ -106,7 +106,6 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
     fun getActionWaitingEvent(iAction: Int) = getAction(iAction).getErrorOrWaitingEvent() // // Returns first found event that is stopping the action from triggering
     fun resetAction(iAction: Int) { getAction(iAction).reset() } // Resets action by resetting all events to initial Waiting state
 
-
     @JvmOverloads
     fun run(iAction: Int = -1, bUiThread: Boolean = false, bSuccess: Boolean = true, iExtra: Int =0, obj: Any? = null) : Flow<ActionEvents>{
         if (bUiThread) hThread.runOnUI(iAction, bSuccess, iExtra, obj) else hThread.run(iAction, bSuccess, iExtra, obj)
@@ -137,8 +136,8 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
     }
 
     @JvmOverloads
-    fun _registerAction(iAction: Int, bUiThread: Boolean = false, events: Array<ActionEvents>):Flow<ActionEvents>{
-        _registerAction(iAction, bUiThread, false, false, events)
+    fun registerAction(iAction: Int, bUiThread: Boolean = false, events: Array<ActionEvents>, singleCallback: SingleCallback? = null):Flow<ActionEvents>{
+        _registerAction(iAction, bUiThread, false, false, events, singleCallback)
         return this
     }
 
@@ -154,7 +153,7 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
         return this
     }
 
-    private fun _registerAction(iAction: Int, bUiThread: Boolean, bRunOnce: Boolean, bSequence: Boolean, events: Array<ActionEvents>) {
+    private fun _registerAction(iAction: Int, bUiThread: Boolean, bRunOnce: Boolean, bSequence: Boolean, events: Array<ActionEvents>, singleCallback: SingleCallback? = null) {
         unRegisterAction(iAction) // to stop duplication, remove if the action already exists
         val aAction = Action(iAction, events)
         aAction.bRunOnUI = bUiThread
