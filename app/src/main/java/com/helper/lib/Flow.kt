@@ -101,6 +101,12 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
         if (listActions.size > 0) listActions[listActions.size - 1].resultType = type
     }
 
+    fun getAction(iAction: Int) = listActions.first { it.iAction == iAction }
+    fun getActionEvents(iAction: Int) = getAction(iAction).getEventsList()
+    fun getActionWaitingEvent(iAction: Int) = getAction(iAction).getErrorOrWaitingEvent() // // Returns first found event that is stopping the action from triggering
+    fun resetAction(iAction: Int) { getAction(iAction).reset() } // Resets action by resetting all events to initial Waiting state
+
+
     @JvmOverloads
     fun run(iAction: Int = -1, bUiThread: Boolean = false, bSuccess: Boolean = true, iExtra: Int =0, obj: Any? = null) : Flow<ActionEvents>{
         if (bUiThread) hThread.runOnUI(iAction, bSuccess, iExtra, obj) else hThread.run(iAction, bSuccess, iExtra, obj)
@@ -115,11 +121,11 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
 
     @JvmOverloads
     fun runDelayed(iAction: Int = -1, bUiThread: Boolean = false, bSuccess: Boolean = true, iExtra: Int =0, any: Any? = null, iTime: Long):Flow<ActionEvents>{
-         runDelayedOnUI(iAction, bUiThread, bSuccess, iExtra, any, iTime)
+         _runDelayed(iAction, bUiThread, bSuccess, iExtra, any, iTime)
         return this
     }
 
-    private fun runDelayedOnUI(iAction: Int, bUiThread: Boolean = false, bSuccess: Boolean, iExtra: Int, any: Any?, iTime: Long) {
+    private fun _runDelayed(iAction: Int, bUiThread: Boolean = false, bSuccess: Boolean, iExtra: Int, any: Any?, iTime: Long) {
         val msg = Message.obtain()
         msg.what = iAction
         msg.arg1 = iExtra
@@ -131,30 +137,24 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
     }
 
     @JvmOverloads
-    fun registerAction(iAction: Int, bUiThread: Boolean = false, events: Array<ActionEvents>):Flow<ActionEvents>{
-        registerAction(iAction, bUiThread, false, false, events)
+    fun _registerAction(iAction: Int, bUiThread: Boolean = false, events: Array<ActionEvents>):Flow<ActionEvents>{
+        _registerAction(iAction, bUiThread, false, false, events)
         return this
     }
 
     @JvmOverloads
     fun waitForEvents(iAction: Int, bUiThread: Boolean = false, events: Array<ActionEvents>):Flow<ActionEvents>{
-        registerAction(iAction, bUiThread, true, false, events)
+        _registerAction(iAction, bUiThread, true, false, events)
         return this
     }
 
 
     fun registerActionSequence(iAction: Int, bUiThread: Boolean, events: Array<ActionEvents>):Flow<ActionEvents>{
-        registerAction(iAction, bUiThread, false, true, events)
+        _registerAction(iAction, bUiThread, false, true, events)
         return this
     }
 
-    fun getAction(iAction: Int) = listActions.first { it.iAction == iAction }
-    fun getActionEvents(iAction: Int) = getAction(iAction).getEventsList()
-    fun getActionWaitingEvent(iAction: Int) = getActionErrorEvent(iAction)   // Returns first found event that is stopping the action from triggering
-    fun getActionErrorEvent(iAction: Int) = getAction(iAction).getErrorOrWaitingEvent() // // Returns first found event that is stopping the action from triggering
-    fun resetAction(iAction: Int) { getAction(iAction).reset() } // Resets action by resetting all events to initial Waiting state
-
-    private fun registerAction(iAction: Int, bUiThread: Boolean, bRunOnce: Boolean, bSequence: Boolean, events: Array<ActionEvents>) {
+    private fun _registerAction(iAction: Int, bUiThread: Boolean, bRunOnce: Boolean, bSequence: Boolean, events: Array<ActionEvents>) {
         unRegisterAction(iAction) // to stop duplication, remove if the action already exists
         val aAction = Action(iAction, events)
         aAction.bRunOnUI = bUiThread
