@@ -1,14 +1,17 @@
+package com.helper.lib;
 
-
-import Flow.Event.Companion.FAILURE
-import Flow.Event.Companion.SUCCESS
+import android.arch.lifecycle.Lifecycle
+import android.arch.lifecycle.LifecycleObserver
+import android.arch.lifecycle.OnLifecycleEvent
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
 import android.os.Message
+import android.text.BoringLayout
 import android.util.Log
 import java.lang.ref.WeakReference
 import java.util.*
+typealias singleCallback = (bSuccess: BoringLayout) -> Unit
 
 // Version 2.4.1
 // Added <Generic Type> based events
@@ -39,7 +42,6 @@ import java.util.*
 // Example :  Flow().runRepeat(500).execute(() -{})
 // Example :  flow.getEventsForAction(1) // returns all events associated with the action
 // Example :  flow.getErrorEventForAction(1) // returns first event that is stopping the action being fired, either its not fired or fired with false
-
 
 open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? = null) : LifecycleObserver {
     private var bRunning = true
@@ -413,7 +415,7 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
                     bEventFound = true
                     event.obj = obj
                     event.extra = iExtra
-                    event.status = if (bResult) SUCCESS else Event.FAILURE
+                    event.status = if (bResult) Event.SUCCESS else Event.FAILURE
                 } else if (bSequence && event.status == Event.WAITING) { // if its a Sequence action, no event should be empty before current event
                     if (i != 0) {
                         listEvents[i - 1].status = Event.WAITING
@@ -421,7 +423,7 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
                     break
                 }
                 when (event.status) {
-                    SUCCESS -> {
+                    Event.SUCCESS -> {
                         iSuccess++
                         iFiredCount++ // Add to fired event regard less of success or failure
                     }
@@ -435,7 +437,7 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
                     executeAction(bResult, iExtra)
                 } else if (iFiredCount == iEventCount) { // if all events for action has been fired
                     val bSuccess = iSuccess == iEventCount // all events registered success
-                    val iCurStatus = if (bSuccess) SUCCESS else FAILURE
+                    val iCurStatus = if (bSuccess) Event.SUCCESS else Event.FAILURE
                     when (resultType) {
                         ResultType.RESULT_CHANGE -> if (iCurStatus != iLastStatus) { // If there is a change in action status only then run code
                             bActionFired = true
