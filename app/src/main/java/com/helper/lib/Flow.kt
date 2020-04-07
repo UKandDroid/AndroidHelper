@@ -11,7 +11,7 @@ import android.text.BoringLayout
 import android.util.Log
 import java.lang.ref.WeakReference
 import java.util.*
-typealias SingleCallback = (bSuccess: BoringLayout) -> Unit
+typealias SingleCallback = (bSuccess: Boolean) -> Unit
 
 // Version 2.4.1
 // Added <Generic Type> based events
@@ -45,7 +45,7 @@ typealias SingleCallback = (bSuccess: BoringLayout) -> Unit
 
 open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? = null) : LifecycleObserver {
     private var bRunning = true
-    private var hThread: HThread
+    internal var hThread: HThread
     private var listActions: MutableList<Action> = ArrayList() // List of registered actions
     private var code: WeakReference<FlowCode?>? = null // Call back for onAction to be executed
 
@@ -153,9 +153,15 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
         return this
     }
 
-    private fun _registerAction(iAction: Int, bUiThread: Boolean, bRunOnce: Boolean, bSequence: Boolean, events: Array<ActionEvents>, singleCallback: SingleCallback? = null) {
+    private fun _registerAction(iAction: Int, bUiThread: Boolean, bRunOnce: Boolean, bSequence: Boolean, events: Array<ActionEvents>, actionCallback: SingleCallback? = null) {
         unRegisterAction(iAction) // to stop duplication, remove if the action already exists
-        val aAction = Action(iAction,bUiThread, bRunOnce, bSequence, events)
+
+        var callbackWeakReference : WeakReference<SingleCallback>? = null
+        if(actionCallback != null){
+            callbackWeakReference = WeakReference<SingleCallback>(actionCallback)
+        }
+
+        val aAction = Action(iAction,bUiThread, bRunOnce, bSequence, events, callbackWeakReference)
         listActions.add(aAction)
         val buf = StringBuffer(400)
         for (i in events.indices) {
@@ -265,18 +271,19 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
 
     // CLASS for events for action, when all events occur action is triggered
     inner class Action(
-            val iAction: Int,
+            internal val iAction: Int,
             private val bRunOnUI: Boolean = false,
-            var bRunOnce: Boolean = false,           // Clear Action once fired, used for wait action
-            private var bSequence: Boolean = false,  // Only trigger when events occur in right order
-            events: Array<ActionEvents>
+            internal val bRunOnce: Boolean = false,           // Clear Action once fired, used for wait action
+            private val bSequence: Boolean = false,  // Only trigger when events occur in right order
+            events: Array<ActionEvents>,
+            private val singleCallback :  WeakReference<SingleCallback>? = null
     ) {
 
         internal var resultType : ResultType = ResultType.RESULT_CHANGE
-        internal var singleCallback = WeakReference<SingleCallback?>(null)
         private var iEventCount : Int = events.size // How many event are for this action code to be triggered
         private var iLastStatus = Event.WAITING     // Event set status as a whole, waiting, success, non success
         private var listEvents: MutableList<Event<ActionEvents>> = ArrayList() // List to store Flow.Events needed for this action
+
 
         init {
             for (i in 0 until iEventCount) {
@@ -285,6 +292,13 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
         }
 
         fun getEventsList() = listEvents
+        fun callback(bSuccess: Boolean) : Boolean{
+            if(singleCallback != null){
+                singleCallback.get()?.invoke(bSuccess)
+                return true
+            }
+            return false
+        }
 
         fun getEventData(events: ActionEvents) : Any? {
             return listEvents.find { it.event == events }?.obj
@@ -374,7 +388,7 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
     }
 
     // CLASS for thread handler
-    protected inner class HThread internal constructor() : Handler.Callback {
+    inner class HThread internal constructor() : Handler.Callback {
         val mHandler: Handler
         val mUiHandler: Handler
         @JvmOverloads
@@ -445,8 +459,11 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
                 code?.get()?.onAction(msg.what, getFlag(msg.arg2, FLAG_SUCCESS), getExtraInt(msg.arg2), msg.obj)
 
             } else {
-                code?.get()?.onAction()
-                code?.get()?.onAction(msg.what, msg.arg2 == 1, msg.arg1, msg.obj)
+                val action = msg.obj as Flow<ActionEvents>.Action
+                if(!action.callback(msg.arg2 == 1)){ // if there is no specific callback for action, call generic call back
+                    code?.get()?.onAction()
+                    code?.get()?.onAction(msg.what, msg.arg2 == 1, msg.arg1, msg.obj)
+                }
             }
             return true
         }
