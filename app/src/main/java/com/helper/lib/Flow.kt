@@ -272,10 +272,11 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
             events: Array<ActionEvents>
     ) {
 
-        var resultType : ResultType = ResultType.RESULT_CHANGE
+        internal var resultType : ResultType = ResultType.RESULT_CHANGE
+        internal var singleCallback = WeakReference<SingleCallback?>(null)
         private var iEventCount : Int = events.size // How many event are for this action code to be triggered
-        private var iLastStatus = Event.WAITING // Event set status as a whole, waiting, success, non success
-        private var listEvents: MutableList<Event<ActionEvents>> = ArrayList() // List to store events needed for this action
+        private var iLastStatus = Event.WAITING     // Event set status as a whole, waiting, success, non success
+        private var listEvents: MutableList<Event<ActionEvents>> = ArrayList() // List to store Flow.Events needed for this action
 
         init {
             for (i in 0 until iEventCount) {
@@ -295,9 +296,7 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
         fun isWaitingFor(event: ActionEvents) = getWaitingEvent() == event
 
         fun reset(){
-            for (i in listEvents){
-                i.resetEvent()
-            }
+            for (event in listEvents){ event.resetEvent() }
         }
 
         // METHOD recycles events and clears actions
