@@ -34,35 +34,13 @@ dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     implementation 'com.android.support:appcompat-v7:27.+'
     implementation 'eu.the4thfloor.volley:com.android.volley:2015.05.28'
-    implementation 'com.google.dagger:dagger:2.15'
-    annotationProcessor 'com.google.dagger:dagger-compiler:2.15'
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
 
     // RX Java
-    implementation 'io.reactivex.rxjava2:rxjava:2.1.9'
-    implementation 'io.reactivex.rxjava2:rxandroid:2.0.2'
-    implementation 'com.jakewharton.rxrelay2:rxrelay:2.0.0'
-    implementation 'com.jakewharton.rxbinding2:rxbinding-appcompat-v7:2.1.1'
     implementation 'com.android.support.constraint:constraint-layout:1.1.3'
 
-    implementation "android.arch.lifecycle:extensions:1.1.1"
 
 
-    implementation 'com.facebook.litho:litho-core:0.19.0'
-    implementation 'com.facebook.litho:litho-widget:0.19.0'
-    compileOnly 'com.facebook.litho:litho-annotations:0.19.0'
-    implementation 'com.getkeepsafe.dexcount:dexcount-gradle-plugin:0.8.3'
-    annotationProcessor 'com.facebook.litho:litho-processor:0.19.0'
-
-    // SoLoader
-    implementation 'com.facebook.soloader:soloader:0.5.1'
-
-    // Sections
-    implementation 'com.facebook.litho:litho-sections-core:0.19.0'
-    implementation 'com.facebook.litho:litho-sections-widget:0.19.0'
-    compileOnly 'com.facebook.litho:litho-sections-annotations:0.19.0'
-
-    annotationProcessor 'com.facebook.litho:litho-sections-processor:0.19.0'
 
 }
 

@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.graphics.Rect;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
@@ -24,10 +25,28 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-public class UiFlow extends Flow {
+public class UiFlow {
     private interface KeyboardState { public void onStateChange(boolean bVisible); }
 
+    static class UiEvent {
+        // EVENTS for which listeners are set
+        static final int TOUCH = 3;
+        static final int ON_CLICK = 4;
+        static final int TEXT_CHANGED = 5;
+        static final int TEXT_ENTERED = 6;
+        static final int CHECKBOX_STATE = 7;
+        static final int LIST_ITEM_SELECT = 8;
+        static final int SPINNER_ITEM_SELECT = 9;
+        static final int KEYBOARD_STATE_CHANGE = 10; //   works only for android:windowSoftInputMode="adjustResize" or adjustPan
+        static final int LOAD_LAYOUT = 11; //   called when a view is loaded with width and height set
+    }
+
+    interface Code{
+        void onAction(int action, boolean bSuccess, int iExtra, Object tag);
+    }
+
     private View viewActRoot;
+    private Flow.HThread hThread;
     private int iSoftInputMode = -1;
     private Rect rLast = new Rect();
     private boolean bKeybVisible = false;
@@ -35,9 +54,8 @@ public class UiFlow extends Flow {
     private HashMap<View, TextWatcher> listTextListeners = new HashMap();        // list of text change listeners for a text field
     private HashMap<View, KeyboardState> listKBListeners = new HashMap();        // list of keyboard state change listeners
 
-    public UiFlow(){ super(null); }
+    public UiFlow(){ }
     public UiFlow(Code codeCallback) {
-        super(codeCallback);
     }
 
 
@@ -45,11 +63,11 @@ public class UiFlow extends Flow {
     public void unRegisterUIEvent( View view, int iEvent) { unRegisterListener(view, iEvent); }
     public void registerUiEvent( View view) { registerListener(false, -1, view, UiEvent.ON_CLICK); }
     public void registerUiEvent(final int iAction, View view) { registerListener(false, iAction, view, UiEvent.ON_CLICK); }
-    public Flow registerUiEvent( View view, int iEvent) { registerListener(false, -1, view, iEvent); return this;}
-    public Flow registerUiEvent(final int iAction, View view, int iEvent) { registerListener(false, iAction, view, iEvent); return this;}
+    public UiFlow registerUiEvent( View view, int iEvent) { registerListener(false, -1, view, iEvent); return this;}
+    public UiFlow registerUiEvent(final int iAction, View view, int iEvent) { registerListener(false, iAction, view, iEvent); return this;}
     public void registerUiEvent(int iStep, boolean bRunOnUI, View view) { registerListener(bRunOnUI, iStep, view, UiEvent.ON_CLICK); }
-    public Flow registerUiEvent( boolean bRunOnUI, View view, int iEvent) { registerListener(bRunOnUI, -1, view, iEvent); return this; }
-    public Flow registerUiEvent(int iAction, boolean bRunOnUI, View view, int iEvent) { registerListener(bRunOnUI, iAction, view, iEvent); return this; }
+    public UiFlow registerUiEvent( boolean bRunOnUI, View view, int iEvent) { registerListener(bRunOnUI, -1, view, iEvent); return this; }
+    public UiFlow registerUiEvent(int iAction, boolean bRunOnUI, View view, int iEvent) { registerListener(bRunOnUI, iAction, view, iEvent); return this; }
 
 
 
@@ -115,8 +133,8 @@ public class UiFlow extends Flow {
                 KeyboardState listKb =  new KeyboardState() {
                     @Override public void onStateChange(boolean bVisible) {
                         if(view.hasFocus() && !bVisible){
-                            if (bRunOnUI) {hThread.runOnUI(iAction, bVisible, 0, view);
-                            } else {hThread.run(iAction, bVisible, 0, view); }}}};
+                            if (bRunOnUI) { hThread.runOnUI(iAction, bVisible, 0, view);
+                            } else { hThread.run(iAction, bVisible, 0, view); }}}};
                 listKBListeners.put(view, listKb);
                 addKeybListener(listKb );
 
@@ -124,7 +142,7 @@ public class UiFlow extends Flow {
                     @Override
                     public void onFocusChange(View v, boolean hasFocus) {
                         if (!hasFocus) {
-                            logw(4, "Text ENTERED on Lost focus");
+                            Log.w("UiFlow", "Text ENTERED on Lost focus");
                             if (bRunOnUI) {
                                 hThread.runOnUI(iAction, true, 0, view);
                             } else {
@@ -136,7 +154,7 @@ public class UiFlow extends Flow {
                     @Override
                     public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
                         if (actionId == EditorInfo.IME_ACTION_DONE) {
-                            logw(4, "Text ENTERED on KB Done");
+                            Log.w("UiFlow", "Text ENTERED on KB Done");
                             if (bRunOnUI) {
                                 hThread.runOnUI(iAction, true, 0, view);
                             } else {
@@ -305,22 +323,19 @@ public class UiFlow extends Flow {
     };
 
 
-    @Override
     public void pause() {
-        super.pause();
     }
 
-    @Override
     public void resume() {
-        super.resume();
     }
 
-    @Override
     public void stop() {
-        super.stop();
         if(viewActRoot != null){
             viewActRoot.getViewTreeObserver().removeOnGlobalLayoutListener(null);
             viewActRoot = null;
         }
     }
+
+
+
 }
