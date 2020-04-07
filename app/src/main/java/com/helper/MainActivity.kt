@@ -24,8 +24,8 @@ class MainActivity : AppCompatActivity() {
 
         val flow = Flow<String>()
 
-        flow.runDelayed("run_it_1", true, true, 12, "extra string", 2000)
-        flow.runDelayed("run_it_2", true, true, 12, "extra string", 2000)
+        flow.runDelayed(1,true, "run_it_1", 2000){}
+        flow.runDelayed(2,true, "run_it_2", 2000){}
 
 
         flow.execute(object : Flow.FlowCode {

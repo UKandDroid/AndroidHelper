@@ -8,7 +8,6 @@ import android.os.HandlerThread
 import android.os.Looper
 import android.os.Message
 import android.util.Log
-import java.lang.ref.WeakReference
 import java.util.*
 typealias SingleCallback = (bSuccess: Boolean) -> Unit
 
@@ -47,7 +46,7 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
     internal var hThread: HThread
     private var listActions: MutableList<Action> = ArrayList() // List of registered actions
     private var code: FlowCode? = null // Call back for onAction to be executed
-    protected var autoActionIndex = 0
+    private var autoIndex = 0
     // INTERFACE for code execution
     interface FlowCode  {
         fun onAction(iAction: Int, bSuccess: Boolean, iExtra: Int, data: Any?)
@@ -123,8 +122,8 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
     }*/
 
     @JvmOverloads
-    fun runDelayed(eventDelay: ActionEvents, bUiThread: Boolean = false, bSuccess: Boolean = true, iExtra: Int =0, any: Any? = null, iTime: Long, callback: SingleCallback? = null):Flow<ActionEvents>{
-        _registerAction( --autoActionIndex, bUiThread, true, false, listOf(eventDelay), callback)
+    fun runDelayed(iAction: Int = --autoIndex,  bUiThread: Boolean = false, eventDelay: ActionEvents, iTime: Long, bSuccess: Boolean = true, iExtra: Int =0, any: Any? = null,  callback: SingleCallback? = null):Flow<ActionEvents>{
+        _registerAction( iAction, bUiThread, true, false, listOf(eventDelay), callback)
         hThread.mHandler.postDelayed( (Runnable { this.event(eventDelay, bSuccess, iExtra, any ) }), iTime)
         return this
     }
