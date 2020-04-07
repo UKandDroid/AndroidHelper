@@ -38,7 +38,7 @@ public class UiFlow {
         static final int LIST_ITEM_SELECT = 8;
         static final int SPINNER_ITEM_SELECT = 9;
         static final int KEYBOARD_STATE_CHANGE = 10; //   works only for android:windowSoftInputMode="adjustResize" or adjustPan
-        static final int LOAD_LAYOUT = 11; //   called when a view is loaded with width and height set
+        static final int LOAD_LAYOUT = 11;      //   called when a view is loaded with width and height set
     }
 
     interface Code{

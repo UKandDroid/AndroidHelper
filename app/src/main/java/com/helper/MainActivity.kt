@@ -2,10 +2,12 @@ package com.helper
 
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
+import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import com.helper.lib.Anim
+import com.helper.lib.Flow
 import com.helper.lib.Logger
 import com.helper.lib.WakeTimer
 
@@ -19,6 +21,20 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         val anim = Anim()
+
+        val flow = Flow<String>()
+
+        flow.runDelayed("run_it_1", true, true, 12, "extra string", 2000)
+        flow.runDelayed("run_it_2", true, true, 12, "extra string", 2000)
+
+
+        flow.execute(object : Flow.FlowCode {
+            override fun onAction(iAction: Int, bSuccess: Boolean, iExtra: Int, data: Any?) {
+                Log.d("android-helper", "Delayed call  $iAction $bSuccess $iExtra $data")
+
+            }
+        })
+
         anim.addAnimation(Anim.TYPE_SCALE, Anim.INTER_OVERSHOOT, 1.0f, 0.6f, 700, 1000)
         anim.addAnimation(Anim.TYPE_SCALE, Anim.INTER_OVERSHOOT, 1.0f, 1.4f, 700, 2000)
         anim.setView(findViewById(R.id.btn_one))

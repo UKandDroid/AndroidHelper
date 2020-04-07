@@ -1,5 +1,6 @@
 package com.helper.lib;
 
+import android.annotation.SuppressLint;
 import android.app.ProgressDialog;
 import android.arch.lifecycle.Lifecycle;
 import android.arch.lifecycle.LifecycleObserver;
@@ -258,6 +259,7 @@ public class UiHelper {
     public View getViewWithTag(Object tag){
         View v = rootView.findViewWithTag(tag);
         if(v!= null){
+            @SuppressLint("ResourceType")
             short index = (short)(v.getId() & 0xFF);
             arView[index] = v;
         }
