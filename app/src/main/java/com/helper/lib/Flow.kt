@@ -103,7 +103,7 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
 
     fun getAction(iAction: Int) = listActions.first { it.iAction == iAction }
     fun getActionEvents(iAction: Int) = getAction(iAction).getEventsList()
-    fun getActionWaitingEvent(iAction: Int) = getAction(iAction).getErrorOrWaitingEvent() // // Returns first found event that is stopping the action from triggering
+    fun getActionWaitingEvent(iAction: Int) = getAction(iAction).getWaitingEvent() // // Returns first found event that is stopping the action from triggering
     fun resetAction(iAction: Int) { getAction(iAction).reset() } // Resets action by resetting all events to initial Waiting state
 
     @JvmOverloads
@@ -155,10 +155,7 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
 
     private fun _registerAction(iAction: Int, bUiThread: Boolean, bRunOnce: Boolean, bSequence: Boolean, events: Array<ActionEvents>, singleCallback: SingleCallback? = null) {
         unRegisterAction(iAction) // to stop duplication, remove if the action already exists
-        val aAction = Action(iAction, events)
-        aAction.bRunOnUI = bUiThread
-        aAction.bFireOnce = bRunOnce // fired only once, then removed
-        aAction.bSequence = bSequence // events have to be in sequence for the action to be fired
+        val aAction = Action(iAction,bUiThread, bRunOnce, bSequence, events)
         listActions.add(aAction)
         val buf = StringBuffer(400)
         for (i in events.indices) {
@@ -186,7 +183,7 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
         var bActionFired = false
         for (i in 0 until iSize) {
             bActionFired = listActions[i].onEvent(sEvent, bSuccess, iExtra, obj)
-            if (bActionFired && listActions[i].bFireOnce) {
+            if (bActionFired && listActions[i].bRunOnce) {
                 listActions.removeAt(i)
                 log("Removing ACTION run once after been fired")
             }
@@ -267,45 +264,35 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
     }
 
     // CLASS for events for action, when all events occur action is triggered
-    inner class Action {
-        var iAction : Int // Code step to execute for this action
-        private var iEventCount : Int // How many event are for this action code to be triggered
-        var bSequence = false // Only trigger when events occur in right order
-        //   private boolean bEventFound;
-        var bRunOnUI = false // Code run on Background / UI thread
+    inner class Action(
+            val iAction: Int,
+            private val bRunOnUI: Boolean = false,
+            var bRunOnce: Boolean = false,           // Clear Action once fired, used for wait action
+            private var bSequence: Boolean = false,  // Only trigger when events occur in right order
+            events: Array<ActionEvents>
+    ) {
+
         var resultType : ResultType = ResultType.RESULT_CHANGE
-        var bFireOnce = false // Clear Action once fired, used for wait action
+        private var iEventCount : Int = events.size // How many event are for this action code to be triggered
         private var iLastStatus = Event.WAITING // Event set status as a whole, waiting, success, non success
         private var listEvents: MutableList<Event<ActionEvents>> = ArrayList() // List to store events needed for this action
 
+        init {
+            for (i in 0 until iEventCount) {
+                listEvents.add(Event.obtain(events[i])) // get events from events pool
+            }
+        }
+
         fun getEventsList() = listEvents
-
-        // CONSTRUCTOR
-        constructor(iAction: Int, events: Array<ActionEvents>) {
-            bSequence = false
-            this.iAction = iAction
-            iEventCount = events.size
-            for (i in 0 until iEventCount) {
-                listEvents.add(Event.obtain(events[i])) // get events from events pool
-            }
-        }
-
-        constructor(iAction: Int, events: Array<ActionEvents>, sequence: Boolean) {
-            bSequence = sequence
-            this.iAction = iAction
-            iEventCount = events.size
-            for (i in 0 until iEventCount) {
-                listEvents.add(Event.obtain(events[i])) // get events from events pool
-            }
-        }
 
         fun getEventData(events: ActionEvents) : Any? {
             return listEvents.find { it.event == events }?.obj
         }
-        // returns first event that has not been fired or fired with false
-        fun getErrorOrWaitingEvent() = listEvents.firstOrNull{ !it.isFired() }?.event
 
-        fun isWaitingFor(event: ActionEvents) = getErrorOrWaitingEvent() == event
+        // returns first event that has not been fired or fired with false
+        fun getWaitingEvent() = listEvents.firstOrNull{ !it.isFired() }?.event
+
+        fun isWaitingFor(event: ActionEvents) = getWaitingEvent() == event
 
         fun reset(){
             for (i in listEvents){
@@ -368,7 +355,7 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
                             executeAction(bSuccess, iSuccess)
                         }
                     }
-                    if (bFireOnce) {
+                    if (bRunOnce) {
                         recycle()
                     } // Recycle if its flagged for it
                 }
