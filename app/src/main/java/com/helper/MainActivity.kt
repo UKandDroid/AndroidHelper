@@ -38,7 +38,7 @@ class MainActivity : AppCompatActivity() {
 
         flow.execute(object : Flow.FlowCode {
             override fun onAction(iAction: Int, bSuccess: Boolean, iExtra: Int, data: Any?) {
-                Log.w("flow", "flow-call  $iAction $bSuccess $iExtra")
+                Log.w("flow", "flow-call  Action:$iAction Success:$bSuccess $iExtra")
             }
         })
 
