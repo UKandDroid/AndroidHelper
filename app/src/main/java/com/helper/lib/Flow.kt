@@ -151,15 +151,23 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
     }
 
     fun cancelAction(iAction: Int) {
+
         for (i in listActions.indices) { // remove action if it already exists
             if (listActions[i].iAction == iAction) {
-                listActions.removeAt(i)
+                _cancelAction(i)
                 loge("cancelAction($iAction), removed  ")
                 break
             }
         }
     }
 
+    private fun _cancelAction(index: Int){
+        val action = listActions[index]
+        action.recycle()
+        listActions.removeAt(index)
+
+
+    }
     private fun _registerAction(iAction: Int, bUiThread: Boolean, bRunOnce: Boolean, bSequence: Boolean, bRepeat: Boolean, events: List<*>, actionCallback: SingleCallback? = null) {
         cancelAction(iAction) // to stop duplication, remove if the action already exists
         val actionFlags = setActionFlags(runOnUI = bUiThread, runOnce = bRunOnce, eventSequence = bSequence, repeatAction = bRepeat)
@@ -186,7 +194,7 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
                 val iAction = listActions[i].iAction
                 val result = listActions[i].onEvent(sEvent, bSuccess, iExtra, obj)
                 if (result.first && result.second) {
-                    listActions.removeAt(i)
+                    _cancelAction(i)
                     loge("Removing run once Action($iAction) as its executed")
                 }
             }
@@ -274,10 +282,9 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
             private val singleCallback: SingleCallback? = null
     ) {
 
-
         internal var resultType: ResultType = ResultType.RESULT_CHANGE
-        private var iEventCount: Int = events.size // How many event are for this action code to be triggered
-        private var iLastStatus = EventStatus.WAITING     // Event set status as a whole, waiting, success, non success
+        private var iEventCount: Int = events.size          // How many event are for this action code to be triggered
+        private var iLastStatus = EventStatus.WAITING       // Event set status as a whole, waiting, success, non success
         private var listEvents: MutableList<Event<*>> = ArrayList() // List to store Flow.Events needed for this action
 
         init {
@@ -314,6 +321,7 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
         fun isWaitingFor(event: ActionEvents) = getWaitingEvent() == event
 
         fun reset() {
+            iLastStatus = EventStatus.WAITING
             for (event in listEvents) {
                 event.resetEvent()
             }
@@ -321,9 +329,9 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
 
         // METHOD recycles events and clears actions
         fun recycle() {
-            val iSize = listEvents.size
-            for (i in 0 until iSize) {
-                listEvents[i].recycle()
+            code = null
+            for (event in listEvents) {
+                event.recycle()
             }
             listEvents = ArrayList()
         }
