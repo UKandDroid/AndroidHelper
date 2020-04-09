@@ -89,7 +89,7 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
             hThread.mUiHandler.removeCallbacksAndMessages(null)
             hThread.stop()
             listActions = ArrayList()
-            Event.releasePool()
+            _Event.releasePool()
             bRunning = false
         } catch (e: Exception) {
         }
@@ -124,10 +124,10 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
     }
 
     @JvmOverloads
-    fun runDelayed(iAction: Int, bUiThread: Boolean = false, iTime: Long, bSuccess: Boolean = true, iExtra: Int = 0, any: Any? = null, callback: SingleCallback? = null): Flow<ActionEvents> {
+    fun runDelayed(iAction: Int, bUiThread: Boolean = false, iDelay: Long, bSuccess: Boolean = true, iExtra: Int = 0, any: Any? = null, callback: SingleCallback? = null): Flow<ActionEvents> {
         val delayEvent = "delay_event_$iAction"
         _registerAction(iAction, bUiThread, true, false, false, listOf(delayEvent), callback)
-        hThread.mHandler.postDelayed((Runnable { this.event(delayEvent, bSuccess, iExtra, any) }), iTime)
+        hThread.mHandler.postDelayed((Runnable { this.event(delayEvent, bSuccess, iExtra, any) }), iDelay)
         return this
     }
 
@@ -163,8 +163,6 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
         val action = listActions[index]
         action.recycle()
         listActions.removeAt(index)
-
-
     }
 
     private fun _registerAction(iAction: Int, bUiThread: Boolean, bRunOnce: Boolean, bSequence: Boolean, bRepeat: Boolean, events: List<*>, actionCallback: SingleCallback? = null) {
@@ -210,55 +208,39 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
     }
 
     // CLASS for event Pool
-    class Event<ActionEvents> private constructor() { // CONSTRUCTOR - Private
-
+    open class Event<ActionEvents>  { // CONSTRUCTOR - Private
         var obj: Any? = null
         var extra = 0
         var event: ActionEvents? = null
         internal  var status :EventStatus = EventStatus.WAITING // WAITING - waiting not fired yet, SUCCESS - fired with success, FAILURE - fired with failure
         // Variable for pool
-        private var next: Event<ActionEvents>? = null // Reference to next object
-
         fun isFired() = status == EventStatus.SUCCESS
+    }
 
-        // METHOD object added to the pool, to be reused
-        internal fun recycle() {
-            synchronized(sPoolSync) {
-                if (sPoolSize < MAX_POOL_SIZE) {
-                    next = sPool as Event<ActionEvents>?
-                    sPool = this
-                    sPoolSize++
-                }
-            }
-        }
-
-        fun resetEvent() {
-            obj = null
-            extra = 0
-            status = EventStatus.WAITING
-        }
-
+    private class _Event<ExternalEvents> private constructor() : Event<ExternalEvents>(){
         companion object {
             // EVENTS for self use
-            private var sPool: Any? = null
+            private var next: _Event<Any>? = null // Reference to next object
+            private var sPool: _Event<Any>? = null
             private var sPoolSize = 0
             private const val MAX_POOL_SIZE = 50
             private val sPoolSync = Any() // The lock used for synchronization
+
             // METHOD get pool object only through this method, so no direct allocation are made
-            fun <ExternalEvents> obtain(sId: ExternalEvents?): Event<*> {
+            fun <ExternalEvents> obtain(sId: ExternalEvents?): _Event<*> {
                 synchronized(sPoolSync) {
                     if (sPool != null) {
-                        val e = sPool as Event<ExternalEvents>
+                        val e = sPool as _Event<ExternalEvents>
                         e.event = sId
                         e.status = EventStatus.WAITING
                         e.obj = null
                         e.extra = 0
-                        sPool = e.next
-                        e.next = null
+                        sPool = next
+                        next = null
                         sPoolSize--
                         return e
                     }
-                    val eve = Event<ExternalEvents>()
+                    val eve = _Event<ExternalEvents>()
                     eve.event = sId
                     return eve
                 }
@@ -269,6 +251,23 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
                 sPoolSize = 0
                 sPool = null
             }
+        }
+
+        // METHOD object added to the pool, to be reused
+        internal fun recycle() {
+            synchronized(sPoolSync) {
+                if (sPoolSize < MAX_POOL_SIZE) {
+                    next = sPool as _Event<Any>?
+                    sPool = this as _Event<Any>
+                    sPoolSize++
+                }
+            }
+        }
+
+        fun resetEvent() {
+            obj = null
+            extra = 0
+            status = EventStatus.WAITING
         }
     }
 
@@ -283,7 +282,7 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
 
         init {
             for (i in 0 until iEventCount) {
-                listEvents.add(Event.obtain(events[i])) // get events from events pool
+                listEvents.add(_Event.obtain(events[i])) // get events from events pool
             }
         }
 
@@ -296,7 +295,6 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
             Companion.setFlag(actionFlags, flag, false)
         }
 
-        internal fun getEventsList() = listEvents
         internal fun callback(bSuccess: Boolean): Boolean {
             if (singleCallback != null) {
                 singleCallback?.invoke(bSuccess)
@@ -315,7 +313,7 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
             singleCallback = null
             iEventCount = 0
             for (event in listEvents) {
-                event.recycle()
+                (event as _Event).recycle()
             }
             listEvents = ArrayList()
         }
@@ -393,13 +391,13 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
 
         // returns first event that has not been fired or fired with false
         fun getWaitingEvent() = listEvents.firstOrNull { !it.isFired() }?.event
-
+        fun getEventsList() = listEvents
         fun isWaitingFor(event: Any) = getWaitingEvent() == event
 
         fun reset() {
             iLastStatus = EventStatus.WAITING
             for (event in listEvents) {
-                event.resetEvent()
+                (event as _Event).resetEvent()
             }
         }
     }
@@ -444,10 +442,7 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
 
         // METHOD MESSAGE HANDLER
         override fun handleMessage(msg: Message): Boolean {
-            val action = msg.obj as Flow<ActionEvents>._Action
-
-            if(action.iAction == 2)
-                logw("ACTION: $2 Executed with  ")
+            val action = msg.obj as Flow<*>._Action
 
             if (action.getFlag(FLAG_REPEAT)) { // If its a repeat action, we have to post it again
                 val event = action.getEventsList()[0] // get delay event for data
@@ -456,13 +451,11 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
             }
 
             if (!action.callback(msg.arg2 == ACTION_SUCCESS)) { // if there is no specific callback for action, call generic call back
-                Log.d("flow", "code callback: $globalCallback")
-                globalCallback?.onAction(msg.what, msg.arg2 == ACTION_SUCCESS, msg.arg1, msg.obj)
+                globalCallback?.onAction(msg.what, msg.arg2 == ACTION_SUCCESS, msg.arg1, msg.obj as Flow<*>.Action)
             }
 
             return true
         }
-
 
         fun stop() {
             mHandler.removeCallbacksAndMessages(null)
@@ -471,7 +464,7 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
         }
 
         init {
-            val ht = HandlerThread("BGThread_" + Integer.toString(++iThreadCount))
+            val ht = HandlerThread("BGThread_ ${++iThreadCount}")
             ht.start()
             mHandler = Handler(ht.looper, this)
             mUiHandler = Handler(Looper.getMainLooper(), this)
