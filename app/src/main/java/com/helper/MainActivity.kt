@@ -29,16 +29,19 @@ class MainActivity : AppCompatActivity() {
         val flow = Flow<Events>()
 
        // flow.registerAction(2, false, listOf(Events.EVENT_ONE, Events.EVENT_TWO))
-        flow.runDelayed(1,true,  5000){ flow.cancelAction(3)}
+        flow.registerAction(2, false, listOf<Events>(Events.EVENT_ONE, Events.EVENT_TWO))
+        flow.runDelayed(1,true,  5000){
+            flow.event(Events.EVENT_TWO)}
         flow.runRepeat(3,true,  1000) {   Log.w("flow", "local-call  Success:$it ")
         }
 
         flow.event(Events.EVENT_ONE)
-        flow.event(Events.EVENT_TWO)
+
 
         flow.execute(object : Flow.FlowCode {
             override fun onAction(iAction: Int, bSuccess: Boolean, iExtra: Int, data: Any?) {
-                Log.w("flow", "flow-call  Action:$iAction Success:$bSuccess $iExtra")
+                flow.cancelAction(3)
+                Log.w("flow", "flow-call  Action: 2 Success:$bSuccess ")
             }
         })
 

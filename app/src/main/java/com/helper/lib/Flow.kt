@@ -44,17 +44,14 @@ typealias SingleCallback = (bSuccess: Boolean) -> Unit
 
 open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? = null) : LifecycleObserver {
 
-    enum class ActionStatus{
-        WAITING, SUCCESS, FAILURE
-    }
     enum class EventStatus{
         WAITING, SUCCESS, FAILURE
     }
 
     private var bRunning = true
     internal var hThread: HThread
-    private var listActions: MutableList<Action> = ArrayList() // List of registered actions
-    private var code: FlowCode? = null // Call back for onAction to be executed
+    private var listActions: MutableList<_Action> = ArrayList() // List of registered actions
+    private var globalCallback: FlowCode? = null // Call back for onAction to be executed
 
     // INTERFACE for code execution
     interface FlowCode {
@@ -62,12 +59,12 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
     }
 
     init {
-        code = codeCallback
+        globalCallback = codeCallback
         hThread = HThread()
     }
 
     fun execute(codeCallback: FlowCode) {
-        code = codeCallback
+        globalCallback = codeCallback
     }
 
     // STATE METHODS pause, resume, stop the action, should be called to release resources
@@ -85,7 +82,7 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
 
     @OnLifecycleEvent(Lifecycle.Event.ON_STOP)
     open fun stop() {
-        code = null
+        globalCallback = null
         try {
             for (action in listActions) { action.recycle() }
             hThread.mHandler.removeCallbacksAndMessages(null)
@@ -106,10 +103,11 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
         if (listActions.size > 0) listActions[listActions.size - 1].resultType = type
     }
 
-    fun getAction(iAction: Int) = listActions.first { it.iAction == iAction }
-    fun getActionEvents(iAction: Int) = getAction(iAction).getEventsList()
-    fun getActionWaitingEvent(iAction: Int) = getAction(iAction).getWaitingEvent() // // Returns first found event that is stopping the action from triggering
-    fun resetAction(iAction: Int) { getAction(iAction).reset() } // Resets action by resetting all events to initial Waiting state
+    private fun _getAction(iAction: Int) = listActions.first { it.iAction == iAction }
+    fun getAction(iAction: Int) = _getAction(iAction) as Flow<*>.Action
+    fun getActionEvents(iAction: Int) = _getAction(iAction).getEventsList()
+    fun getActionWaitingEvent(iAction: Int) = _getAction(iAction).getWaitingEvent() // // Returns first found event that is stopping the action from triggering
+    fun resetAction(iAction: Int) { _getAction(iAction).reset() } // Resets action by resetting all events to initial Waiting state
 
     @JvmOverloads
     fun run(iAction: Int = -1, bUiThread: Boolean = false, bSuccess: Boolean = true, iExtra: Int = 0, obj: Any? = null): Flow<ActionEvents> {
@@ -168,10 +166,11 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
 
 
     }
+
     private fun _registerAction(iAction: Int, bUiThread: Boolean, bRunOnce: Boolean, bSequence: Boolean, bRepeat: Boolean, events: List<*>, actionCallback: SingleCallback? = null) {
         cancelAction(iAction) // to stop duplication, remove if the action already exists
         val actionFlags = setActionFlags(runOnUI = bUiThread, runOnce = bRunOnce, eventSequence = bSequence, repeatAction = bRepeat)
-        val aAction = Action(iAction, actionFlags, events, actionCallback)
+        val aAction = _Action(iAction, actionFlags, events, actionCallback)
         listActions.add(aAction)
 
         val buf = StringBuffer(400)
@@ -213,18 +212,17 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
     // CLASS for event Pool
     class Event<ActionEvents> private constructor() { // CONSTRUCTOR - Private
 
-
         var obj: Any? = null
         var extra = 0
         var event: ActionEvents? = null
-        var status :EventStatus = EventStatus.WAITING // WAITING - waiting not fired yet, SUCCESS - fired with success, FAILURE - fired with failure
+        internal  var status :EventStatus = EventStatus.WAITING // WAITING - waiting not fired yet, SUCCESS - fired with success, FAILURE - fired with failure
         // Variable for pool
         private var next: Event<ActionEvents>? = null // Reference to next object
 
         fun isFired() = status == EventStatus.SUCCESS
 
         // METHOD object added to the pool, to be reused
-        fun recycle() {
+        internal fun recycle() {
             synchronized(sPoolSync) {
                 if (sPoolSize < MAX_POOL_SIZE) {
                     next = sPool as Event<ActionEvents>?
@@ -274,18 +272,14 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
         }
     }
 
-    // CLASS for events for action, when all events occur action is triggered
-    inner class Action(
+    private inner class _Action(
             internal val iAction: Int,
             private var actionFlags: Int = 0,
             events: List<*>,
-            private val singleCallback: SingleCallback? = null
-    ) {
-
+            private var singleCallback: SingleCallback? = null
+    ) : Action() {
         internal var resultType: ResultType = ResultType.RESULT_CHANGE
         private var iEventCount: Int = events.size          // How many event are for this action code to be triggered
-        private var iLastStatus = EventStatus.WAITING       // Event set status as a whole, waiting, success, non success
-        private var listEvents: MutableList<Event<*>> = ArrayList() // List to store Flow.Events needed for this action
 
         init {
             for (i in 0 until iEventCount) {
@@ -293,43 +287,32 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
             }
         }
 
-        fun getFlag(flag: Int) = Companion.getFlag(actionFlags, flag)
-        fun setFlag(flag: Int) {
+        internal fun getFlag(flag: Int) = Companion.getFlag(actionFlags, flag)
+        internal fun setFlag(flag: Int) {
             Companion.setFlag(actionFlags, flag, true)
         }
 
-        fun clearFlag(flag: Int) {
+        internal fun clearFlag(flag: Int) {
             Companion.setFlag(actionFlags, flag, false)
         }
 
-        fun getEventsList() = listEvents
-        fun callback(bSuccess: Boolean): Boolean {
+        internal fun getEventsList() = listEvents
+        internal fun callback(bSuccess: Boolean): Boolean {
             if (singleCallback != null) {
-                singleCallback.invoke(bSuccess)
+                singleCallback?.invoke(bSuccess)
                 return true
             }
             return false
         }
 
-        fun getEventData(events: ActionEvents): Any? {
+        internal fun getEventData(events: ActionEvents): Any? {
             return listEvents.find { it.event == events }?.obj
         }
 
-        // returns first event that has not been fired or fired with false
-        fun getWaitingEvent() = listEvents.firstOrNull { !it.isFired() }?.event
-
-        fun isWaitingFor(event: ActionEvents) = getWaitingEvent() == event
-
-        fun reset() {
-            iLastStatus = EventStatus.WAITING
-            for (event in listEvents) {
-                event.resetEvent()
-            }
-        }
 
         // METHOD recycles events and clears actions
-        fun recycle() {
-            code = null
+        internal fun recycle() {
+            singleCallback = null
             iEventCount = 0
             for (event in listEvents) {
                 event.recycle()
@@ -394,16 +377,35 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
         // METHOD executes action code on appropriate thread
         private fun executeAction(bSuccess: Boolean, iExtra: Int) {
             logw("ACTION: $iAction Executed with $bSuccess ")
+
             if (getFlag(FLAG_RUNonUI)) {
-                hThread.runOnUI(iAction, bSuccess, iExtra, this)
+                hThread.runOnUI(iAction, bSuccess, iExtra, this as Flow<*>.Action)
             } else {
                 hThread.run(iAction, bSuccess, iExtra, this)
             }
         }
     }
 
+    // CLASS for events for action, when all events occur action is triggered
+    inner open class Action() {
+        protected var listEvents: MutableList<Event<*>> = ArrayList() // List to store Flow.Events needed for this action
+        protected var iLastStatus = EventStatus.WAITING       // Event set status as a whole, waiting, success, non success
+
+        // returns first event that has not been fired or fired with false
+        fun getWaitingEvent() = listEvents.firstOrNull { !it.isFired() }?.event
+
+        fun isWaitingFor(event: Any) = getWaitingEvent() == event
+
+        fun reset() {
+            iLastStatus = EventStatus.WAITING
+            for (event in listEvents) {
+                event.resetEvent()
+            }
+        }
+    }
+
     // CLASS for thread handler
-    inner class HThread internal constructor() : Handler.Callback {
+    internal inner class HThread internal constructor() : Handler.Callback {
         val mHandler: Handler
         val mUiHandler: Handler
         var ACTION_FAIL = 0
@@ -442,7 +444,10 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
 
         // METHOD MESSAGE HANDLER
         override fun handleMessage(msg: Message): Boolean {
-            val action = msg.obj as Flow<ActionEvents>.Action
+            val action = msg.obj as Flow<ActionEvents>._Action
+
+            if(action.iAction == 2)
+                logw("ACTION: $2 Executed with  ")
 
             if (action.getFlag(FLAG_REPEAT)) { // If its a repeat action, we have to post it again
                 val event = action.getEventsList()[0] // get delay event for data
@@ -451,12 +456,13 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
             }
 
             if (!action.callback(msg.arg2 == ACTION_SUCCESS)) { // if there is no specific callback for action, call generic call back
-                Log.d("flow", "code callback: $code")
-                code?.onAction(msg.what, msg.arg2 == ACTION_SUCCESS, msg.arg1, msg.obj)
+                Log.d("flow", "code callback: $globalCallback")
+                globalCallback?.onAction(msg.what, msg.arg2 == ACTION_SUCCESS, msg.arg1, msg.obj)
             }
 
             return true
         }
+
 
         fun stop() {
             mHandler.removeCallbacksAndMessages(null)
@@ -550,6 +556,5 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
             return intFlags
         }
     }
-
 
 }
