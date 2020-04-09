@@ -155,7 +155,7 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
         for (i in listActions.indices) { // remove action if it already exists
             if (listActions[i].iAction == iAction) {
                 _cancelAction(i)
-                loge("cancelAction($iAction), removed  ")
+                loge("CANCEL: Action($iAction), removed  ")
                 break
             }
         }
@@ -195,7 +195,7 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
                 val result = listActions[i].onEvent(sEvent, bSuccess, iExtra, obj)
                 if (result.first && result.second) {
                     _cancelAction(i)
-                    loge("Removing run once Action($iAction) as its executed")
+                    loge("REMOVING: Action($iAction, runOnce) as its executed")
                 }
             }
         } catch (e: IndexOutOfBoundsException) {
@@ -330,6 +330,7 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
         // METHOD recycles events and clears actions
         fun recycle() {
             code = null
+            iEventCount = 0
             for (event in listEvents) {
                 event.recycle()
             }
@@ -445,7 +446,8 @@ open class Flow<ActionEvents> @JvmOverloads constructor(codeCallback: FlowCode? 
 
             if (action.getFlag(FLAG_REPEAT)) { // If its a repeat action, we have to post it again
                 val event = action.getEventsList()[0] // get delay event for data
-                hThread.mHandler.postDelayed((Runnable { event(event.event!!, !event.isFired(), event.extra++, event.obj) }), event.obj as Long)
+                hThread.mHandler.postDelayed((Runnable { action.onEvent(event.event!!, !event.isFired(), event.extra++, event.obj) }), event.obj as Long)
+                // posting action.onEvent() to repeat action only, not Flow.event(), to keep it local and filling queue for fast repeating actions
             }
 
             if (!action.callback(msg.arg2 == ACTION_SUCCESS)) { // if there is no specific callback for action, call generic call back
