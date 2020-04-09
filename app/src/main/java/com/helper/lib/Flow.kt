@@ -157,6 +157,8 @@ open class Flow<EventType> @JvmOverloads constructor(codeCallback: FlowCode? = n
     }
 
     private fun _cancelAction(action: _Action){
+        hThread.mHandler.removeMessages(action.iAction)
+        hThread.mUiHandler.removeMessages(action.iAction)
         action.recycle()
         listActions.remove(action)
     }
@@ -235,7 +237,7 @@ open class Flow<EventType> @JvmOverloads constructor(codeCallback: FlowCode? = n
             private var singleCallback: SingleCallback? = null
     ) : Action() {
         internal var resultType: ResultType = ResultType.RESULT_CHANGE
-        private var iEventCount: Int = events.size          // How many event are for this action code to be triggered
+        internal var iEventCount: Int = events.size          // How many event are for this action code to be triggered
 
         init {
             for (i in 0 until iEventCount) {
@@ -429,10 +431,10 @@ open class Flow<EventType> @JvmOverloads constructor(codeCallback: FlowCode? = n
             }
         }
 
-        fun run(iStep: Int, bSuccess: Boolean, iExtra: Int, obj: Any?) {
+        fun run(iAction: Int, bSuccess: Boolean, iExtra: Int, obj: Any?) {
             if (bRunning) {
                 val msg = Message.obtain()
-                msg.what = iStep
+                msg.what = iAction
                 msg.arg1 = iExtra
                 msg.arg2 = if (bSuccess) ACTION_SUCCESS else ACTION_FAIL
                 msg.obj = obj
@@ -440,10 +442,10 @@ open class Flow<EventType> @JvmOverloads constructor(codeCallback: FlowCode? = n
             }
         }
 
-        fun runOnUI(iStep: Int, bSuccess: Boolean, iExtra: Int, obj: Any?) {
+        fun runOnUI(iAction: Int, bSuccess: Boolean, iExtra: Int, obj: Any?) {
             if (bRunning) {
                 val msg = Message.obtain()
-                msg.what = iStep
+                msg.what = iAction
                 msg.arg1 = iExtra
                 msg.arg2 = if (bSuccess) ACTION_SUCCESS else ACTION_FAIL
                 msg.obj = obj
@@ -455,7 +457,7 @@ open class Flow<EventType> @JvmOverloads constructor(codeCallback: FlowCode? = n
         override fun handleMessage(msg: Message): Boolean {
             val action = msg.obj as Flow<EventType>._Action
 
-            if (action.getFlag(FLAG_REPEAT)) { // If its a repeat action, we have to post it again
+            if (action.getFlag(FLAG_REPEAT)) {      // If its a repeat action, we have to post it again
                 val event = action.getEvents()[0] // get delay event for data
                 hThread.mHandler.postDelayed((Runnable { action.onEvent(event.event!!, !event.isSuccess(), event.extra++, event.obj) }), event.obj as Long)
                 // posting action.onEvent() to repeat action only, not Flow.event(), to keep it local and filling queue for fast repeating actions
@@ -467,7 +469,7 @@ open class Flow<EventType> @JvmOverloads constructor(codeCallback: FlowCode? = n
 
             if (action.getFlag(FLAG_RUNONCE)) {
                 loge("REMOVING: Action(${action.iAction}, runOnce) as its executed")
-               _cancelAction(action) // Recycle if its flagged for it
+                _cancelAction(action) // Recycle if its flagged for it
             }
 
             return true
