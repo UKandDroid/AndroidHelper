@@ -16,7 +16,6 @@ class MainActivity : AppCompatActivity() {
     var log = Logger("FlowTest")
     var bFlip = true
 
-
     enum class  Events{
         EVENT_ONE, EVENT_TWO
     }
@@ -28,17 +27,16 @@ class MainActivity : AppCompatActivity() {
 
         val flow = Flow<Events>()
 
-        flow.runDelayed(1,true, 5000){ flow.event(Events.EVENT_TWO)}
+        flow.runDelayed(1,true, 5000){ flow.event(Events.EVENT_TWO) }
         flow.runRepeat(2,true, 1000) { Log.w("flow", "local-call  Success:$it ") }
         flow.registerAction(3, false, listOf<Events>(Events.EVENT_ONE, Events.EVENT_TWO))
 
         flow.event(Events.EVENT_ONE)
 
-
         flow.execute(object : Flow.FlowCode {
             override fun onAction(iAction: Int, bSuccess: Boolean, iExtra: Int, data: Any?) {
-                flow.cancelAction(2)
-                Log.w("flow", "flow-call  Action: 2 Success:$bSuccess ")
+                Log.w("flow", "flow-call  Action: $iAction Success:$bSuccess ")
+                if(iAction == 3) { flow.cancelAction(2) }
             }
         })
 
