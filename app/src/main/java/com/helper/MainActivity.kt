@@ -27,8 +27,8 @@ class MainActivity : AppCompatActivity() {
 
         val flow = Flow<Events>()
 
-        flow.runDelayed(1,true, 5000){ flow.event(Events.EVENT_TWO) }
-        flow.runRepeat(2,true, 1000) { Log.w("flow", "local-call  Success:$it ") }
+        flow.runDelayed( iDelay = 5000){ flow.event(Events.EVENT_TWO) }
+        flow.runRepeat( iDelay = 1000) { Log.w("flow", "local-call  Success:$it ") }
         flow.registerAction(3, false, listOf<Events>(Events.EVENT_ONE, Events.EVENT_TWO))
 
         flow.event(Events.EVENT_ONE)

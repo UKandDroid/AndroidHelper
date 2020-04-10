@@ -49,6 +49,7 @@ open class Flow<EventType> @JvmOverloads constructor(codeCallback: FlowCode? = n
         WAITING, SUCCESS, FAILURE
     }
 
+    private var autoIndex = -1
     private var bRunning = true
     internal var hThread: HThread
     private var listActions: MutableList<_Action> = ArrayList() // List of registered actions
@@ -117,7 +118,7 @@ open class Flow<EventType> @JvmOverloads constructor(codeCallback: FlowCode? = n
     }
 
     @JvmOverloads
-    fun runRepeat(iAction: Int, bUiThread: Boolean = false, iDelay: Long, callback: SingleCallback? = null): Flow<EventType> {
+    fun runRepeat(iAction: Int = autoIndex--, bUiThread: Boolean = false, iDelay: Long, callback: SingleCallback? = null): Flow<EventType> {
         val delayEvent = "repeat_event_$iAction"
         _registerAction(iAction, bUiThread, false, false, true, listOf(delayEvent), callback)
         hThread.mHandler.postDelayed((Runnable { this.event(delayEvent, true, 0, iDelay) }), iDelay)
@@ -125,7 +126,7 @@ open class Flow<EventType> @JvmOverloads constructor(codeCallback: FlowCode? = n
     }
 
     @JvmOverloads
-    fun runDelayed(iAction: Int, bUiThread: Boolean = false, iDelay: Long, bSuccess: Boolean = true, iExtra: Int = 0, any: Any? = null, callback: SingleCallback? = null): Flow<EventType> {
+    fun runDelayed(iAction: Int = autoIndex--, bUiThread: Boolean = false, iDelay: Long, bSuccess: Boolean = true, iExtra: Int = 0, any: Any? = null, callback: SingleCallback? = null): Flow<EventType> {
         val delayEvent = "delay_event_$iAction"
         _registerAction(iAction, bUiThread, true, false, false, listOf(delayEvent), callback)
         hThread.mHandler.postDelayed((Runnable { this.event(delayEvent, bSuccess, iExtra, any) }), iDelay)
@@ -164,6 +165,7 @@ open class Flow<EventType> @JvmOverloads constructor(codeCallback: FlowCode? = n
     }
 
     private fun _registerAction(iAction: Int, bUiThread: Boolean, bRunOnce: Boolean, bSequence: Boolean, bRepeat: Boolean, events: List<*>, actionCallback: SingleCallback? = null) {
+        assert(iAction > 0)
         cancelAction(iAction) // to stop duplication, remove if the action already exists
         val actionFlags = setActionFlags(runOnUI = bUiThread, runOnce = bRunOnce, eventSequence = bSequence, repeatAction = bRepeat)
         val aAction = _Action(iAction, actionFlags, events, actionCallback)
@@ -173,6 +175,7 @@ open class Flow<EventType> @JvmOverloads constructor(codeCallback: FlowCode? = n
         for (event in events) {
             buf.append(event.toString() + ", ")
         }
+
         log("ACTION: $iAction registered  EVENTS = { $buf}")
     }
 
