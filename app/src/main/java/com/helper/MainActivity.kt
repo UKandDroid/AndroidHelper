@@ -6,10 +6,7 @@ import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
-import com.helper.lib.Anim
-import com.helper.lib.Flow
-import com.helper.lib.Logger
-import com.helper.lib.WakeTimer
+import com.helper.lib.*
 
 class MainActivity : AppCompatActivity() {
     var wake: WakeTimer? = null
@@ -25,21 +22,9 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         val anim = Anim()
 
-        val flow = Flow<Events>()
+        val flow = UiFlow()
 
-        flow.runDelayed( iDelay = 5000){ flow.event(Events.EVENT_TWO) }
-        flow.runRepeat(iAction = 2, iDelay = 1000) { Log.w("flow", "local-call  Success:$it ") }
-        flow.registerAction(3, events =  listOf(Events.EVENT_ONE, Events.EVENT_TWO)) { flow.cancelAction(2)  }
-
-        flow.event(Events.EVENT_ONE)
-/*
-        flow.execute(object : Flow.ExecuteCode {
-            override fun onAction(iAction: Int, bSuccess: Boolean, iExtra: Int, data: Any?) {
-                Log.w("flow", "flow-call  Action: $iAction Success:$bSuccess ")
-                if(iAction == 3) { }
-            }
-        })*/
-
+    
         anim.addAnimation(Anim.TYPE_SCALE, Anim.INTER_OVERSHOOT, 1.0f, 0.6f, 700, 1000)
         anim.addAnimation(Anim.TYPE_SCALE, Anim.INTER_OVERSHOOT, 1.0f, 1.4f, 700, 2000)
         anim.setView(findViewById(R.id.btn_one))

@@ -1,7 +1,14 @@
 package com.helper.lib;
 
 import android.app.Activity;
+import android.arch.lifecycle.Lifecycle;
+import android.arch.lifecycle.LifecycleObserver;
+import android.arch.lifecycle.OnLifecycleEvent;
 import android.graphics.Rect;
+import android.os.Handler;
+import android.os.HandlerThread;
+import android.os.Looper;
+import android.os.Message;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
@@ -25,7 +32,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-public class UiFlow {
+public class UiFlow implements LifecycleObserver {
     private interface KeyboardState { public void onStateChange(boolean bVisible); }
 
     static class UiEvent {
@@ -45,17 +52,20 @@ public class UiFlow {
         void onAction(int action, boolean bSuccess, int iExtra, Object tag);
     }
 
+    private Code code;
     private View viewActRoot;
-    private Flow.HThread hThread;
     private int iSoftInputMode = -1;
     private Rect rLast = new Rect();
+    private int iThreadCount = 0;
     private boolean bKeybVisible = false;
+    private HThread hThread = new HThread();
     private List<KeyboardState> keyList = new ArrayList<>();
-    private HashMap<View, TextWatcher> listTextListeners = new HashMap();        // list of text change listeners for a text field
-    private HashMap<View, KeyboardState> listKBListeners = new HashMap();        // list of keyboard state change listeners
+    private HashMap listTextListeners = new HashMap();        // list of text change listeners for a text field
+    private HashMap listKBListeners = new HashMap();        // list of keyboard state change listeners
 
     public UiFlow(){ }
     public UiFlow(Code codeCallback) {
+        this.code = codeCallback;
     }
 
 
@@ -91,25 +101,20 @@ public class UiFlow {
             // triggered listener when view is clicked
             case UiEvent.ON_CLICK:
                 if(view instanceof EditText){                                                         // NOTE: for editText  first tap get focus, 2nd to trigger onClick, unless focusable is setfalse()
-                    view.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-                        @Override
-                        public void onFocusChange(View v, boolean hasFocus) {
-                            if(hasFocus){
-                                if (bRunOnUI) {
-                                    hThread.runOnUI(iAction, true, 0, view);
-                                } else {
-                                    hThread.run(iAction, true, 0, view);
-                                }
-                            }}});
+                    view.setOnFocusChangeListener((v, hasFocus) -> {
+                        if(hasFocus){
+                            if (bRunOnUI) {
+                                hThread.runOnUI(iAction, true, 0, view);
+                            } else {
+                                hThread.run(iAction, true, 0, view);
+                            }
+                        }});
                 }
-                view.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        if (bRunOnUI) {
-                            hThread.runOnUI(iAction, true, 0, view);
-                        } else {
-                            hThread.run(iAction, true, 0, view);
-                        }
+                view.setOnClickListener(view1 -> {
+                    if (bRunOnUI) {
+                        hThread.runOnUI(iAction, true, 0, view1);
+                    } else {
+                        hThread.run(iAction, true, 0, view1);
                     }
                 });
                 break;
@@ -130,11 +135,10 @@ public class UiFlow {
             // for text entered to work with keyboard hide, set android:windowSoftInputMode="adjustResize" or "adjustPan"
             // and setup KEYBOARD_STATE UiEvent, provided with main activity root decor view
             case UiEvent.TEXT_ENTERED:
-                KeyboardState listKb =  new KeyboardState() {
-                    @Override public void onStateChange(boolean bVisible) {
-                        if(view.hasFocus() && !bVisible){
-                            if (bRunOnUI) { hThread.runOnUI(iAction, bVisible, 0, view);
-                            } else { hThread.run(iAction, bVisible, 0, view); }}}};
+                KeyboardState listKb = bVisible -> {
+                    if(view.hasFocus() && !bVisible){
+                        if (bRunOnUI) { hThread.runOnUI(iAction, bVisible, 0, view);
+                        } else { hThread.run(iAction, bVisible, 0, view); }}};
                 listKBListeners.put(view, listKb);
                 addKeybListener(listKb );
 
@@ -150,19 +154,17 @@ public class UiFlow {
                             }}
                     }});
 
-                ((EditText) view).setOnEditorActionListener(new TextView.OnEditorActionListener() {
-                    @Override
-                    public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-                        if (actionId == EditorInfo.IME_ACTION_DONE) {
-                            Log.w("UiFlow", "Text ENTERED on KB Done");
-                            if (bRunOnUI) {
-                                hThread.runOnUI(iAction, true, 0, view);
-                            } else {
-                                hThread.run(iAction, true, 3, view);
-                            }
+                ((EditText) view).setOnEditorActionListener((v, actionId, event) -> {
+                    if (actionId == EditorInfo.IME_ACTION_DONE) {
+                        Log.w("UiFlow", "Text ENTERED on KB Done");
+                        if (bRunOnUI) {
+                            hThread.runOnUI(iAction, true, 0, view);
+                        } else {
+                            hThread.run(iAction, true, 3, view);
                         }
-                        return false;
-                    }});
+                    }
+                    return false;
+                });
                 break;
 
             // Triggered when text changes
@@ -182,14 +184,11 @@ public class UiFlow {
                 break;
 
             case UiEvent.LIST_ITEM_SELECT:
-                ((ListView) view).setOnItemClickListener(new AdapterView.OnItemClickListener() {
-                    @Override
-                    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                        if (bRunOnUI) {
-                            hThread.runOnUI(iAction, true, position, view);
-                        } else {
-                            hThread.run(iAction, true, position, view);
-                        }
+                ((ListView) view).setOnItemClickListener((parent, view12, position, id) -> {
+                    if (bRunOnUI) {
+                        hThread.runOnUI(iAction, true, position, view12);
+                    } else {
+                        hThread.run(iAction, true, position, view12);
                     }
                 });
                 break;
@@ -217,14 +216,11 @@ public class UiFlow {
                 break;
 
             case UiEvent.CHECKBOX_STATE:
-                ((CheckBox) view).setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-                    @Override
-                    public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                        if (bRunOnUI) {
-                            hThread.runOnUI(iAction, isChecked, 0, view);
-                        } else {
-                            hThread.run(iAction, isChecked, 0, view);
-                        }
+                ((CheckBox) view).setOnCheckedChangeListener((buttonView, isChecked) -> {
+                    if (bRunOnUI) {
+                        hThread.runOnUI(iAction, isChecked, 0, view);
+                    } else {
+                        hThread.run(iAction, isChecked, 0, view);
                     }
                 });
                 break;
@@ -329,13 +325,74 @@ public class UiFlow {
     public void resume() {
     }
 
+    @OnLifecycleEvent(Lifecycle.Event.ON_STOP)
     public void stop() {
         if(viewActRoot != null){
             viewActRoot.getViewTreeObserver().removeOnGlobalLayoutListener(null);
             viewActRoot = null;
+            hThread.stop();
         }
     }
 
+    // CLASS for thread handler
+    private class HThread implements Handler.Callback {
+        private Handler mHandler;
+        private Handler mUiHandler;
+
+        HThread() {
+            HandlerThread ht = new HandlerThread("BGThread_" + Integer.toString(++iThreadCount));
+            ht.start();
+            mHandler = new Handler(ht.getLooper(), this);
+            mUiHandler = new Handler(Looper.getMainLooper(), this);
+        }
+
+        public void run(int iStep) {
+            run(iStep, false);
+        }
+
+        private void run(int iStep, boolean bRunUI) {
+            if (bRunUI) {
+                runOnUI(iStep, true, 0, null);
+            } else {
+                run(iStep, true, 0, null);
+            }
+        }
+
+        private void run(int iStep, boolean bSuccess, int iExtra, Object obj) {
+
+                Message msg = Message.obtain();
+                msg.what = iStep;
+                msg.arg1 = iExtra;
+                msg.arg2 = bSuccess ? 1 : 0;
+                msg.obj = obj;
+                mHandler.sendMessage(msg);
+
+        }
+
+        private void runOnUI(int iStep, boolean bSuccess, int iExtra, Object obj) {
+                Message msg = Message.obtain();
+                msg.what = iStep;
+                msg.arg1 = iExtra;
+                msg.arg2 = bSuccess ? 1 : 0;
+                msg.obj = obj;
+                mUiHandler.sendMessage(msg);
+
+        }
+
+
+        // METHOD MESSAGE HANDLER
+        @Override
+        public boolean handleMessage(Message msg) {
+            code.onAction(msg.what, msg.arg2 == 1, msg.arg1, msg.obj);
+            return true;
+        }
+
+        public void stop() {
+            mHandler.removeCallbacksAndMessages(null);
+            mUiHandler.removeCallbacksAndMessages(null);
+            mHandler.getLooper().quit();
+        }
+    }
 
 
 }
