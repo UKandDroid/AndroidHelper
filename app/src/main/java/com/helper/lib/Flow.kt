@@ -52,7 +52,7 @@ open class Flow<EventType> @JvmOverloads constructor(codeCallback: ExecuteCode? 
 
     private var autoIndex = -1
     private var bRunning = true
-    internal var hThread: HThread
+    private var hThread: HThread
     private var listActions: MutableList<_Action> = ArrayList() // List of registered actions
     private var globalCallback: ExecuteCode? = null // Call back for onAction to be executed
 
@@ -420,7 +420,7 @@ open class Flow<EventType> @JvmOverloads constructor(codeCallback: ExecuteCode? 
 
 
     // CLASS for thread handler
-    internal inner class HThread internal constructor() : Handler.Callback {
+    private inner class HThread internal constructor() : Handler.Callback {
         val mHandler: Handler
         val mUiHandler: Handler
         var ACTION_FAIL = 0

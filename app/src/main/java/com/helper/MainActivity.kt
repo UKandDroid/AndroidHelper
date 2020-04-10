@@ -28,17 +28,17 @@ class MainActivity : AppCompatActivity() {
         val flow = Flow<Events>()
 
         flow.runDelayed( iDelay = 5000){ flow.event(Events.EVENT_TWO) }
-        flow.runRepeat( iDelay = 1000) { Log.w("flow", "local-call  Success:$it ") }
-        flow.registerAction(3, false, listOf<Events>(Events.EVENT_ONE, Events.EVENT_TWO))
+        flow.runRepeat(iAction = 2, iDelay = 1000) { Log.w("flow", "local-call  Success:$it ") }
+        flow.registerAction(3, events =  listOf(Events.EVENT_ONE, Events.EVENT_TWO)) { flow.cancelAction(2)  }
 
         flow.event(Events.EVENT_ONE)
-
+/*
         flow.execute(object : Flow.ExecuteCode {
             override fun onAction(iAction: Int, bSuccess: Boolean, iExtra: Int, data: Any?) {
                 Log.w("flow", "flow-call  Action: $iAction Success:$bSuccess ")
-                if(iAction == 3) { flow.cancelAction(2) }
+                if(iAction == 3) { }
             }
-        })
+        })*/
 
         anim.addAnimation(Anim.TYPE_SCALE, Anim.INTER_OVERSHOOT, 1.0f, 0.6f, 700, 1000)
         anim.addAnimation(Anim.TYPE_SCALE, Anim.INTER_OVERSHOOT, 1.0f, 1.4f, 700, 2000)
