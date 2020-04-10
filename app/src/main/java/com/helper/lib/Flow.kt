@@ -12,38 +12,39 @@ import java.util.*
 
 typealias SingleCallback = (bSuccess: Boolean) -> Unit
 
-// Version 2.5.0
+// Version 3.0.0
 // encapsulation for Action & Event classes
 // Added <Generic Type> based events
 // Added getEventsForAction(), getErrorEventForAction()
 // Added runType for events RESULT_CHANGE, RESULT_UPDATE, EVENT_UPDATE
 // Added Help examples
 // ## EXAMPLES ##
-//Flow<TriggerEvents>flow = new Flow(flowCode)
-// Example 1: flow.registerAction(1, "email_entered", "password_entered", "verify_code_entered" ) action 1 gets called when all those events occur
+// var flow = Flow<String>( flowCode )
+// Example 1: flow.registerAction(1,  listOf("email_entered", "password_entered", "verify_code_entered") ) action 1 gets called when all those events occur
 //          : flow.event("email_entered", true, extra(opt), object(opt))  is trigger for the registered event "email_entered",
 //          :  when all three events are triggered with flow.event(...., true), action 1 is executed with bSuccess = true
 //          :  after 3 event true(s), if one event(...., false) sends false, action 1 will be executed with bSuccess = false
 //          :  now action 1 will only trigger again when all onEvents(...., true) are true, i.e the events which sent false, send true again
-// Example : flow.run(3, true(opt), extra(opt), object(opt)) runs an action on background thread, same as registering for one event and triggering that event
+// Example : flow.run(3, true(opt), extra(opt), object(opt))  runs an action on background thread, same as registering for one event and triggering that event
 // Example : flow.runOnUi(4, true(opt), extra(opt), object(opt)) runs code on Ui thread
 // Example : flow.runDelayed(5, true(opt), extra(opt), 4000) runs delayed code
-// Example : flow.runDelayedOnUi(6, true(opt), extra(opt), 4000) runs delayed code on Ui thread
-// Flow.Code flowCode = new Flow.Code(){
-//  @override public void onAction(int iAction, boolean bSuccess, int iExtra, Object data){
-//  switch(iAction){
-//      case 1:  ...... break;   // this code will run in first example when all events are triggered as true
-//      case 2: ...... break;    // this code will run when a spinner item is selected
-//      case 3: ....... break;   // this will run when ever run(3) is called
-//      case 4: ........ break;  // this will run on ui thread whenever runOnUi(4) is called
-//      case 5: ........ break;  // this will run on delayed by 4 secs
+// Example : flow.runDelayedOnUi(6, true(opt), extra(opt), 4000) { //optional } runs delayed code on Ui thread
+// var flowCode = object: Flow.ExecuteCode(){
+//  @override fun onAction(int iAction, boolean bSuccess, int iExtra, Object data){
+//  when(iAction){
+//       1 ->   // this code will run in first example when all events are triggered as true
+//       3 ->   // this will run when ever run(3) is called
+//       4 ->   // this will run on ui thread whenever runOnUi(4) is called
+//       5 ->   // this will run on delayed by 4 secs
+//       6(NOT CALLED) ->   this wont be called as local callback is provided
 // }  }
-// Example :  Flow().runDelayed(2000).execute(() -{})
-// Example :  Flow().runRepeat(500).execute(() -{})
-// Example :  flow.getEventsForAction(1) // returns all events associated with the action
-// Example :  flow.getErrorEventForAction(1) // returns first event that is stopping the action being fired, either its not fired or fired with false
 
-open class Flow<EventType> @JvmOverloads constructor(codeCallback: FlowCode? = null) : LifecycleObserver {
+// Example :  flow.runDelayed(2000){}
+// Example :  flow.runRepeat(500){}
+// Example :  flow.getEventsForAction(1) // returns all events associated with the action
+// Example :  flow.getActionWaitingEvent(1) // returns first event that is stopping the action being fired, either its not fired or fired with false
+
+open class Flow<EventType> @JvmOverloads constructor(codeCallback: ExecuteCode? = null) : LifecycleObserver {
 
     enum class EventStatus{
         WAITING, SUCCESS, FAILURE
@@ -53,10 +54,10 @@ open class Flow<EventType> @JvmOverloads constructor(codeCallback: FlowCode? = n
     private var bRunning = true
     internal var hThread: HThread
     private var listActions: MutableList<_Action> = ArrayList() // List of registered actions
-    private var globalCallback: FlowCode? = null // Call back for onAction to be executed
+    private var globalCallback: ExecuteCode? = null // Call back for onAction to be executed
 
     // INTERFACE for code execution
-    interface FlowCode {
+    interface ExecuteCode {
         fun onAction(iAction: Int, bSuccess: Boolean, iExtra: Int, data: Any?)
     }
 
@@ -65,7 +66,7 @@ open class Flow<EventType> @JvmOverloads constructor(codeCallback: FlowCode? = n
         hThread = HThread()
     }
 
-    fun execute(codeCallback: FlowCode) {
+    fun execute(codeCallback: ExecuteCode) {
         globalCallback = codeCallback
     }
 

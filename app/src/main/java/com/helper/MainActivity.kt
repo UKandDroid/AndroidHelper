@@ -33,7 +33,7 @@ class MainActivity : AppCompatActivity() {
 
         flow.event(Events.EVENT_ONE)
 
-        flow.execute(object : Flow.FlowCode {
+        flow.execute(object : Flow.ExecuteCode {
             override fun onAction(iAction: Int, bSuccess: Boolean, iExtra: Int, data: Any?) {
                 Log.w("flow", "flow-call  Action: $iAction Success:$bSuccess ")
                 if(iAction == 3) { flow.cancelAction(2) }
