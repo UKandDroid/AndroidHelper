@@ -13,9 +13,7 @@ class MainActivity : AppCompatActivity() {
     var log = Logger("FlowTest")
     var bFlip = true
 
-    enum class  Events{
-        EVENT_ONE, EVENT_TWO
-    }
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -23,8 +21,8 @@ class MainActivity : AppCompatActivity() {
         val anim = Anim()
 
         val flow = UiFlow()
+        flow.registerUiEvent(1, R.id.btn_one, )
 
-    
         anim.addAnimation(Anim.TYPE_SCALE, Anim.INTER_OVERSHOOT, 1.0f, 0.6f, 700, 1000)
         anim.addAnimation(Anim.TYPE_SCALE, Anim.INTER_OVERSHOOT, 1.0f, 1.4f, 700, 2000)
         anim.setView(findViewById(R.id.btn_one))
