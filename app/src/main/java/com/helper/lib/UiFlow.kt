@@ -34,7 +34,7 @@ class UiFlow:LifecycleObserver {
                 fun onStateChange(bVisible:Boolean)
         }
 
-        enum class EventListener {
+        enum class UiEvent {
                 // EVENTS for which listeners are set
                  TOUCH, ON_CLICK,
                  TEXT_CHANGED,
@@ -62,84 +62,93 @@ class UiFlow:LifecycleObserver {
                 internal abstract fun register():FlowListener
                 internal abstract fun unRegister()
         }
-        constructor() {}
 
         constructor(codeCallback:Code) {
                 this.code = codeCallback
         }
 
         // METHODS registers/un registers UI events for Action
-        fun unRegisterUIEvent(view:View, iEvent:EventListener) {
+        fun unRegisterUIEvent(view:View, iEvent:UiEvent) {
                 unRegisterListener(view, iEvent)
         }
         fun registerClick(view:View) {
-                registerListener(false, -1, view, EventListener.ON_CLICK)
+                registerListener(false, -1, view, UiEvent.ON_CLICK)
         }
         fun registerClick(iAction:Int, view:View) {
-                registerListener(false, iAction, view, EventListener.ON_CLICK)
+                registerListener(false, iAction, view, UiEvent.ON_CLICK)
         }
-        fun registerUiEvent(view:View, iEvent:EventListener):UiFlow {
+        fun registerUiEvent(view:View, iEvent:UiEvent):UiFlow {
                 registerListener(false, -1, view, iEvent)
                 return this
         }
-        fun registerUiEvent(iAction:Int, view:View, iEvent:EventListener):UiFlow {
+        fun registerUiEvent(iAction:Int, view:View, iEvent:UiEvent):UiFlow {
                 registerListener(false, iAction, view, iEvent)
                 return this
         }
         fun registerUiEvent(iAction:Int, bRunOnUI:Boolean, view:View) {
-                registerListener(bRunOnUI, iAction, view, EventListener.ON_CLICK)
+                registerListener(bRunOnUI, iAction, view, UiEvent.ON_CLICK)
         }
-        fun registerUiEvent(bRunOnUI:Boolean, view:View, iEvent:EventListener):UiFlow {
+        fun registerUiEvent(bRunOnUI:Boolean, view:View, iEvent:UiEvent):UiFlow {
                 registerListener(bRunOnUI, -1, view, iEvent)
                 return this
         }
-        fun registerUiEvent(iAction:Int, bRunOnUI:Boolean, view:View, iEvent:EventListener):UiFlow {
+        fun registerUiEvent(iAction:Int, bRunOnUI:Boolean, view:View, iEvent:UiEvent):UiFlow {
                 registerListener(bRunOnUI, iAction, view, iEvent)
                 return this
         }
         // VIEW LISTENERS set event listeners for View objects
-        private fun registerListener(bRunOnUI:Boolean, iAction:Int, view:View, iListener:EventListener) {
+        private fun registerListener(bRunOnUI:Boolean, iAction:Int, view:View, iListener:UiEvent) {
                 when (iListener) {
                         // Triggered when Text entered in text field, i.e when text field loses focus, enter button is pressed on keyboard
                         // for text entered to work with keyboard hide, set android:windowSoftInputMode="adjustResize" or "adjustPan"
                         // and setup KEYBOARD_STATE UiEvent, provided with main activity root decor view
-                        EventListener.TEXT_ENTERED -> flowListeners.add(TextEntered(view, iAction, bRunOnUI).register())
+                        UiEvent.TEXT_ENTERED -> flowListeners.add(TextEntered(view, iAction, bRunOnUI).register())
                         // Triggered when text changes
-                        EventListener.TEXT_CHANGED -> flowListeners.add(TextChanged(view, iAction, bRunOnUI).register())
+
+                        UiEvent.TEXT_CHANGED -> flowListeners.add(TextChanged(view, iAction, bRunOnUI).register())
                         // Triggered when ui layout changes with width/height values > 0 and called only once
-                        EventListener.LOAD_LAYOUT -> flowListeners.add(LoadLayout(view, iAction, bRunOnUI).register())
+
+                        UiEvent.LOAD_LAYOUT -> flowListeners.add(LoadLayout(view, iAction, bRunOnUI).register())
                         // triggered listener when view is clicked
-                        EventListener.ON_CLICK -> flowListeners.add(OnClick(view, iAction, bRunOnUI).register())
-                        EventListener.KEYBOARD_STATE_CHANGE // Method reports keyboard state change, should be provided with root activity view (activity.window.decorView)
-                        -> flowListeners.add(KeyboardStateChange(view, iAction, bRunOnUI).register())
-                        EventListener.LIST_ITEM_SELECT -> flowListeners.add(ListItemSelect(view, iAction, bRunOnUI).register())
-                        EventListener.SPINNER_ITEM_SELECT -> flowListeners.add(SpinnerItemSelect(view, iAction, bRunOnUI).register())
-                        EventListener.CHECKBOX_STATE -> flowListeners.add(CheckboxState(view, iAction, bRunOnUI).register())
-                        EventListener.TOUCH // Listener returns true for Touch down and Move, false when finger is lifted up
-                        -> flowListeners.add(TouchListener(view, iAction, bRunOnUI).register())
+
+                        UiEvent.ON_CLICK -> flowListeners.add(OnClick(view, iAction, bRunOnUI).register())
+
+                        // Method reports keyboard state change, should be provided with view, uses view.getRootView() to get parent view
+                        UiEvent.KEYBOARD_STATE_CHANGE -> flowListeners.add(KeyboardStateChange(view, iAction, bRunOnUI).register())
+
+                        UiEvent.LIST_ITEM_SELECT -> flowListeners.add(ListItemSelect(view, iAction, bRunOnUI).register())
+
+                        UiEvent.SPINNER_ITEM_SELECT -> flowListeners.add(SpinnerItemSelect(view, iAction, bRunOnUI).register())
+
+                        UiEvent.CHECKBOX_STATE -> flowListeners.add(CheckboxState(view, iAction, bRunOnUI).register())
+
+                        // Listener returns true for Touch down and Move, false when finger is lifted up
+                        UiEvent.TOUCH  -> flowListeners.add(TouchListener(view, iAction, bRunOnUI).register())
+
                 }
         }
+        
         // VIEW LISTENERS set event listeners for View objects
-        private fun unRegisterListener(view:View, iListener:EventListener) {
+        private fun unRegisterListener(view:View, iListener:UiEvent) {
                 when (iListener) {
-                        EventListener.ON_CLICK -> {
+                        UiEvent.ON_CLICK -> {
                                 if (view is EditText) {
                                         view.setOnFocusChangeListener(null)
                                 }
                                 view.setOnClickListener(null)
                         }
-                        EventListener.TEXT_ENTERED -> {
+                        UiEvent.TEXT_ENTERED -> {
                                 listKBListeners.remove(view)
                                 view.setOnFocusChangeListener(null)
                                 (view as EditText).setOnEditorActionListener(null)
                         }
                         // case UiEvent.KEYBOARD_STATE_CHANGE: removeKeybListener(); break;
-                        EventListener.TEXT_CHANGED -> listTextListeners.remove(view)
-                        EventListener.LIST_ITEM_SELECT -> (view as ListView).setOnItemClickListener(null)
-                        EventListener.SPINNER_ITEM_SELECT -> (view as Spinner).setOnItemSelectedListener(null)
-                        EventListener.CHECKBOX_STATE -> (view as CheckBox).setOnCheckedChangeListener(null)
-                        EventListener.TOUCH -> view.setOnTouchListener(null)
-                        EventListener.LOAD_LAYOUT -> view.removeOnLayoutChangeListener(null)
+                        UiEvent.TEXT_CHANGED -> listTextListeners.remove(view)
+                        UiEvent.LIST_ITEM_SELECT -> (view as ListView).setOnItemClickListener(null)
+                        UiEvent.SPINNER_ITEM_SELECT -> (view as Spinner).setOnItemSelectedListener(null)
+                        UiEvent.CHECKBOX_STATE -> (view as CheckBox).setOnCheckedChangeListener(null)
+                        UiEvent.TOUCH -> view.setOnTouchListener(null)
+                        UiEvent.LOAD_LAYOUT -> view.removeOnLayoutChangeListener(null)
                 }
         }
         @OnLifecycleEvent(Lifecycle.Event.ON_PAUSE)
@@ -159,30 +168,28 @@ class UiFlow:LifecycleObserver {
 
                 flowListeners = arrayListOf()
         }
+
         // CLASS for thread handler
         private inner class HThread internal constructor():Handler.Callback {
                 private val mHandler:Handler
                 private val mUiHandler:Handler
+
                 init{
                         val ht = HandlerThread("BGThread_" + ++iThreadCount)
                         ht.start()
-                        mHandler = Handler(ht.getLooper(), this)
+                        mHandler = Handler(ht.looper, this)
                         mUiHandler = Handler(Looper.getMainLooper(), this)
                 }
 
-                fun run(iStep: Int) {
-                        run(iStep, false)
+
+                fun run(iStep: Int, bRunOnUi : Boolean, bSuccess: Boolean, iExtra: Int, obj: Any) {
+                        if (bRunOnUi)
+                                runOnUI(iStep, bSuccess, iExtra, obj)
+                        else
+                                run(iStep, bSuccess, iExtra, obj)
                 }
 
-                fun run(iStep: Int, bRunUI: Boolean) {
-                        if (bRunUI) {
-                                runOnUI(iStep, true, 0, null!!)
-                        } else {
-                                run(iStep, true, 0, null!!)
-                        }
-                }
-
-                fun run(iStep: Int, bSuccess: Boolean, iExtra: Int, obj: Any) {
+               private fun run(iStep: Int, bSuccess: Boolean, iExtra: Int, obj: Any) {
                         if (!bPause) {
                                 val msg = Message.obtain()
                                 msg.what = iStep
@@ -192,7 +199,8 @@ class UiFlow:LifecycleObserver {
                                 mHandler.sendMessage(msg)
                         }
                 }
-                 fun runOnUI(iStep:Int, bSuccess:Boolean, iExtra:Int, obj:Any) {
+
+                private  fun runOnUI(iStep:Int, bSuccess:Boolean, iExtra:Int, obj:Any) {
                         if (!bPause) {
                                 val msg = Message.obtain()
                                 msg.what = iStep
@@ -212,7 +220,7 @@ class UiFlow:LifecycleObserver {
                 fun stop() {
                         mHandler.removeCallbacksAndMessages(null)
                         mUiHandler.removeCallbacksAndMessages(null)
-                        mHandler.getLooper().quit()
+                        mHandler.looper.quit()
                 }
         }
         // LIST_ITEM_SELECT
@@ -220,57 +228,44 @@ class UiFlow:LifecycleObserver {
                 internal override fun register():FlowListener {
                         (view as Spinner).onItemSelectedListener = object:AdapterView.OnItemSelectedListener {
                                 override fun onItemSelected(parent:AdapterView<*>, view:View, position:Int, id:Long) {
-                                        if (bRunOnUI) {
-                                                hThread.runOnUI(iAction, true, position, view)
-                                        } else {
-                                                hThread.run(iAction, true, position, view)
-                                        }
+                                        hThread.run(iAction, bRunOnUI,true, position, view)
+
                                 }
 
                                 override fun onNothingSelected(parent:AdapterView<*>) {
-                                        if (bRunOnUI) {
-                                                hThread.runOnUI(iAction, false, -1, view)
-                                        } else {
-                                                hThread.run(iAction, false, -1, view)
-                                        }
+                                        hThread.run(iAction, bRunOnUI,false, -1, view)
                                 }
                         }
                         return this
                 }
-                internal override fun unRegister() {
-                        (view as Spinner).setOnItemClickListener(null)
+                 override fun unRegister() {
+                         (view as Spinner).onItemClickListener = null
                 }
         }
 
         // CHECK_BOX_STATE
         private inner class TouchListener internal constructor(view:View, iAction:Int, bRunOnUI:Boolean):FlowListener(view, iAction, bRunOnUI) {
-                internal override fun register():FlowListener {
+                 override fun register():FlowListener {
                         view.setOnTouchListener { v, event ->
-                                if (bRunOnUI) {
-                                        hThread.runOnUI(iAction, event.getAction() !== MotionEvent.ACTION_UP, event.getAction(), event)
-                                } else {
-                                        hThread.run(iAction, event.getAction() !== MotionEvent.ACTION_UP, event.getAction(), event)
-                                }
+                                hThread.run(iAction, bRunOnUI,event.action != MotionEvent.ACTION_UP, event.action, event)
                                 false
                         }
                         return this
                 }
-                internal override fun unRegister() {
+                 override fun unRegister() {
                         view.setOnTouchListener(null)
                 }
         }
 
         // CHECK_BOX_STATE
         private inner class CheckboxState internal constructor(view:View, iAction:Int, bRunOnUI:Boolean):FlowListener(view, iAction, bRunOnUI) {
-                internal override fun register():FlowListener {
-                        (view as CheckBox).setOnCheckedChangeListener { buttonView, isChecked-> if (bRunOnUI) {
-                                hThread.runOnUI(iAction, isChecked, 0, view)
-                        } else {
-                                hThread.run(iAction, isChecked, 0, view)
-                        } }
+                 override fun register():FlowListener {
+                        (view as CheckBox).setOnCheckedChangeListener { buttonView, isChecked->
+                                hThread.run(iAction, bRunOnUI, isChecked, 0, view)
+                         }
                         return this
                 }
-                internal override fun unRegister() {
+                 override fun unRegister() {
                         (view as CheckBox).setOnCheckedChangeListener(null)
                 }
         }
@@ -278,11 +273,9 @@ class UiFlow:LifecycleObserver {
         // LIST_ITEM_SELECT
         private inner class ListItemSelect internal constructor(view:View, iAction:Int, bRunOnUI:Boolean):FlowListener(view, iAction, bRunOnUI) {
                  override fun register():FlowListener {
-                        (view as ListView).setOnItemClickListener { parent, view12, position, id-> if (bRunOnUI) {
-                                hThread.runOnUI(iAction, true, position, view12)
-                        } else {
-                                hThread.run(iAction, true, position, view12)
-                        } }
+                        (view as ListView).setOnItemClickListener { parent, view12, position, id->
+                                hThread.run(iAction, bRunOnUI, true, position, view12)
+                         }
                          return this
                 }
 
@@ -300,16 +293,10 @@ class UiFlow:LifecycleObserver {
                                 override  fun afterTextChanged(s:Editable) {}
                                 override fun beforeTextChanged(s:CharSequence, start:Int, count:Int, after:Int) {}
                                 override fun onTextChanged(s:CharSequence, start:Int, before:Int, count:Int) {
-                                        if (bRunOnUI)
-                                        {
-                                                hThread.runOnUI(iAction, true, 0, view)
-                                        }
-                                        else
-                                        {
-                                                hThread.run(iAction, true, 0, view)
-                                        }
+                                        hThread.run(iAction, bRunOnUI,true, 0, view)
                                 }
                         }
+
                         listTextListeners.put(view, listener)
                         (view as EditText).addTextChangedListener(listener)
                         return this
@@ -327,37 +314,25 @@ class UiFlow:LifecycleObserver {
                         val listKb = object : KeyboardState {
                                 override fun onStateChange(bVisible: Boolean) {
                                         if (view.hasFocus() && !bVisible) {
-                                                if (bRunOnUI) {
-                                                        hThread.runOnUI(iAction, bVisible, 0, view)
-                                                } else {
-                                                        hThread.run(iAction, bVisible, 0, view)
-                                                }
+                                                hThread.run(iAction, bRunOnUI, bVisible, 0, view)
                                         }
                                 }
                         }
 
                         listKBListeners.put(view, listKb)
-                        addKeybListener(listKb)
+                        addKeyboardListener(listKb)
 
                         view.onFocusChangeListener = View.OnFocusChangeListener { v, hasFocus ->
                                 if (!hasFocus) {
                                         Log.w("UiFlow", "Text ENTERED on Lost focus")
-                                        if (bRunOnUI) {
-                                                hThread.runOnUI(iAction, true, 0, view)
-                                        } else {
-                                                hThread.run(iAction, true, 1, view)
-                                        }
+                                        hThread.run(iAction,  bRunOnUI, true, 1, view)
                                 }
                         }
 
                         (view as EditText).setOnEditorActionListener { v, actionId, event->
                                 if (actionId == EditorInfo.IME_ACTION_DONE) {
                                         Log.w("UiFlow", "Text ENTERED on KB Done")
-                                        if (bRunOnUI) {
-                                                hThread.runOnUI(iAction, true, 0, view)
-                                        } else {
-                                                hThread.run(iAction, true, 3, view)
-                                        }
+                                        hThread.run(iAction, bRunOnUI,true, 3, view)
                                 }
                                 false }
                         return this
@@ -368,7 +343,7 @@ class UiFlow:LifecycleObserver {
                         (view as EditText).setOnEditorActionListener(null)
                 }
 
-                private fun addKeybListener(keyListener:KeyboardState) {
+                private fun addKeyboardListener(keyListener:KeyboardState) {
                         keyList.add(keyListener)
                 }
         }
@@ -381,11 +356,7 @@ class UiFlow:LifecycleObserver {
                                 override fun onLayoutChange(view:View, i:Int, i1:Int, i2:Int, i3:Int, i4:Int, i5:Int, i6:Int, i7:Int) {
                                         if ((i + i1 + i2 + i3) > 0) {
                                                 view.removeOnLayoutChangeListener(this)
-                                                if (bRunOnUI) {
-                                                        hThread.runOnUI(iAction, true, 0, view)
-                                                } else {
-                                                        hThread.run(iAction, true, 0, view)
-                                                }
+                                                hThread.run(iAction, bRunOnUI, true, 0, view)
                                         }
                                 }
                         }
@@ -405,21 +376,14 @@ class UiFlow:LifecycleObserver {
                         if (view is EditText) { // NOTE: for editText first tap get focus, 2nd to trigger onClick, unless focusable is setfalse()
                                 bIsFocusListener = true
                                 view.setOnFocusChangeListener { v, hasFocus-> if (hasFocus) {
-                                        if (bRunOnUI) {
-                                                hThread.runOnUI(iAction, true, 0, view)
-                                        } else {
-                                                hThread.run(iAction, true, 0, view)
-                                        }
+                                                hThread.run(iAction, bRunOnUI, true, 0, view)
                                 } }
                         }
 
                         view.setOnClickListener { view1->
                                 bIsFocusListener = false
-                                if (bRunOnUI) {
-                                        hThread.runOnUI(iAction, true, 0, view1)
-                                } else {
-                                        hThread.run(iAction, true, 0, view1)
-                                } }
+                                hThread.run(iAction, bRunOnUI, true, 0, view1)
+                                 }
                         return this
                 }
 
@@ -445,15 +409,15 @@ class UiFlow:LifecycleObserver {
                                 if (!bKeybVisible) { // if its not already set set it
                                         bKeybVisible = true
                                         rLast = rCur
-                                        for (i in keyList.indices)
-                                                keyList[i].onStateChange(true)
+                                        for (listener in keyList)
+                                                listener.onStateChange(true)
                                 }
                         } else if ((rCur.bottom - rLast.bottom) > 200) {
                                 if (bKeybVisible) {
                                         bKeybVisible = false
                                         rLast = rCur
-                                        for (i in keyList.indices)
-                                                keyList[i].onStateChange(false)
+                                        for (listener in keyList)
+                                                listener.onStateChange(false)
                                 }
                         }
                 }
@@ -461,37 +425,32 @@ class UiFlow:LifecycleObserver {
                  override fun register():FlowListener {
                         val list = object:KeyboardState {
                                  override fun onStateChange(bVisible:Boolean) {
-                                        if (view.hasFocus()) {
-                                                if (bRunOnUI) {
-                                                        hThread.runOnUI(iAction, bVisible, 0, view)
-                                                } else {
-                                                        hThread.run(iAction, bVisible, 0, view)
-                                                }
-                                        }
+                                         hThread.run(iAction, bRunOnUI,  bVisible, 0, view)
                                 }
                         }
-                        setUpKeybListener(list, view)
+                        setUpKeyboardListener(list, view)
                         return this
                 }
 
                 // METHOD - sets up a listener for keyboard state change, also change SoftInputMode if its not correct
-                private fun setUpKeybListener(keyListener:KeyboardState, view:View) {
-                        val act = (view as ViewGroup).getChildAt(0).getContext() as Activity // Change soft input mode to SOFT_INPUT_ADJUST_PAN or SOFT_INPUT_ADJUST_RESIZE, for it to work
+                private fun setUpKeyboardListener(keyListener:KeyboardState, view:View) {
+                        val act = view.context  as Activity // Change soft input mode to SOFT_INPUT_ADJUST_PAN or SOFT_INPUT_ADJUST_RESIZE, for it to work
                         val window = act.getWindow()
                         iSoftInputMode = window.getAttributes().softInputMode // save it so we can restore, when keyboard listener is removed
                         if (iSoftInputMode != WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN && iSoftInputMode != WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
                                 window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN)
                         rLast = Rect() // set a new rect for storing screen state
-                        viewActRoot = view
+                        viewActRoot = view.rootView
                         keyList.add(keyListener)
-                        view.getViewTreeObserver().addOnGlobalLayoutListener(keybListener)
+                        view.viewTreeObserver.addOnGlobalLayoutListener(keybListener)
                 }
+
                  override fun unRegister() {
-                        removeKeybListener()
+                        removeKeyboardbListener()
                 }
-                
+
                 // METHOD - sets/removes global keyboard listener, also sets resets SoftInputMode
-                private fun removeKeybListener() {
+                private fun removeKeyboardbListener() {
                         viewActRoot?.viewTreeObserver?.removeOnGlobalLayoutListener(keybListener)
                         val act = (viewActRoot as ViewGroup).getChildAt(0).context as Activity
                         val window = act.window

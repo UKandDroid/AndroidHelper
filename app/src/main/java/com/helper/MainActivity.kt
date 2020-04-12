@@ -20,13 +20,16 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         val anim = Anim()
 
-        val flow = UiFlow()
-        flow.registerUiEvent(1, R.id.btn_one, )
+        val flow = UiFlow(object : UiFlow.Code {
+            override fun onAction(action: Int, bSuccess: Boolean, iExtra: Int, tag: Any) {
+                Log.d("android-helper", "Action:$action bSuccess:$bSuccess")
+            }
+        });
 
-        anim.addAnimation(Anim.TYPE_SCALE, Anim.INTER_OVERSHOOT, 1.0f, 0.6f, 700, 1000)
-        anim.addAnimation(Anim.TYPE_SCALE, Anim.INTER_OVERSHOOT, 1.0f, 1.4f, 700, 2000)
-        anim.setView(findViewById(R.id.btn_one))
-        anim.start()
+        flow.registerUiEvent(1, findViewById(R.id.btn_one), UiFlow.UiEvent.ON_CLICK )
+        flow.registerUiEvent(2, findViewById(R.id.btn_one), UiFlow.UiEvent.KEYBOARD_STATE_CHANGE )
+        flow.registerUiEvent(3, findViewById(R.id.edit_one), UiFlow.UiEvent.TEXT_ENTERED)
+
 
     }
 
@@ -58,8 +61,5 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
     }
 
-    fun onClick(v: View?) {
-        if (bFlip) wake!!.runRepeat(1, 10 * 1000L, "one") else wake!!.runRepeat(1, 20 * 1000L, "one")
-        bFlip = !bFlip
-    }
+
 }
