@@ -26,9 +26,9 @@ class MainActivity : AppCompatActivity() {
             }
         });
 
-        flow.registerUiEvent(1, findViewById(R.id.btn_one), UiFlow.UiEvent.ON_CLICK )
-        flow.registerUiEvent(2, findViewById(R.id.btn_one), UiFlow.UiEvent.KEYBOARD_STATE_CHANGE )
-        flow.registerUiEvent(3, findViewById(R.id.edit_one), UiFlow.UiEvent.TEXT_ENTERED)
+        flow.registerClick(1, findViewById(R.id.btn_one)){ }
+        flow.registerUiEvent(2, findViewById(R.id.btn_one), UiFlow.UiEvent.KEYBOARD_STATE_CHANGE ){}
+        flow.registerUiEvent(3, findViewById(R.id.edit_one), UiFlow.UiEvent.TEXT_ENTERED){}
 
 
     }
