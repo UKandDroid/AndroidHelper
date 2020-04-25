@@ -6,6 +6,7 @@ import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.widget.ToggleButton
 import com.helper.lib.*
 
 class MainActivity : AppCompatActivity() {
@@ -26,9 +27,20 @@ class MainActivity : AppCompatActivity() {
             }
         });
 
+        val button = findViewById<ToggleButton>(R.id.toggleButton)
+        button.setOnCheckedChangeListener { buttonView, isChecked ->  {
+
+        } }
+
         flow.registerClick(1, findViewById(R.id.btn_one)){ }
         flow.registerUiEvent(2, findViewById(R.id.btn_one), UiFlow.UiEvent.KEYBOARD_STATE_CHANGE ){}
         flow.registerUiEvent(3, findViewById(R.id.edit_one), UiFlow.UiEvent.TEXT_ENTERED){}
+        flow.registerUiEvent(4, findViewById(R.id.toggleButton), UiFlow.UiEvent.ON_TOGGLE){
+           log.d("toggle: $it")
+        }
+        flow.registerUiEvent(5, findViewById(R.id.switch1), UiFlow.UiEvent.ON_SWITCH){
+            log.d("switch: $it")
+        }
 
 
     }

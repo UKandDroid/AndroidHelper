@@ -54,14 +54,27 @@
                     android:id="@+id/btn_one"
                     android:text="button 1"
                     android:layout_width="0dp" android:layout_height="60dp" />
-                <View
-                    android:layout_weight="1.0"
-                    android:layout_width="0dp" android:layout_height="20dp" />
+
                 <Button
-                    android:layout_weight="1.0"
-                    android:text="Button 2"
                     android:id="@+id/btn_two"
-                    android:layout_width="0dp" android:layout_height="60dp" />
+                    android:layout_width="0dp"
+                    android:layout_height="60dp"
+                    android:layout_weight="1.0"
+                    android:text="Button 2" />
+
+                <ToggleButton
+                    android:id="@+id/toggleButton"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1.0"
+                    android:text="ToggleButton" />
+
+                <Switch
+                    android:id="@+id/switch1"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1.0"
+                    android:text="Switch" />
             </LinearLayout>>
 
         </LinearLayout>

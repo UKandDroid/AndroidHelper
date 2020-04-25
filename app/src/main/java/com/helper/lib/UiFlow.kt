@@ -32,15 +32,17 @@ class UiFlow(codeCallback: Code) :LifecycleObserver {
         }
 
         enum class UiEvent { // EVENTS for which listeners are set
-                TOUCH,
+                ON_TOUCH,
                 ON_CLICK,
+                ON_TOGGLE,              // Compound button
+                ON_SWITCH,              // Compound button
+                ON_CHECKBOX,            // Compound button
+                LOAD_LAYOUT,            // Called when a view width and height are set
                 TEXT_CHANGED,
                 TEXT_ENTERED,
-                CHECKBOX_STATE,
                 LIST_ITEM_SELECT,
                 SPINNER_ITEM_SELECT,
-                KEYBOARD_STATE_CHANGE, // works only for android:windowSoftInputMode="adjustResize" or adjustPan
-                LOAD_LAYOUT            // called when a view is loaded with width and height set
+                KEYBOARD_STATE_CHANGE // Works only for android:windowSoftInputMode="adjustResize" or "adjustPan"
         }
 
         interface Code {
@@ -58,7 +60,6 @@ class UiFlow(codeCallback: Code) :LifecycleObserver {
                 registerListener( iAction, view, UiEvent.ON_CLICK, localCallback)
         }
 
-
         @JvmOverloads
         fun registerUiEvent(iAction:Int,  view:View, iEvent:UiEvent, localCallback : UiCallback? = null):UiFlow {
                 registerListener( iAction, view, iEvent, localCallback)
@@ -71,16 +72,14 @@ class UiFlow(codeCallback: Code) :LifecycleObserver {
                         // Triggered when Text entered in text field, i.e when text field loses focus, enter button is pressed on keyboard
                         // for text entered to work with keyboard hide, set android:windowSoftInputMode="adjustResize" or "adjustPan"
                         // and setup KEYBOARD_STATE UiEvent, provided with main activity root decor view
-                        UiEvent.TEXT_ENTERED -> flowListeners.add(TextEntered(view, iAction, localCallback).register())
-                        // Triggered when text changes
+                        UiEvent.TEXT_ENTERED -> flowListeners.add(TextEntered(view, iAction, localCallback).register()) // Triggered when text changes
 
                         UiEvent.TEXT_CHANGED -> flowListeners.add(TextChanged(view, iAction, localCallback).register())
+
                         // Triggered when ui layout changes with width/height values > 0 and called only once
-
                         UiEvent.LOAD_LAYOUT -> flowListeners.add(LoadLayout(view, iAction, localCallback).register())
-                        // triggered listener when view is clicked
 
-                        UiEvent.ON_CLICK -> flowListeners.add(OnClick(view, iAction, localCallback).register())
+                        UiEvent.ON_CLICK -> flowListeners.add(OnClick(view, iAction, localCallback).register())// triggered listener when view is clicked
 
                         // Method reports keyboard state change, should be provided with view, uses view.getRootView() to get parent view
                         UiEvent.KEYBOARD_STATE_CHANGE -> flowListeners.add(KeyboardStateChange(view, iAction, localCallback).register())
@@ -89,11 +88,14 @@ class UiFlow(codeCallback: Code) :LifecycleObserver {
 
                         UiEvent.SPINNER_ITEM_SELECT -> flowListeners.add(SpinnerItemSelect(view, iAction, localCallback).register())
 
-                        UiEvent.CHECKBOX_STATE -> flowListeners.add(CheckboxState(view, iAction, localCallback).register())
+                        UiEvent.ON_CHECKBOX -> flowListeners.add(CompoundButton(view, iAction, localCallback).register())
+
+                        UiEvent.ON_TOGGLE -> flowListeners.add(CompoundButton(view, iAction, localCallback).register())
+
+                        UiEvent.ON_SWITCH -> flowListeners.add(CompoundButton(view, iAction, localCallback).register())
 
                         // Listener returns true for Touch down and Move, false when finger is lifted up
-                        UiEvent.TOUCH  -> flowListeners.add(TouchListener(view, iAction, localCallback).register())
-
+                        UiEvent.ON_TOUCH  -> flowListeners.add(TouchListener(view, iAction, localCallback).register())
                 }
         }
 
@@ -115,8 +117,8 @@ class UiFlow(codeCallback: Code) :LifecycleObserver {
                         UiEvent.TEXT_CHANGED -> listTextListeners.remove(view)
                         UiEvent.LIST_ITEM_SELECT -> (view as ListView).setOnItemClickListener(null)
                         UiEvent.SPINNER_ITEM_SELECT -> (view as Spinner).setOnItemSelectedListener(null)
-                        UiEvent.CHECKBOX_STATE -> (view as CheckBox).setOnCheckedChangeListener(null)
-                        UiEvent.TOUCH -> view.setOnTouchListener(null)
+                        UiEvent.ON_CHECKBOX -> (view as CheckBox).setOnCheckedChangeListener(null)
+                        UiEvent.ON_TOUCH -> view.setOnTouchListener(null)
                         UiEvent.LOAD_LAYOUT -> view.removeOnLayoutChangeListener(null)
                 }
         }
@@ -137,16 +139,13 @@ class UiFlow(codeCallback: Code) :LifecycleObserver {
         }
 
 
-
         // LIST_ITEM_SELECT
         private inner class SpinnerItemSelect internal constructor(view: View, iAction: Int, localCallback: UiCallback? = null) : UiFlowListener(view, iAction, localCallback) {
                 override fun register():UiFlowListener {
                         (view as Spinner).onItemSelectedListener = object:AdapterView.OnItemSelectedListener {
                                 override fun onItemSelected(parent:AdapterView<*>, view:View, position:Int, id:Long) {
                                         onEvent(iAction,true, position, view)
-
                                 }
-
                                 override fun onNothingSelected(parent:AdapterView<*>) {
                                         onEvent(iAction,false, -1, view)
                                 }
@@ -166,7 +165,7 @@ class UiFlow(codeCallback: Code) :LifecycleObserver {
                 }
         }
 
-        // CHECK_BOX_STATE
+        // TOUCH
         private inner class TouchListener internal constructor(view:View, iAction:Int, localCallback: UiCallback? = null) : UiFlowListener(view, iAction, localCallback) {
                  override fun register():UiFlowListener {
                         view.setOnTouchListener { v, event ->
@@ -189,9 +188,9 @@ class UiFlow(codeCallback: Code) :LifecycleObserver {
         }
 
         // CHECK_BOX_STATE
-        private inner class CheckboxState internal constructor(view:View, iAction:Int, localCallback: UiCallback? = null) : UiFlowListener(view, iAction, localCallback) {
+        private inner class CompoundButton internal constructor(view:View, iAction:Int, localCallback: UiCallback? = null) : UiFlowListener(view, iAction, localCallback) {
                  override fun register():UiFlowListener {
-                        (view as CheckBox).setOnCheckedChangeListener { buttonView, isChecked->
+                        (view as android.widget.CompoundButton).setOnCheckedChangeListener { buttonView, isChecked->
                                onEvent(iAction, isChecked, 0, view)
                          }
                         return this
