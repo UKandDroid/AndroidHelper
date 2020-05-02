@@ -56,6 +56,10 @@ class UiFlow(codeCallback: Code) :LifecycleObserver {
                 protected abstract fun onEvent(iAction: Int, bSuccess: Boolean, iExtra: Int, data: Any? )
         }
 
+        fun registerClick( view:View, localCallback : UiCallback? = null) {
+                registerListener( -1, view, UiEvent.ON_CLICK, localCallback)
+        }
+
         fun registerClick(iAction:Int, view:View, localCallback : UiCallback? = null) {
                 registerListener( iAction, view, UiEvent.ON_CLICK, localCallback)
         }
@@ -63,6 +67,12 @@ class UiFlow(codeCallback: Code) :LifecycleObserver {
         @JvmOverloads
         fun registerUiEvent(iAction:Int,  view:View, iEvent:UiEvent, localCallback : UiCallback? = null):UiFlow {
                 registerListener( iAction, view, iEvent, localCallback)
+                return this
+        }
+        
+        @JvmOverloads
+        fun registerUiEvent( view:View, iEvent:UiEvent, localCallback : UiCallback? = null):UiFlow {
+                registerListener( -1, view, iEvent, localCallback)
                 return this
         }
 
