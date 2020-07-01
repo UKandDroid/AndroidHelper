@@ -1,18 +1,19 @@
-package com.helper.lib;
+package com.stryde.base.libs;
 
-import android.arch.lifecycle.Lifecycle
-import android.arch.lifecycle.LifecycleObserver
-import android.arch.lifecycle.OnLifecycleEvent
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
 import android.os.Message
 import android.util.Log
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleObserver
+import androidx.lifecycle.OnLifecycleEvent
 import java.util.*
 
 typealias SingleCallback = (bSuccess: Boolean) -> Unit
 
-// Version 3.0.0
+// Version 3.0.1
+// Fixed bug where runAction() causes exception
 // encapsulation for Action & Event classes
 // Added <Generic Type> based events
 // Added getEventsForAction(), getErrorEventForAction()
@@ -205,7 +206,7 @@ open class Flow<EventType> @JvmOverloads constructor(codeCallback: ExecuteCode? 
     }
 
     // CLASS for events for action, when all events occur action is triggered
-     open class Action() {
+    open class Action() {
         protected var listEvents: MutableList<Event<*>> = ArrayList() // List to store Flow.Events needed for this action
         protected var iLastStatus = EventStatus.WAITING       // Event set status as a whole, waiting, success, non success
 
@@ -459,21 +460,27 @@ open class Flow<EventType> @JvmOverloads constructor(codeCallback: ExecuteCode? 
 
         // METHOD MESSAGE HANDLER
         override fun handleMessage(msg: Message): Boolean {
-            val action = msg.obj as Flow<EventType>._Action
+            if (msg.obj !is Flow<*>) { // called directly with runAction() action probably does not exist
 
-            if (action.getFlag(FLAG_REPEAT)) {      // If its a repeat action, we have to post it again
-                val event = action.getEvents()[0] // get delay event for data
-                hThread.mHandler.postDelayed((Runnable { action.onEvent(event.event!!, !event.isSuccess(), event.extra++, event.obj) }), event.obj as Long)
-                // posting action.onEvent() to repeat action only, not Flow.event(), to keep it local and filling queue for fast repeating actions
-            }
+                globalCallback?.onAction(msg.what, msg.arg2 == ACTION_SUCCESS, msg.arg1, msg.obj)
 
-            if (!action.callback(msg.arg2 == ACTION_SUCCESS)) { // if there is no specific callback for action, call generic call back
-                globalCallback?.onAction(msg.what, msg.arg2 == ACTION_SUCCESS, msg.arg1, msg.obj as Flow.Action)
-            }
+            } else { // is Flow Action with events
+                val action = msg.obj as Flow<EventType>._Action
 
-            if (action.getFlag(FLAG_RUNONCE)) {
-                loge("REMOVING: Action(${action.iAction}, runOnce) as its executed")
-                _cancelAction(action) // Recycle if its flagged for it
+                if (action.getFlag(FLAG_REPEAT)) {      // If its a repeat action, we have to post it again
+                    val event = action.getEvents()[0] // get delay event for data
+                    hThread.mHandler.postDelayed((Runnable { action.onEvent(event.event!!, !event.isSuccess(), event.extra++, event.obj) }), event.obj as Long)
+                    // posting action.onEvent() to repeat action only, not Flow.event(), to keep it local and filling queue for fast repeating actions
+                }
+
+                if (!action.callback(msg.arg2 == ACTION_SUCCESS)) { // if there is no specific callback for action, call generic call back
+                    globalCallback?.onAction(msg.what, msg.arg2 == ACTION_SUCCESS, msg.arg1, msg.obj as Flow.Action)
+                }
+
+                if (action.getFlag(FLAG_RUNONCE)) {
+                    loge("REMOVING: Action(${action.iAction}, runOnce) as its executed")
+                    _cancelAction(action) // Recycle if its flagged for it
+                }
             }
 
             return true
