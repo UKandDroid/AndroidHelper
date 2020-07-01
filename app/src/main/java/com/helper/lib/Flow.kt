@@ -460,7 +460,7 @@ open class Flow<EventType> @JvmOverloads constructor(codeCallback: ExecuteCode? 
 
         // METHOD MESSAGE HANDLER
         override fun handleMessage(msg: Message): Boolean {
-            if (msg.obj !is Flow<*>) { // called directly with runAction() action probably does not exist
+            if (msg.obj !is Flow<*>._Action) { // called directly with runAction() action probably does not exist
 
                 globalCallback?.onAction(msg.what, msg.arg2 == ACTION_SUCCESS, msg.arg1, msg.obj)
 
