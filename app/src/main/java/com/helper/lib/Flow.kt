@@ -114,41 +114,41 @@ open class Flow<EventType> @JvmOverloads constructor(codeCallback: ExecuteCode? 
     private fun _getAction(iAction: Int) = listActions.first { it.iAction == iAction } // throws NoSuchElementException if action not found
 
     @JvmOverloads
-    fun runAction(iAction: Int, bUiThread: Boolean = false, bSuccess: Boolean = true, iExtra: Int = 0, obj: Any? = null): Flow<EventType> {
-        if (bUiThread) hThread.runOnUI(iAction, bSuccess, iExtra, obj) else hThread.run(iAction, bSuccess, iExtra, obj)
+    fun runAction(iAction: Int, runOnUi: Boolean = false, bSuccess: Boolean = true, iExtra: Int = 0, obj: Any? = null): Flow<EventType> {
+        if (runOnUi) hThread.runOnUI(iAction, bSuccess, iExtra, obj) else hThread.run(iAction, bSuccess, iExtra, obj)
         return this
     }
 
     @JvmOverloads
-    fun runRepeat(iAction: Int = autoIndex--, bUiThread: Boolean = false, iDelay: Long, callback: SingleCallback? = null): Flow<EventType> {
+    fun runRepeat(iAction: Int = autoIndex--, runOnUi: Boolean = false, iDelay: Long, callback: SingleCallback? = null): Flow<EventType> {
         val delayEvent = "repeat_event_$iAction"
-        _registerAction(iAction, bUiThread, false, false, true, listOf(delayEvent), callback)
+        _registerAction(iAction, runOnUi, false, false, true, listOf(delayEvent), callback)
         hThread.mHandler.postDelayed((Runnable { this.event(delayEvent, true, 0, iDelay) }), iDelay)
         return this
     }
 
     @JvmOverloads
-    fun runDelayed(iAction: Int = autoIndex--, bUiThread: Boolean = false, iDelay: Long, bSuccess: Boolean = true, iExtra: Int = 0, any: Any? = null, callback: SingleCallback? = null): Flow<EventType> {
+    fun runDelayed(iAction: Int = autoIndex--, runOnUi: Boolean = false, iDelay: Long, bSuccess: Boolean = true, iExtra: Int = 0, any: Any? = null, callback: SingleCallback? = null): Flow<EventType> {
         val delayEvent = "delay_event_$iAction"
-        _registerAction(iAction, bUiThread, true, false, false, listOf(delayEvent), callback)
+        _registerAction(iAction, runOnUi, true, false, false, listOf(delayEvent), callback)
         hThread.mHandler.postDelayed((Runnable { this.event(delayEvent, bSuccess, iExtra, any) }), iDelay)
         return this
     }
 
     @JvmOverloads
-    fun registerAction(iAction: Int, bUiThread: Boolean = false, events: List<EventType>, singleCallback: SingleCallback? = null): Flow<EventType> {
-        _registerAction(iAction, bUiThread, false, false, false, events, singleCallback)
+    fun registerAction(iAction: Int = autoIndex--, runOnUi: Boolean = false, events: List<EventType>, singleCallback: SingleCallback? = null): Flow<EventType> {
+        _registerAction(iAction, runOnUi, false, false, false, events, singleCallback)
         return this
     }
 
     @JvmOverloads
-    fun waitForEvents(iAction: Int, bUiThread: Boolean = false, events: List<EventType>): Flow<EventType> {
-        _registerAction(iAction, bUiThread, true, false, false, events)
+    fun waitForEvents(iAction: Int = autoIndex--, runOnUi: Boolean = false, events: List<EventType>, singleCallback: SingleCallback? = null): Flow<EventType> {
+        _registerAction(iAction, runOnUi, true, false, false, events, singleCallback)
         return this
     }
 
-    fun registerActionSequence(iAction: Int, bUiThread: Boolean, events: List<EventType>, singleCallback: SingleCallback? = null): Flow<EventType> {
-        _registerAction(iAction, bUiThread, false, true, false, events, singleCallback)
+    fun registerActionSequence(iAction: Int, runOnUi: Boolean, events: List<EventType>, singleCallback: SingleCallback? = null): Flow<EventType> {
+        _registerAction(iAction, runOnUi, false, true, false, events, singleCallback)
         return this
     }
 
