@@ -30,7 +30,7 @@ class UiHelper {
     private var arId: IntArray? = null // Store loaded arView arId, so they can checked against.
     private var arView: Array<View?>? = null // keeps reference of loaded views, so they are not loaded again..     
     private var context: Context? = null
-    private var rootView: ViewGroup? = null
+    private var uiView: ViewGroup? = null
     private var progressBar: ProgressBar? = null
     private var progressDialog: ProgressDialog? = null
     private var layoutProgress: RelativeLayout? = null
@@ -43,15 +43,15 @@ class UiHelper {
     }
 
     fun setRootView(v: View?) {
-        rootView = v as ViewGroup?
+        uiView = v as ViewGroup?
         arId = IntArray(256) // Store loaded arView arId, so they can checked against.
         arView = arrayOfNulls(256) // keeps reference of loaded views, so they are not loaded again..
-        context = rootView!!.context
+        context = uiView!!.context
         mainThread = Handler(Looper.getMainLooper())
     }
 
     fun getRootView(): ViewGroup? {
-        return rootView
+        return uiView
     }
 
     fun textView(id: Int): TextView {
@@ -310,9 +310,11 @@ class UiHelper {
         return this
     }
 
-    // METHOD - Checks/Un-checks a check box
-    fun setChecked(id: Int, bCheck: Boolean): UiHelper {
-        val checkBox = getView(id) as CheckBox
+    // METHOD - Checks/Un-checks a check box, toggle and switch
+    fun setToggle(id: Int, bCheck: Boolean): UiHelper? { return setState(id, bCheck) }
+    fun setSwitch(id: Int, bCheck: Boolean): UiHelper? { return setState(id, bCheck) }
+    fun setState(id: Int, bCheck: Boolean): UiHelper? {
+        val checkBox = getView(id) as CompoundButton
         checkBox.isChecked = bCheck
         return this
     }
@@ -333,7 +335,7 @@ class UiHelper {
                     RelativeLayout.LayoutParams.MATCH_PARENT)
             layoutProgress!!.layoutParams = rlp
             layoutProgress!!.addView(progressBar)
-            rootView!!.addView(layoutProgress)
+            uiView!!.addView(layoutProgress)
             layoutProgress!!.bringToFront()
             layoutProgress!!.gravity = Gravity.CENTER_HORIZONTAL or Gravity.CENTER_VERTICAL
         }
@@ -372,14 +374,14 @@ class UiHelper {
         val index = (id and 0xFF).toInt()
         if (arId!![index] != id) {
             arId!![index] = id
-            arView!![index] = rootView!!.findViewById(id)
+            arView!![index] = uiView!!.findViewById(id)
         }
         curView = arView!![index]
         return curView!!
     }
 
     fun getViewWithTag(tag: Any?): View {
-        val v = rootView!!.findViewWithTag<View>(tag)
+        val v = uiView!!.findViewWithTag<View>(tag)
         if (v != null) {
             @SuppressLint("ResourceType") val index = (v.id and 0xFF).toInt()
             arView!![index] = v
@@ -388,7 +390,7 @@ class UiHelper {
     }
 
     @JvmOverloads
-    fun showKeyboard(v: View? = rootView) {
+    fun showKeyboard(v: View? = uiView) {
         if (v != null) {
             v.requestFocus()
             val imm = context!!.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
@@ -399,7 +401,7 @@ class UiHelper {
     }
 
     @JvmOverloads
-    fun hideKeyboard(v: View? = rootView) {
+    fun hideKeyboard(v: View? = uiView) {
         if (v != null) {
             v.requestFocus()
             val imm = context!!.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
@@ -414,7 +416,7 @@ class UiHelper {
         mainThread!!.removeCallbacksAndMessages(null)
         curView = null
         context = null
-        rootView = null
+        uiView = null
         arId = null
         arView = null
         layoutProgress = null
