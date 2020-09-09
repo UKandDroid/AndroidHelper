@@ -1,6 +1,5 @@
-package com.helper.lib
+package com.stryde.base.libs
 
-import android.R
 import android.annotation.SuppressLint
 import android.app.ProgressDialog
 import android.content.Context
@@ -28,9 +27,9 @@ import android.widget.*
 class UiHelper {
     var curView: View? = null
     private var arId: IntArray? = null // Store loaded arView arId, so they can checked against.
-    private var arView: Array<View?>? = null // keeps reference of loaded views, so they are not loaded again..     
-    private var context: Context? = null
-    private var uiView: ViewGroup? = null
+    private var arView: Array<View?>? = null // keeps reference of loaded views, so they are not loaded again..
+    internal lateinit var uiView: ViewGroup
+    private lateinit var context: Context
     private var progressBar: ProgressBar? = null
     private var progressDialog: ProgressDialog? = null
     private var layoutProgress: RelativeLayout? = null
@@ -38,15 +37,15 @@ class UiHelper {
     // CONSTRUCTORS
     constructor() {}
 
-    constructor(v: View?) {
+    constructor(v: View) {
         setRootView(v)
     }
 
-    fun setRootView(v: View?) {
-        uiView = v as ViewGroup?
+    fun setRootView(v: View) {
+        uiView = v as ViewGroup
         arId = IntArray(256) // Store loaded arView arId, so they can checked against.
         arView = arrayOfNulls(256) // keeps reference of loaded views, so they are not loaded again..
-        context = uiView!!.context
+        context = uiView.context
         mainThread = Handler(Looper.getMainLooper())
     }
 
@@ -100,7 +99,7 @@ class UiHelper {
     }
 
     fun getDimenRes(iRes: Int): Float {
-        return context!!.resources.getDimension(iRes)
+        return context.resources.getDimension(iRes)
     }
 
     fun setClickable(id: Int, bTrue: Boolean) {
@@ -108,7 +107,7 @@ class UiHelper {
     }
 
     fun getStringRes(iResString: Int): String {
-        return context!!.resources.getString(iResString)
+        return context.resources.getString(iResString)
     }
 
     fun showToast(sMessage: String?) {
@@ -169,7 +168,7 @@ class UiHelper {
     }
 
     private fun setTextRes(view: View?, iResString: Int): UiHelper {
-        (view as TextView?)!!.text = context!!.resources.getString(iResString)
+        (view as TextView?)!!.text = context.resources.getString(iResString)
         return this
     }
 
@@ -261,10 +260,10 @@ class UiHelper {
     }
 
     val width: Int
-        get() = curView!!.width
+        get() = curView?.width ?: 0
 
     val height: Int
-        get() = curView!!.height
+        get() = curView?.height ?: 0
 
     // METHOD - sets Text color Size Button, TextView, EditText, Note dimension resources are returned as pixels, that's why TypedValue.COMPLEX_UNIT_PX for resouce
     fun setTextSizeRes(id: Int, iRes: Int): UiHelper {
@@ -288,7 +287,7 @@ class UiHelper {
     fun setSpinSelection(iId: Int, iSel: Int) {
         (getView(iId) as Spinner).setSelection(iSel)
     }
-
+/*
     fun setSpinData(iId: Int, iArrId: Int): ArrayAdapter<String> {
         return setSpinData(iId, context!!.resources.getStringArray(iArrId), R.layout.simple_list_item_single_choice)
     }
@@ -302,7 +301,7 @@ class UiHelper {
         val adaptSpin = ArrayAdapter(context, iLayout, arr)
         spin.adapter = adaptSpin
         return adaptSpin
-    }
+    }*/
 
     // METHOD - sets Text color for Button, TextView, EditText
     fun setTextBold(id: Int, bTrue: Boolean): UiHelper {
@@ -321,7 +320,7 @@ class UiHelper {
 
     // METHOD returns color from resource id
     fun getColorRes(iRes: Int): Int {
-        return context!!.resources.getColor(iRes)
+        return context.resources.getColor(iRes)
     }
 
     // METHOD - shows progress bar
@@ -335,7 +334,7 @@ class UiHelper {
                     RelativeLayout.LayoutParams.MATCH_PARENT)
             layoutProgress!!.layoutParams = rlp
             layoutProgress!!.addView(progressBar)
-            uiView!!.addView(layoutProgress)
+            uiView.addView(layoutProgress)
             layoutProgress!!.bringToFront()
             layoutProgress!!.gravity = Gravity.CENTER_HORIZONTAL or Gravity.CENTER_VERTICAL
         }
@@ -374,14 +373,14 @@ class UiHelper {
         val index = (id and 0xFF).toInt()
         if (arId!![index] != id) {
             arId!![index] = id
-            arView!![index] = uiView!!.findViewById(id)
+            arView!![index] = uiView.findViewById(id)
         }
         curView = arView!![index]
         return curView!!
     }
 
     fun getViewWithTag(tag: Any?): View {
-        val v = uiView!!.findViewWithTag<View>(tag)
+        val v = uiView.findViewWithTag<View>(tag)
         if (v != null) {
             @SuppressLint("ResourceType") val index = (v.id and 0xFF).toInt()
             arView!![index] = v
@@ -393,7 +392,7 @@ class UiHelper {
     fun showKeyboard(v: View? = uiView) {
         if (v != null) {
             v.requestFocus()
-            val imm = context!!.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
             imm.showSoftInput(v, 0)
         } else {
             Log.e(LOG_TAG, "Show Keyboard ERROR, rootView/supplied view is null")
@@ -404,7 +403,7 @@ class UiHelper {
     fun hideKeyboard(v: View? = uiView) {
         if (v != null) {
             v.requestFocus()
-            val imm = context!!.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
             imm.hideSoftInputFromWindow(v.windowToken, 0)
         } else {
             Log.e(LOG_TAG, "Hide keyboard ERROR, rootView/supplied view is null")
@@ -415,8 +414,6 @@ class UiHelper {
     fun release() {
         mainThread!!.removeCallbacksAndMessages(null)
         curView = null
-        context = null
-        uiView = null
         arId = null
         arView = null
         layoutProgress = null
@@ -427,13 +424,13 @@ class UiHelper {
 
     // METHOD - Convert pixels to dp
     fun pxToDp(iPixels: Int): Int {
-        val displayMetrics = context!!.resources.displayMetrics
+        val displayMetrics = context.resources.displayMetrics
         return Math.round(iPixels / (displayMetrics.xdpi / DisplayMetrics.DENSITY_DEFAULT))
     }
 
     // METHOD - Convert dp to pixels
     fun dpToPx(dp: Int): Int {
-        val r = context!!.resources
+        val r = context.resources
         val displayMetrics = r.displayMetrics
         return Math.round(dp * (displayMetrics.xdpi / DisplayMetrics.DENSITY_DEFAULT))
     }
@@ -453,7 +450,7 @@ class UiHelper {
     }
 
     fun getIntRes(iResId: Int): Int {
-        return context!!.resources.getInteger(iResId)
+        return context.resources.getInteger(iResId)
     }
 
     // METHOD - sets Text color for Button, TextView, EditText

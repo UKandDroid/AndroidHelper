@@ -1,4 +1,5 @@
-package com.stryde.base.libs;
+
+package com.helper.lib;
 
 import android.os.Handler
 import android.os.HandlerThread
@@ -10,9 +11,11 @@ import androidx.lifecycle.LifecycleObserver
 import androidx.lifecycle.OnLifecycleEvent
 import java.util.*
 
-typealias SingleCallback = (bSuccess: Boolean) -> Unit
+typealias SingleCallback = (action: Flow.Action) -> Unit
 
-// Version 3.0.1
+// Version 3.0.4
+// Flow object retured with call single callback
+// Added getFiredEvent, returns last event for an Action
 // Fixed bug where runAction() causes exception
 // encapsulation for Action & Event classes
 // Added <Generic Type> based events
@@ -45,7 +48,7 @@ typealias SingleCallback = (bSuccess: Boolean) -> Unit
 // Example :  flow.getEventsForAction(1) // returns all events associated with the action
 // Example :  flow.getActionWaitingEvent(1) // returns first event that is stopping the action being fired, either its not fired or fired with false
 
-open class Flow<EventType> @JvmOverloads constructor(codeCallback: ExecuteCode? = null) : LifecycleObserver {
+open class Flow<EventType> @JvmOverloads constructor(val tag: String = "", codeBlock: ExecuteCode? = null) : LifecycleObserver {
 
     enum class EventStatus{
         WAITING, SUCCESS, FAILURE
@@ -54,6 +57,7 @@ open class Flow<EventType> @JvmOverloads constructor(codeCallback: ExecuteCode? 
     private var autoIndex = -1
     private var bRunning = true
     private var hThread: HThread
+    private val LOG_TAG = "Flow-$tag"
     private var listActions: MutableList<_Action> = ArrayList() // List of registered actions
     private var globalCallback: ExecuteCode? = null // Call back for onAction to be executed
 
@@ -63,7 +67,7 @@ open class Flow<EventType> @JvmOverloads constructor(codeCallback: ExecuteCode? 
     }
 
     init {
-        globalCallback = codeCallback
+        globalCallback = codeBlock
         hThread = HThread()
     }
 
@@ -103,8 +107,8 @@ open class Flow<EventType> @JvmOverloads constructor(codeCallback: ExecuteCode? 
     // RESULT_CHANGE = When result changes from false to true or true to false
     // RESULT_UPDATE = when result updates means all events are fired a
     // EVENT_UPDATE = whenever an event associated with action is updated
-    fun actionCallbackType(iAction:Int, type: ResultType) {
-        _getAction(iAction).resultType = type
+    fun actionRunType(iAction:Int, type: RunType) {
+        _getAction(iAction).runType = type
     }
 
     fun getAction(iAction: Int) = _getAction(iAction) as Flow.Action
@@ -114,7 +118,7 @@ open class Flow<EventType> @JvmOverloads constructor(codeCallback: ExecuteCode? 
     private fun _getAction(iAction: Int) = listActions.first { it.iAction == iAction } // throws NoSuchElementException if action not found
 
     @JvmOverloads
-    fun runAction(iAction: Int, runOnUi: Boolean = false, bSuccess: Boolean = true, iExtra: Int = 0, obj: Any? = null): Flow<EventType> {
+    fun runAction(iAction: Int , runOnUi: Boolean = false, bSuccess: Boolean = true, iExtra: Int = 0, obj: Any? = null): Flow<EventType> {
         if (runOnUi) hThread.runOnUI(iAction, bSuccess, iExtra, obj) else hThread.run(iAction, bSuccess, iExtra, obj)
         return this
     }
@@ -125,6 +129,10 @@ open class Flow<EventType> @JvmOverloads constructor(codeCallback: ExecuteCode? 
         _registerAction(iAction, runOnUi, false, false, true, listOf(delayEvent), callback)
         hThread.mHandler.postDelayed((Runnable { this.event(delayEvent, true, 0, iDelay) }), iDelay)
         return this
+    }
+
+    fun runOnUi(callback: SingleCallback){
+        hThread.runOnUI(0, true, 0, _Action(0, events = listOf<String>(), singleCallback = callback))
     }
 
     @JvmOverloads
@@ -152,6 +160,9 @@ open class Flow<EventType> @JvmOverloads constructor(codeCallback: ExecuteCode? 
         return this
     }
 
+    fun deleteAction(iAction: Int){ cancelAction(iAction) }
+    fun removeAction(iAction: Int){ cancelAction(iAction) }
+    fun cancelAction(action: Action){ cancelAction(action.getId()) }
     fun cancelAction(iAction: Int) {
         listActions.firstOrNull { it.iAction == iAction }?.run {
             _cancelAction(this)
@@ -167,8 +178,7 @@ open class Flow<EventType> @JvmOverloads constructor(codeCallback: ExecuteCode? 
     }
 
     private fun _registerAction(iAction: Int, bUiThread: Boolean, bRunOnce: Boolean, bSequence: Boolean, bRepeat: Boolean, events: List<*>, actionCallback: SingleCallback? = null) {
-        assert(iAction > 0)
-        cancelAction(iAction) // to stop duplication, remove if the action already exists
+        cancelAction(iAction)           // to stop duplication, remove if the action already exists
         val actionFlags = setActionFlags(runOnUI = bUiThread, runOnce = bRunOnce, eventSequence = bSequence, repeatAction = bRepeat)
         val aAction = _Action(iAction, actionFlags, events, actionCallback)
         listActions.add(aAction)
@@ -183,19 +193,24 @@ open class Flow<EventType> @JvmOverloads constructor(codeCallback: ExecuteCode? 
 
     // METHODS to send event
     @JvmOverloads
-    fun event(sEvent: Any, bSuccess: Boolean = true, iExtra: Int = 0, obj: Any? = null) {
+    fun event(sEvent: Any, bSuccess: Boolean = true, iExtra: Int = 0, obj: Any? = null) : Boolean {
         if (!bRunning)
-            return
+            return false
+
+        var eventFired = false
 
         log("EVENT:  $sEvent $bSuccess")
 
         try {
             for (action in listActions) {
-                action.onEvent(sEvent, bSuccess, iExtra, obj)
+                if(action.onEvent(sEvent, bSuccess, iExtra, obj).first){
+                    eventFired = true
+                }
             }
         } catch (e: IndexOutOfBoundsException) {
             loge(e.toString())
         }
+        return eventFired
     }
 
     // METHOD cancel a runDelay or RunRepeated
@@ -206,16 +221,20 @@ open class Flow<EventType> @JvmOverloads constructor(codeCallback: ExecuteCode? 
     }
 
     // CLASS for events for action, when all events occur action is triggered
-    open class Action() {
+    open class Action( internal val iAction: Int) {
+
         protected var listEvents: MutableList<Event<*>> = ArrayList() // List to store Flow.Events needed for this action
         protected var iLastStatus = EventStatus.WAITING       // Event set status as a whole, waiting, success, non success
+        protected var lastFiredEvent : Event<*>? = null            // last fired event for this action, null if none
 
+        fun getId() = iAction
         // returns first event that has not been fired or fired with false
-        fun getWaitingEvent() = listEvents.first { !it.isSuccess() }.event // Throws exception if event not found
+        fun getFiredEvent() = lastFiredEvent
+        fun getFiredEventObj() = lastFiredEvent?.obj
         fun getEvents() = listEvents as List<Event<*>>
-        fun getEvent(event: Any) = getEvents().firstOrNull{ it.event == event }
         fun isWaitingFor(event: Any) = getWaitingEvent() == event
-
+        fun getEvent(event: Any) = getEvents().firstOrNull{ it.event == event }
+        fun getWaitingEvent() = listEvents.first { !it.isSuccess() }.event // Throws exception if event not found
         fun reset() {
             iLastStatus = EventStatus.WAITING
             for (event in listEvents) {
@@ -232,16 +251,15 @@ open class Flow<EventType> @JvmOverloads constructor(codeCallback: ExecuteCode? 
         protected var _status :EventStatus = EventStatus.WAITING // WAITING - waiting not fired yet, SUCCESS - fired with success, FAILURE - fired with failure
         // Variable for pool
         fun isSuccess() = _status == EventStatus.SUCCESS
-
     }
 
     private inner class _Action(
-            internal val iAction: Int,
+            iAction: Int,
             private var actionFlags: Int = 0,
             events: List<*>,
             private var singleCallback: SingleCallback? = null
-    ) : Action() {
-        internal var resultType: ResultType = ResultType.RESULT_CHANGE
+    ) : Action(iAction) {
+        internal var runType: RunType = RunType.RESULT_CHANGE
         internal var iEventCount: Int = events.size          // How many event are for this action code to be triggered
 
         init {
@@ -259,9 +277,9 @@ open class Flow<EventType> @JvmOverloads constructor(codeCallback: ExecuteCode? 
             Companion.setFlag(actionFlags, flag, false)
         }
 
-        internal fun callback(bSuccess: Boolean): Boolean {
+        internal fun hasCallback(): Boolean {
             if (singleCallback != null) {
-                singleCallback?.invoke(bSuccess)
+                singleCallback?.invoke(this as Action)
                 return true
             }
             return false
@@ -294,10 +312,11 @@ open class Flow<EventType> @JvmOverloads constructor(codeCallback: ExecuteCode? 
 
                 if (sEvent == event.event) { // If event is found in this event list
                     bEventFound = true
+                    lastFiredEvent = event
                     event.setData(bResult, iExtra, obj )
                 } else if (getFlag(FLAG_SEQUENCE) && event.statusIs(EventStatus.WAITING)) {         // if its a Sequence action, no event should be empty before current event
                     if (i != 0) {
-                        (listEvents[i - 1] as _Event).setStatus( EventStatus.WAITING )                 // reset last one, so they are always in sequence
+                        (listEvents[i - 1] as _Event).setStatus( EventStatus.WAITING )              // reset last one, so they are always in sequence
                     }
                     break
                 }
@@ -316,19 +335,20 @@ open class Flow<EventType> @JvmOverloads constructor(codeCallback: ExecuteCode? 
             if (bEventFound) {                                                                      // if event was found in this Action
                 logw("ACTION: $iAction Event: $sEvent fired { Total $iEventCount  Fired: $iFiredCount  Success: $iSuccess }")
 
-                if (resultType == ResultType.EVENT_UPDATE) {                                        // if this action is launched on every event update
+                if (runType == RunType.EVENT_UPDATE) {                                        // if this action is launched on every event update
+                    bActionExecuted = true
                     executeAction(bResult, iExtra)
                 } else if (iFiredCount == iEventCount) {                                            // if all events for action has been fired
                     val bSuccess = iSuccess == iEventCount                                          // all events registered success
                     val iCurStatus = if (bSuccess) EventStatus.SUCCESS else EventStatus.FAILURE
 
-                    when (resultType) {
-                        ResultType.RESULT_CHANGE -> if (iCurStatus != iLastStatus) {                // If there is a change in action status only then run code
+                    when (runType) {
+                        RunType.RESULT_CHANGE -> if (iCurStatus != iLastStatus) {                // If there is a change in action status only then run code
                             bActionExecuted = true
                             iLastStatus = iCurStatus
                             executeAction(bSuccess, iSuccess)
                         }
-                        ResultType.RESULT_UPDATE -> if (bSuccess) {
+                        RunType.RESULT_UPDATE -> if (bSuccess) {
                             bActionExecuted = true
                             executeAction(bSuccess, iSuccess)
                         }
@@ -461,7 +481,6 @@ open class Flow<EventType> @JvmOverloads constructor(codeCallback: ExecuteCode? 
         // METHOD MESSAGE HANDLER
         override fun handleMessage(msg: Message): Boolean {
             if (msg.obj !is Flow<*>._Action) { // called directly with runAction() action probably does not exist
-
                 globalCallback?.onAction(msg.what, msg.arg2 == ACTION_SUCCESS, msg.arg1, msg.obj)
 
             } else { // is Flow Action with events
@@ -473,7 +492,7 @@ open class Flow<EventType> @JvmOverloads constructor(codeCallback: ExecuteCode? 
                     // posting action.onEvent() to repeat action only, not Flow.event(), to keep it local and filling queue for fast repeating actions
                 }
 
-                if (!action.callback(msg.arg2 == ACTION_SUCCESS)) { // if there is no specific callback for action, call generic call back
+                if (!action.hasCallback()) { // if there is no specific callback for action, call generic call back
                     globalCallback?.onAction(msg.what, msg.arg2 == ACTION_SUCCESS, msg.arg1, msg.obj as Flow.Action)
                 }
 
@@ -531,14 +550,15 @@ open class Flow<EventType> @JvmOverloads constructor(codeCallback: ExecuteCode? 
         }
     }
 
-    enum class ResultType {
-        RESULT_CHANGE, RESULT_UPDATE, EVENT_UPDATE
+    enum class RunType {
+        EVENT_UPDATE,  // action will be invoked for each event update
+        RESULT_CHANGE, // action will be invoked when combined result for events changes e.g true to false or false to true
+        RESULT_UPDATE  // action will be invoked once combined result is achieved, then every time after an event changes
     }
 
     companion object {
         private var iThreadCount = 0
         private const val LOG_LEVEL = 4
-        private const val LOG_TAG = "Flow"
         private const val FLAG_SUCCESS = 0x00000001
         private const val FLAG_RUNonUI = 0x00000002
         private const val FLAG_REPEAT = 0x00000004
