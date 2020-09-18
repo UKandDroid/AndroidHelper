@@ -14,7 +14,7 @@ import java.util.*
 typealias SingleCallback = (action: Flow.Action) -> Unit
 
 // Version 3.0.4
-// Flow object retured with call single callback
+// Concurrent execution bug fixed
 // Added getFiredEvent, returns last event for an Action
 // Fixed bug where runAction() causes exception
 // encapsulation for Action & Event classes
@@ -50,14 +50,14 @@ typealias SingleCallback = (action: Flow.Action) -> Unit
 
 open class Flow<EventType> @JvmOverloads constructor(val tag: String = "", codeBlock: ExecuteCode? = null) : LifecycleObserver {
 
-    enum class EventStatus{
+    enum class EventStatus {
         WAITING, SUCCESS, FAILURE
     }
 
     private var autoIndex = -1
     private var bRunning = true
     private var hThread: HThread
-    private val LOG_TAG = "Flow-$tag"
+    private val LOG_TAG = "Flow:$tag"
     private var listActions: MutableList<_Action> = ArrayList() // List of registered actions
     private var globalCallback: ExecuteCode? = null // Call back for onAction to be executed
 
@@ -71,6 +71,9 @@ open class Flow<EventType> @JvmOverloads constructor(val tag: String = "", codeB
         hThread = HThread()
     }
 
+    fun setLogLevel(level: Int){
+        LOG_LEVEL = level
+    }
     fun execute(codeCallback: ExecuteCode) {
         globalCallback = codeCallback
     }
@@ -166,7 +169,7 @@ open class Flow<EventType> @JvmOverloads constructor(val tag: String = "", codeB
     fun cancelAction(iAction: Int) {
         listActions.firstOrNull { it.iAction == iAction }?.run {
             _cancelAction(this)
-            loge("CANCEL: Action($iAction), removed  ")
+            loge(1,"CANCEL: Action($iAction), removed  ")
         }
     }
 
@@ -188,7 +191,7 @@ open class Flow<EventType> @JvmOverloads constructor(val tag: String = "", codeB
             buf.append(event.toString() + ", ")
         }
 
-        log("ACTION: $iAction registered  EVENTS = { $buf}")
+        log(1,"ACTION: $iAction registered  EVENTS = { $buf}")
     }
 
     // METHODS to send event
@@ -199,16 +202,19 @@ open class Flow<EventType> @JvmOverloads constructor(val tag: String = "", codeB
 
         var eventFired = false
 
-        log("EVENT:  $sEvent $bSuccess")
+        log(2,"EVENT:  $sEvent $bSuccess")
 
         try {
-            for (action in listActions) {
+            for (i in 0 until listActions.size) {
+                val action = listActions[i]
                 if(action.onEvent(sEvent, bSuccess, iExtra, obj).first){
                     eventFired = true
                 }
             }
         } catch (e: IndexOutOfBoundsException) {
             loge(e.toString())
+        } catch (e: NullPointerException){
+            loge(2,"event() - null pointer exception")
         }
         return eventFired
     }
@@ -277,7 +283,7 @@ open class Flow<EventType> @JvmOverloads constructor(val tag: String = "", codeB
             Companion.setFlag(actionFlags, flag, false)
         }
 
-        internal fun hasCallback(): Boolean {
+        internal fun execute(): Boolean {
             if (singleCallback != null) {
                 singleCallback?.invoke(this as Action)
                 return true
@@ -333,7 +339,7 @@ open class Flow<EventType> @JvmOverloads constructor(val tag: String = "", codeB
             }
 
             if (bEventFound) {                                                                      // if event was found in this Action
-                logw("ACTION: $iAction Event: $sEvent fired { Total $iEventCount  Fired: $iFiredCount  Success: $iSuccess }")
+                logw(1,"ACTION: $iAction Event: $sEvent fired { Total $iEventCount  Fired: $iFiredCount  Success: $iSuccess }")
 
                 if (runType == RunType.EVENT_UPDATE) {                                        // if this action is launched on every event update
                     bActionExecuted = true
@@ -492,12 +498,12 @@ open class Flow<EventType> @JvmOverloads constructor(val tag: String = "", codeB
                     // posting action.onEvent() to repeat action only, not Flow.event(), to keep it local and filling queue for fast repeating actions
                 }
 
-                if (!action.hasCallback()) { // if there is no specific callback for action, call generic call back
+                if (!action.execute()) { // if there is no specific callback for action, call generic call back
                     globalCallback?.onAction(msg.what, msg.arg2 == ACTION_SUCCESS, msg.arg1, msg.obj as Flow.Action)
                 }
 
                 if (action.getFlag(FLAG_RUNONCE)) {
-                    loge("REMOVING: Action(${action.iAction}, runOnce) as its executed")
+                    loge(2,"REMOVING: Action(${action.iAction}, runOnce) as its executed")
                     _cancelAction(action) // Recycle if its flagged for it
                 }
             }
@@ -520,16 +526,16 @@ open class Flow<EventType> @JvmOverloads constructor(val tag: String = "", codeB
     }
 
     // METHOD for logging
-    protected fun log(sLog: String) {
-        log(1, sLog)
+    private fun log(sLog: String) {
+        log(3, sLog)
     }
 
-    protected fun loge(sLog: String?) {
-        loge(1, sLog)
+    private fun loge(sLog: String?) {
+        loge(3, sLog)
     }
 
-    protected fun logw(sLog: String?) {
-        logw(1, sLog)
+    private fun logw(sLog: String?) {
+        logw(3, sLog)
     }
 
     private fun log(iLevel: Int, sLog: String) {
@@ -538,13 +544,13 @@ open class Flow<EventType> @JvmOverloads constructor(val tag: String = "", codeB
         }
     }
 
-    protected fun loge(iLevel: Int, sLog: String?) {
+    private fun loge(iLevel: Int, sLog: String?) {
         if (iLevel <= LOG_LEVEL) {
             Log.e(LOG_TAG, sLog)
         }
     }
 
-    protected fun logw(iLevel: Int, sLog: String?) {
+    private fun logw(iLevel: Int, sLog: String?) {
         if (iLevel <= LOG_LEVEL) {
             Log.w(LOG_TAG, sLog)
         }
@@ -558,7 +564,7 @@ open class Flow<EventType> @JvmOverloads constructor(val tag: String = "", codeB
 
     companion object {
         private var iThreadCount = 0
-        private const val LOG_LEVEL = 4
+        private var LOG_LEVEL = 4
         private const val FLAG_SUCCESS = 0x00000001
         private const val FLAG_RUNonUI = 0x00000002
         private const val FLAG_REPEAT = 0x00000004
