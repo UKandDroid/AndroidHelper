@@ -9,7 +9,7 @@ import android.util.Log
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleObserver
 import androidx.lifecycle.OnLifecycleEvent
-import java.util.*
+import kotlin.collections.ArrayList
 
 typealias SingleCallback = (action: Flow.Action) -> Unit
 
@@ -54,11 +54,12 @@ open class Flow<EventType> @JvmOverloads constructor(val tag: String = "", codeB
         WAITING, SUCCESS, FAILURE
     }
 
+    private var LOG_LEVEL = 4
     private var autoIndex = -1
     private var bRunning = true
     private var hThread: HThread
     private val LOG_TAG = "Flow:$tag"
-    private var listActions: MutableList<_Action> = ArrayList() // List of registered actions
+    private var listActions = ArrayList<_Action>() // List of registered actions
     private var globalCallback: ExecuteCode? = null // Call back for onAction to be executed
 
     // INTERFACE for code execution
@@ -74,6 +75,7 @@ open class Flow<EventType> @JvmOverloads constructor(val tag: String = "", codeB
     fun setLogLevel(level: Int){
         LOG_LEVEL = level
     }
+
     fun execute(codeCallback: ExecuteCode) {
         globalCallback = codeCallback
     }
@@ -99,7 +101,7 @@ open class Flow<EventType> @JvmOverloads constructor(val tag: String = "", codeB
             hThread.mHandler.removeCallbacksAndMessages(null)
             hThread.mUiHandler.removeCallbacksAndMessages(null)
             hThread.stop()
-            listActions = ArrayList()
+            listActions.clear()
             _Event.releasePool()
             bRunning = false
         } catch (e: Exception) {
@@ -153,8 +155,34 @@ open class Flow<EventType> @JvmOverloads constructor(val tag: String = "", codeB
     }
 
     @JvmOverloads
+    fun registerEvents(iAction: Int = autoIndex--, runOnUi: Boolean = false, events: List<EventType>, singleCallback: SingleCallback? = null): Flow<EventType> {
+        _registerAction(iAction, runOnUi, false, false, false, events, singleCallback)
+        actionRunType(iAction, RunType.EVENT_UPDATE)
+        return this
+    }
+
+    @JvmOverloads
+    fun registerEvents(iAction: Int = autoIndex--, runOnUi: Boolean = false, events: EventType, singleCallback: SingleCallback? = null): Flow<EventType> {
+        _registerAction(iAction, runOnUi, false, false, false, listOf(events), singleCallback)
+        actionRunType(iAction, RunType.EVENT_UPDATE)
+        return this
+    }
+
+    @JvmOverloads
+    fun registerAction(iAction: Int = autoIndex--, runOnUi: Boolean = false, events: EventType, singleCallback: SingleCallback? = null): Flow<EventType> {
+        _registerAction(iAction, runOnUi, false, false, false, listOf(events), singleCallback)
+        return this
+    }
+
+    @JvmOverloads
     fun waitForEvents(iAction: Int = autoIndex--, runOnUi: Boolean = false, events: List<EventType>, singleCallback: SingleCallback? = null): Flow<EventType> {
         _registerAction(iAction, runOnUi, true, false, false, events, singleCallback)
+        return this
+    }
+
+    @JvmOverloads
+    fun waitForEvents(iAction: Int = autoIndex--, runOnUi: Boolean = false, events: EventType, singleCallback: SingleCallback? = null): Flow<EventType> {
+        _registerAction(iAction, runOnUi, true, false, false, listOf(events), singleCallback)
         return this
     }
 
@@ -195,6 +223,7 @@ open class Flow<EventType> @JvmOverloads constructor(val tag: String = "", codeB
     }
 
     // METHODS to send event
+    @Synchronized
     @JvmOverloads
     fun event(sEvent: Any, bSuccess: Boolean = true, iExtra: Int = 0, obj: Any? = null) : Boolean {
         if (!bRunning)
@@ -204,9 +233,9 @@ open class Flow<EventType> @JvmOverloads constructor(val tag: String = "", codeB
 
         log(2,"EVENT:  $sEvent $bSuccess")
 
+        val copyList = ArrayList(listActions) // to avoid deleting of event issues while going through list
         try {
-            for (i in 0 until listActions.size) {
-                val action = listActions[i]
+            for (action in copyList) {
                 if(action.onEvent(sEvent, bSuccess, iExtra, obj).first){
                     eventFired = true
                 }
@@ -214,7 +243,7 @@ open class Flow<EventType> @JvmOverloads constructor(val tag: String = "", codeB
         } catch (e: IndexOutOfBoundsException) {
             loge(e.toString())
         } catch (e: NullPointerException){
-            loge(2,"event() - null pointer exception")
+            logw(2,"event() - null pointer exception")
         }
         return eventFired
     }
@@ -339,7 +368,7 @@ open class Flow<EventType> @JvmOverloads constructor(val tag: String = "", codeB
             }
 
             if (bEventFound) {                                                                      // if event was found in this Action
-                logw(1,"ACTION: $iAction Event: $sEvent fired { Total $iEventCount  Fired: $iFiredCount  Success: $iSuccess }")
+                logw(2,"ACTION: $iAction Event: $sEvent fired { Total $iEventCount  Fired: $iFiredCount  Success: $iSuccess }")
 
                 if (runType == RunType.EVENT_UPDATE) {                                        // if this action is launched on every event update
                     bActionExecuted = true
@@ -367,7 +396,7 @@ open class Flow<EventType> @JvmOverloads constructor(val tag: String = "", codeB
 
         // METHOD executes action code on appropriate thread
         private fun executeAction(bSuccess: Boolean, iExtra: Int) {
-            logw("ACTION: $iAction Executed with $bSuccess ")
+            logw(1,"ACTION: $iAction Executed with $bSuccess ")
 
             if (getFlag(FLAG_RUNonUI)) {
                 hThread.runOnUI(iAction, bSuccess, iExtra, this as Flow.Action)
@@ -564,7 +593,6 @@ open class Flow<EventType> @JvmOverloads constructor(val tag: String = "", codeB
 
     companion object {
         private var iThreadCount = 0
-        private var LOG_LEVEL = 4
         private const val FLAG_SUCCESS = 0x00000001
         private const val FLAG_RUNonUI = 0x00000002
         private const val FLAG_REPEAT = 0x00000004
