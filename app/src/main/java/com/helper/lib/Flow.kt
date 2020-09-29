@@ -13,7 +13,7 @@ import kotlin.collections.ArrayList
 
 typealias SingleCallback = (action: Flow.Action) -> Unit
 
-// Version 3.0.4
+// Version 3.0.5
 // Concurrent execution bug fixed
 // Added getFiredEvent, returns last event for an Action
 // Fixed bug where runAction() causes exception
@@ -22,17 +22,20 @@ typealias SingleCallback = (action: Flow.Action) -> Unit
 // Added getEventsForAction(), getErrorEventForAction()
 // Added runType for events RESULT_CHANGE, RESULT_UPDATE, EVENT_UPDATE
 // Added Help examples
+
 // ## EXAMPLES ##
 // var flow = Flow<String>( flowCode )
+
+// METHOD: registerAction(listOf(event1, event2, event3)){} code will be executed when all three events are fired, and then when combined state changes
+// METHOD: registerEvents(listOf(event1, event2, event3)){} code will be executed every time when an event is fired
+// METHOD: waitForEvents(listOf(event1, event2, event3)){} code will be executed only once when all three events are fired
+
 // Example 1: flow.registerAction(1,  listOf("email_entered", "password_entered", "verify_code_entered") ) action 1 gets called when all those events occur
 //          : flow.event("email_entered", true, extra(opt), object(opt))  is trigger for the registered event "email_entered",
 //          :  when all three events are triggered with flow.event(...., true), action 1 is executed with bSuccess = true
 //          :  after 3 event true(s), if one event(...., false) sends false, action 1 will be executed with bSuccess = false
 //          :  now action 1 will only trigger again when all onEvents(...., true) are true, i.e the events which sent false, send true again
-// Example : flow.run(3, true(opt), extra(opt), object(opt))  runs an action on background thread, same as registering for one event and triggering that event
-// Example : flow.runOnUi(4, true(opt), extra(opt), object(opt)) runs code on Ui thread
-// Example : flow.runDelayed(5, true(opt), extra(opt), 4000) runs delayed code
-// Example : flow.runDelayedOnUi(6, true(opt), extra(opt), 4000) { //optional } runs delayed code on Ui thread
+
 // var flowCode = object: Flow.ExecuteCode(){
 //  @override fun onAction(int iAction, boolean bSuccess, int iExtra, Object data){
 //  when(iAction){
@@ -43,10 +46,15 @@ typealias SingleCallback = (action: Flow.Action) -> Unit
 //       6(NOT CALLED) ->   this wont be called as local callback is provided
 // }  }
 
-// Example :  flow.runDelayed(2000){}
-// Example :  flow.runRepeat(500){}
-// Example :  flow.getEventsForAction(1) // returns all events associated with the action
-// Example :  flow.getActionWaitingEvent(1) // returns first event that is stopping the action being fired, either its not fired or fired with false
+// Example :  flow.runOnUi(){}          runs code on ui thread
+// Example :  flow.runRepeat(500){}     repeats code until cancelled
+// Example :  flow.runDelayed(2000){}   run code after delay period
+// Example :  flow.getAction(1)         returns action object
+// Example :  action.getEvents()        returns all events associated with the action
+// Example :  action.getEvent(event)    returns selected event
+// Example :  action.getFiredEvent()    returns most recently fired event or null
+// Example :  action.getWaitingEvent()  returns first event that is stopping the action being fired, either its not fired or fired with false
+
 
 open class Flow<EventType> @JvmOverloads constructor(val tag: String = "", codeBlock: ExecuteCode? = null) : LifecycleObserver {
 
@@ -143,8 +151,8 @@ open class Flow<EventType> @JvmOverloads constructor(val tag: String = "", codeB
     @JvmOverloads
     fun runDelayed(iAction: Int = autoIndex--, runOnUi: Boolean = false, iDelay: Long, bSuccess: Boolean = true, iExtra: Int = 0, any: Any? = null, callback: SingleCallback? = null): Flow<EventType> {
         val delayEvent = "delay_event_$iAction"
-        _registerAction(iAction, runOnUi, true, false, false, listOf(delayEvent), callback)
-        hThread.mHandler.postDelayed((Runnable { this.event(delayEvent, bSuccess, iExtra, any) }), iDelay)
+        val action = _registerAction(iAction, runOnUi, true, false, false, listOf(delayEvent), callback)
+        hThread.mHandler.postDelayed((Runnable { action.onEvent(delayEvent, bSuccess, iExtra, any) }), iDelay)
         return this
     }
 
@@ -208,7 +216,7 @@ open class Flow<EventType> @JvmOverloads constructor(val tag: String = "", codeB
         listActions.remove(action)
     }
 
-    private fun _registerAction(iAction: Int, bUiThread: Boolean, bRunOnce: Boolean, bSequence: Boolean, bRepeat: Boolean, events: List<*>, actionCallback: SingleCallback? = null) {
+    private fun _registerAction(iAction: Int, bUiThread: Boolean, bRunOnce: Boolean, bSequence: Boolean, bRepeat: Boolean, events: List<*>, actionCallback: SingleCallback? = null): _Action{
         cancelAction(iAction)           // to stop duplication, remove if the action already exists
         val actionFlags = setActionFlags(runOnUI = bUiThread, runOnce = bRunOnce, eventSequence = bSequence, repeatAction = bRepeat)
         val aAction = _Action(iAction, actionFlags, events, actionCallback)
@@ -220,6 +228,7 @@ open class Flow<EventType> @JvmOverloads constructor(val tag: String = "", codeB
         }
 
         log(1,"ACTION: $iAction registered  EVENTS = { $buf}")
+        return aAction
     }
 
     // METHODS to send event
@@ -524,7 +533,7 @@ open class Flow<EventType> @JvmOverloads constructor(val tag: String = "", codeB
                 if (action.getFlag(FLAG_REPEAT)) {      // If its a repeat action, we have to post it again
                     val event = action.getEvents()[0] // get delay event for data
                     hThread.mHandler.postDelayed((Runnable { action.onEvent(event.event!!, !event.isSuccess(), event.extra++, event.obj) }), event.obj as Long)
-                    // posting action.onEvent() to repeat action only, not Flow.event(), to keep it local and filling queue for fast repeating actions
+                    // posting action.onEvent() not Flow.event(), to keep event local to its own action
                 }
 
                 if (!action.execute()) { // if there is no specific callback for action, call generic call back
