@@ -15,20 +15,13 @@ typealias SingleCallback = (action: Flow.Action) -> Unit
 
 // Version 3.0.5
 // Concurrent execution bug fixed
-// Added getFiredEvent, returns last event for an Action
-// Fixed bug where runAction() causes exception
-// encapsulation for Action & Event classes
-// Added <Generic Type> based events
-// Added getEventsForAction(), getErrorEventForAction()
-// Added runType for events RESULT_CHANGE, RESULT_UPDATE, EVENT_UPDATE
-// Added Help examples
 
 // ## EXAMPLES ##
 // var flow = Flow<String>( flowCode )
 
-// METHOD: registerAction(listOf(event1, event2, event3)){} code will be executed when all three events are fired, and then when combined state changes
-// METHOD: registerEvents(listOf(event1, event2, event3)){} code will be executed every time when an event is fired
-// METHOD: waitForEvents(listOf(event1, event2, event3)){} code will be executed only once when all three events are fired
+// METHOD: registerAction(events = listOf(event1, event2, event3)){} code will be executed when all three events are fired, and then when combined state changes
+// METHOD: registerEvents(events = listOf(event1, event2, event3)){} code will be executed every time when an event is fired
+// METHOD: waitForEvents(events = listOf(event1, event2, event3)){} code will be executed only once when all three events are fired
 
 // Example 1: flow.registerAction(1,  listOf("email_entered", "password_entered", "verify_code_entered") ) action 1 gets called when all those events occur
 //          : flow.event("email_entered", true, extra(opt), object(opt))  is trigger for the registered event "email_entered",
@@ -38,7 +31,7 @@ typealias SingleCallback = (action: Flow.Action) -> Unit
 
 // var flowCode = object: Flow.ExecuteCode(){
 //  @override fun onAction(int iAction, boolean bSuccess, int iExtra, Object data){
-//  when(iAction){
+//  when(iAction) {
 //       1 ->   // this code will run in first example when all events are triggered as true
 //       3 ->   // this will run when ever run(3) is called
 //       4 ->   // this will run on ui thread whenever runOnUi(4) is called
@@ -91,6 +84,7 @@ open class Flow<EventType> @JvmOverloads constructor(val tag: String = "", codeB
     // STATE METHODS pause, resume, stop the action, should be called to release resources
     @OnLifecycleEvent(Lifecycle.Event.ON_PAUSE)
     open fun pause() {
+        loge(1, "Paused !!!: " )
         hThread.mHandler.removeCallbacksAndMessages(null)
         hThread.mUiHandler.removeCallbacksAndMessages(null)
         bRunning = false
@@ -103,6 +97,7 @@ open class Flow<EventType> @JvmOverloads constructor(val tag: String = "", codeB
 
     @OnLifecycleEvent(Lifecycle.Event.ON_STOP)
     open fun stop() {
+        loge(1, "Stopped !!! " )
         globalCallback = null
         try {
             for (action in listActions) { action.recycle() }
@@ -203,7 +198,8 @@ open class Flow<EventType> @JvmOverloads constructor(val tag: String = "", codeB
     fun removeAction(iAction: Int){ cancelAction(iAction) }
     fun cancelAction(action: Action){ cancelAction(action.getId()) }
     fun cancelAction(iAction: Int) {
-        listActions.firstOrNull { it.iAction == iAction }?.run {
+        val copyList = ArrayList(listActions) // to avoid deleting of event issues while going through list
+        copyList.firstOrNull { it.iAction == iAction }?.run {
             _cancelAction(this)
             loge(1,"CANCEL: Action($iAction), removed  ")
         }
@@ -227,7 +223,7 @@ open class Flow<EventType> @JvmOverloads constructor(val tag: String = "", codeB
             buf.append(event.toString() + ", ")
         }
 
-        log(1,"ACTION: $iAction registered  EVENTS = { $buf}")
+        log(1,"ACTION: $iAction registered  EVENTS = { ${buf.removeSuffix(", ")} }")
         return aAction
     }
 
@@ -338,9 +334,9 @@ open class Flow<EventType> @JvmOverloads constructor(val tag: String = "", codeB
         internal fun recycle() {
             singleCallback = null
             iEventCount = 0
-            for (event in listEvents) {
-                (event as _Event).recycle()
-            }
+            /*for (event in listEvents) {  don't recycle events as sometimes one event can fire multiple actions
+                (event as _Event).recycle() // and recycling event deletes event when access by 2nd action
+            }*/
             listEvents = ArrayList()
         }
 
@@ -377,7 +373,7 @@ open class Flow<EventType> @JvmOverloads constructor(val tag: String = "", codeB
             }
 
             if (bEventFound) {                                                                      // if event was found in this Action
-                logw(2,"ACTION: $iAction Event: $sEvent fired { Total $iEventCount  Fired: $iFiredCount  Success: $iSuccess }")
+                logw(2,"ACTION: $iAction FIRED on: $sEvent { Total $iEventCount  Fired: $iFiredCount  Success: $iSuccess }")
 
                 if (runType == RunType.EVENT_UPDATE) {                                        // if this action is launched on every event update
                     bActionExecuted = true
