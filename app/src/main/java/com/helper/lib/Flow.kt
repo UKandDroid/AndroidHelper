@@ -9,7 +9,6 @@ import android.util.Log
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleObserver
 import androidx.lifecycle.OnLifecycleEvent
-import kotlin.collections.ArrayList
 
 typealias SingleCallback = (action: Flow.Action) -> Unit
 
@@ -73,7 +72,7 @@ open class Flow<EventType> @JvmOverloads constructor(val tag: String = "", codeB
         hThread = HThread()
     }
 
-    fun setLogLevel(level: Int){
+    fun setLogLevel(level: Int) {
         LOG_LEVEL = level
     }
 
@@ -116,14 +115,14 @@ open class Flow<EventType> @JvmOverloads constructor(val tag: String = "", codeB
     // RESULT_UPDATE = when result updates means all events are fired a
     // EVENT_UPDATE = whenever an event associated with action is updated
     fun actionRunType(iAction:Int, type: RunType) {
-        _getAction(iAction).runType = type
+        _getAction(iAction)?.runType = type
     }
 
     fun getAction(iAction: Int) = _getAction(iAction) as Flow.Action
-    fun getActionEvents(iAction: Int) = _getAction(iAction).getEvents()
-    fun getActionWaitingEvent(iAction: Int) = _getAction(iAction).getWaitingEvent() // Returns first found event that is stopping the action from triggering
-    fun resetAction(iAction: Int) { _getAction(iAction).reset() }                   // Resets action by resetting all events to initial Waiting state
-    private fun _getAction(iAction: Int) = listActions.first { it.iAction == iAction } // throws NoSuchElementException if action not found
+    fun getActionEvents(iAction: Int) = _getAction(iAction)?.getEvents()
+    fun getActionWaitingEvent(iAction: Int) = _getAction(iAction)?.getWaitingEvent() // Returns first found event that is stopping the action from triggering
+    fun resetAction(iAction: Int) { _getAction(iAction)?.reset() }                   // Resets action by resetting all events to initial Waiting state
+    private fun _getAction(iAction: Int) = listActions.firstOrNull { it.iAction == iAction } // throws NoSuchElementException if action not found
 
     @JvmOverloads
     fun runAction(iAction: Int , runOnUi: Boolean = false, bSuccess: Boolean = true, iExtra: Int = 0, obj: Any? = null): Flow<EventType> {
@@ -528,7 +527,7 @@ open class Flow<EventType> @JvmOverloads constructor(val tag: String = "", codeB
 
                 if (action.getFlag(FLAG_REPEAT)) {      // If its a repeat action, we have to post it again
                     val event = action.getEvents()[0] // get delay event for data
-                    hThread.mHandler.postDelayed((Runnable { action.onEvent(event.event!!, !event.isSuccess(), event.extra++, event.obj) }), event.obj as Long)
+                    hThread.mHandler.postDelayed((Runnable { action.onEvent(event.event!!, !event.isSuccess(), ++event.extra, event.obj) }), event.obj as Long)
                     // posting action.onEvent() not Flow.event(), to keep event local to its own action
                 }
 
