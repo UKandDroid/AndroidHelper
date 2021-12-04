@@ -17,19 +17,28 @@ import java.util.*
 typealias UiCallback = (bSuccess: Boolean) -> Unit
 
 class UiFlow(codeCallback: Code) : LifecycleObserver {
+    private val INVALID = -1
+    private var bPause = false   // listeners have to implement pause functionality themself
     private var code: Code? = codeCallback
-    private var viewActRoot: View? = null
-    private var iSoftInputMode = -1
-    private var rLast = Rect()
-    private var bPause = false
-    private var bKeybVisible = false
     private var keyList = ArrayList<KeyboardState>()
     private var flowListeners = ArrayList<UiFlowListener>()
-   // private var listTextListeners = hashMapOf<Any, Any>() // list of text change listeners for a text field
-   // private var listKBListeners = hashMapOf<Any, Any>() // list of keyboard state change listeners, there could be multiple object subscribed to one
 
     private interface KeyboardState {
         fun onStateChange(bVisible: Boolean)
+    }
+
+    interface Code {
+        fun onAction(action: Int, bSuccess: Boolean, iExtra: Int, viewData: Any)
+    }
+
+    private abstract inner class UiFlowListener(
+        protected val view: View,
+        protected val iAction: Int,
+        protected val localCallback: UiCallback? = null
+    ) {
+        abstract fun register(): UiFlowListener
+        abstract fun unRegister()
+        protected abstract fun onEvent(iAction: Int, bSuccess: Boolean, iExtra: Int, data: Any?)
     }
 
     enum class UiEvent { // EVENTS for which listeners are set
@@ -43,21 +52,7 @@ class UiFlow(codeCallback: Code) : LifecycleObserver {
         TEXT_ENTERED,
         LIST_ITEM_SELECT,
         SPINNER_ITEM_SELECT,
-        KEYBOARD_STATE_CHANGE // Works only for android:windowSoftInputMode="adjustResize" or "adjustPan"
-    }
-
-    interface Code {
-        fun onAction(action: Int, bSuccess: Boolean, iExtra: Int, tag: Any)
-    }
-
-    private abstract inner class UiFlowListener(
-        protected val view: View,
-        protected val iAction: Int,
-        protected val localCallback: UiCallback? = null
-    ) {
-        internal abstract fun register(): UiFlowListener
-        internal abstract fun unRegister()
-        protected abstract fun onEvent(iAction: Int, bSuccess: Boolean, iExtra: Int, data: Any?)
+        KEYBOARD_STATE_CHANGE   // Works only for android:windowSoftInputMode="adjustResize" or "adjustPan"
     }
 
     fun registerClick(view: View, localCallback: UiCallback? = null) {
@@ -182,7 +177,6 @@ class UiFlow(codeCallback: Code) : LifecycleObserver {
             )
         }
     }
-
 
     @OnLifecycleEvent(Lifecycle.Event.ON_PAUSE)
     fun pause() {
@@ -323,7 +317,7 @@ class UiFlow(codeCallback: Code) : LifecycleObserver {
     }
 
     // TEXT_ENTERED
-    private inner class TextChangedListener internal constructor(
+    private inner class TextChangedListener constructor(
         view: View,
         iAction: Int,
         localCallback: UiCallback? = null
@@ -365,7 +359,7 @@ class UiFlow(codeCallback: Code) : LifecycleObserver {
     }
 
     // TEXT_ENTERED
-    private inner class TextEnteredListener internal constructor(
+    private inner class TextEnteredListener constructor(
         view: View,
         iAction: Int,
         localCallback: UiCallback? = null
@@ -380,7 +374,6 @@ class UiFlow(codeCallback: Code) : LifecycleObserver {
                 }
             }
 
-          //  listKBListeners.put(view, listKb)
             addKeyboardListener(listKb)
 
             view.onFocusChangeListener = View.OnFocusChangeListener { v, hasFocus ->
@@ -511,6 +504,11 @@ class UiFlow(codeCallback: Code) : LifecycleObserver {
         localCallback: UiCallback? = null
     ) : UiFlowListener(view, iAction, localCallback) {
 
+        private var iSoftInputMode = INVALID
+        private var lastPosition = Rect()
+        private var bKeybVisible = false
+        private var viewActRoot: View? = null
+
         override fun register(): UiFlowListener {
             val list = object : KeyboardState {
                 override fun onStateChange(bVisible: Boolean) {
@@ -522,7 +520,8 @@ class UiFlow(codeCallback: Code) : LifecycleObserver {
         }
 
         override fun unRegister() {
-            removeKeyboardbListener()
+            removeKeyboardListener()
+            viewActRoot = null
         }
 
         override fun onEvent(iAction: Int, bSuccess: Boolean, iExtra: Int, data: Any?) {
@@ -542,41 +541,41 @@ class UiFlow(codeCallback: Code) : LifecycleObserver {
                 window.getAttributes().softInputMode // save it so we can restore, when keyboard listener is removed
             if (iSoftInputMode != WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN && iSoftInputMode != WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
                 window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN)
-            rLast = Rect() // set a new rect for storing screen state
+            lastPosition = Rect() // set a new rect for storing screen state
             viewActRoot = view.rootView
             keyList.add(keyListener)
             view.viewTreeObserver.addOnGlobalLayoutListener(keybListener)
         }
 
         // METHOD - sets/removes global keyboard listener, also sets resets SoftInputMode
-        private fun removeKeyboardbListener() {
+        private fun removeKeyboardListener() {
             viewActRoot?.viewTreeObserver?.removeOnGlobalLayoutListener(keybListener)
             val act = (viewActRoot as ViewGroup).getChildAt(0).context as Activity
             val window = act.window
             iSoftInputMode =
                 window.attributes.softInputMode // save it so we can restore, when keyboard listener is removed
-            if (iSoftInputMode != -1)
+            if (iSoftInputMode != INVALID)
                 window.setSoftInputMode(iSoftInputMode)
         }
 
         private val keybListener = ViewTreeObserver.OnGlobalLayoutListener {
             val rCur = Rect()
             viewActRoot?.getWindowVisibleDisplayFrame(rCur)
-            if (rLast.bottom == 0) {
-                rLast.bottom = viewActRoot!!.height
+            if (lastPosition.bottom == 0) {
+                lastPosition.bottom = viewActRoot!!.height
             } // just get size of window, something to start with
 
-            if ((rLast.bottom - rCur.bottom) > 200) { // means keyboard is visible
+            if ((lastPosition.bottom - rCur.bottom) > 200) { // means keyboard is visible
                 if (!bKeybVisible) { // if its not already set set it
                     bKeybVisible = true
-                    rLast = rCur
+                    lastPosition = rCur
                     for (listener in keyList)
                         listener.onStateChange(true)
                 }
-            } else if ((rCur.bottom - rLast.bottom) > 200) {
+            } else if ((rCur.bottom - lastPosition.bottom) > 200) {
                 if (bKeybVisible) {
                     bKeybVisible = false
-                    rLast = rCur
+                    lastPosition = rCur
                     for (listener in keyList)
                         listener.onStateChange(false)
                 }
