@@ -14,14 +14,16 @@ import androidx.lifecycle.LifecycleObserver
 import androidx.lifecycle.OnLifecycleEvent
 import java.util.*
 
-typealias UiCallback = (bSuccess: Boolean) -> Unit
+typealias UiCallback = (action: UiAction) -> Unit
+
+data class UiAction(val action: Int, val bSuccess: Boolean, val iExtra: Int, val viewData: Any?)
 
 class UiFlow(codeCallback: Code) : LifecycleObserver {
     private val INVALID = -1
     private var bPause = false   // listeners have to implement pause functionality themself
-    private var code: Code? = codeCallback
-    private var keyList = ArrayList<KeyboardState>()
-    private var flowListeners = ArrayList<UiFlowListener>()
+    private var codeCallback: Code? = codeCallback
+    private var listKbListeners = ArrayList<KeyboardState>()
+    private var listFlowListeners = ArrayList<UiFlowListener>()
 
     private interface KeyboardState {
         fun onStateChange(bVisible: Boolean)
@@ -31,11 +33,7 @@ class UiFlow(codeCallback: Code) : LifecycleObserver {
         fun onAction(action: Int, bSuccess: Boolean, iExtra: Int, viewData: Any)
     }
 
-    private abstract inner class UiFlowListener(
-        protected val view: View,
-        protected val iAction: Int,
-        protected val localCallback: UiCallback? = null
-    ) {
+    private abstract inner class UiFlowListener(val view: View, val iAction: Int, val localCallback: UiCallback? = null) {
         abstract fun register(): UiFlowListener
         abstract fun unRegister()
         protected abstract fun onEvent(iAction: Int, bSuccess: Boolean, iExtra: Int, data: Any?)
@@ -64,12 +62,7 @@ class UiFlow(codeCallback: Code) : LifecycleObserver {
     }
 
     @JvmOverloads
-    fun registerUiEvent(
-        iAction: Int,
-        view: View,
-        iEvent: UiEvent,
-        localCallback: UiCallback? = null
-    ): UiFlow {
+    fun registerUiEvent(iAction: Int, view: View, iEvent: UiEvent, localCallback: UiCallback? = null): UiFlow {
         registerListener(iAction, view, iEvent, localCallback)
         return this
     }
@@ -81,101 +74,46 @@ class UiFlow(codeCallback: Code) : LifecycleObserver {
     }
 
     // VIEW LISTENERS set event listeners for View objects
-    private fun registerListener(
-        iAction: Int,
-        view: View,
-        iListener: UiEvent,
-        localCallback: UiCallback? = null
-    ) {
-        when (iListener) {
-            // Triggered when Text entered in text field, i.e when text field loses focus, enter button is pressed on keyboard
-            // for text entered to work with keyboard hide, set android:windowSoftInputMode="adjustResize" or "adjustPan"
-            // and setup KEYBOARD_STATE UiEvent, provided with main activity root decor view
-            UiEvent.TEXT_ENTERED -> flowListeners.add(
-                TextEnteredListener(
-                    view,
-                    iAction,
-                    localCallback
-                ).register()
-            ) // Triggered when text changes
+    private fun registerListener(iAction: Int, view: View, iListener: UiEvent, localCallback: UiCallback? = null) {
+        listFlowListeners.add(
+            when (iListener) {
+                // Triggered when Text entered in text field, i.e when text field loses focus, enter button is pressed on keyboard
+                // for text entered to work with keyboard hide, set android:windowSoftInputMode="adjustResize" or "adjustPan"
+                // and setup KEYBOARD_STATE UiEvent, provided with main activity root decor view
+                UiEvent.TEXT_ENTERED ->
+                    TextEnteredListener(view, iAction, localCallback).register() // Triggered when text changes
 
-            UiEvent.TEXT_CHANGED -> flowListeners.add(
-                TextChangedListener(
-                    view,
-                    iAction,
-                    localCallback
-                ).register()
-            )
+                UiEvent.TEXT_CHANGED ->
+                    TextChangedListener(view, iAction, localCallback).register()
 
-            // Triggered when ui layout changes with width/height values > 0 and called only once
-            UiEvent.LOAD_LAYOUT -> flowListeners.add(
-                LoadLayoutListener(
-                    view,
-                    iAction,
-                    localCallback
-                ).register()
-            )
+                // Triggered when ui layout changes with width/height values > 0 and called only once
+                UiEvent.LOAD_LAYOUT ->
+                    LoadLayoutListener(view, iAction, localCallback).register()
 
-            UiEvent.ON_CLICK -> flowListeners.add(
-                OnClickListener(
-                    view,
-                    iAction,
-                    localCallback
-                ).register()
-            )// triggered listener when view is clicked
+                UiEvent.ON_CLICK ->
+                    OnClickListener(view, iAction, localCallback).register()// triggered listener when view is clicked
 
-            // Method reports keyboard state change, should be provided with view, uses view.getRootView() to get parent view
-            UiEvent.KEYBOARD_STATE_CHANGE -> flowListeners.add(
-                KeyboardStateChangeListener(
-                    view,
-                    iAction,
-                    localCallback
-                ).register()
-            )
+                // Method reports keyboard state change, should be provided with view, uses view.getRootView() to get parent view
+                UiEvent.KEYBOARD_STATE_CHANGE ->
+                    KeyboardStateChangeListener(view, iAction, localCallback).register()
 
-            UiEvent.LIST_ITEM_SELECT -> flowListeners.add(
-                ListItemSelectListener(
-                    view,
-                    iAction,
-                    localCallback
-                ).register()
-            )
+                UiEvent.LIST_ITEM_SELECT ->
+                    ListItemSelectListener(view, iAction, localCallback).register()
 
-            UiEvent.SPINNER_ITEM_SELECT -> flowListeners.add(
-                SpinnerItemSelectListener(
-                    view,
-                    iAction,
-                    localCallback
-                ).register()
-            )
+                UiEvent.SPINNER_ITEM_SELECT ->
+                    SpinnerItemSelectListener(view, iAction, localCallback).register()
 
+                UiEvent.ON_CHECKBOX,
+                UiEvent.ON_TOGGLE ->
+                    CompoundButtonListener(view, iAction, localCallback).register()
 
-            UiEvent.ON_CHECKBOX,
-            UiEvent.ON_TOGGLE -> flowListeners.add(
-                CompoundButtonListener(
-                    view,
-                    iAction,
-                    localCallback
-                ).register()
-            )
+                UiEvent.ON_SWITCH ->
+                    CompoundButtonListener(view, iAction, localCallback).register()
 
-            UiEvent.ON_SWITCH -> flowListeners.add(
-                CompoundButtonListener(
-                    view,
-                    iAction,
-                    localCallback
-                ).register()
-            )
-
-            // Listener returns true for Touch down and Move, false when finger is lifted up
-            UiEvent.ON_TOUCH -> flowListeners.add(
-                TouchListener(
-                    view,
-                    iAction,
-                    localCallback
-                ).register()
-            )
-        }
+                // Listener returns true for Touch down and Move, false when finger is lifted up
+                UiEvent.ON_TOUCH ->
+                    TouchListener(view, iAction, localCallback).register()
+            })
     }
 
     @OnLifecycleEvent(Lifecycle.Event.ON_PAUSE)
@@ -190,29 +128,25 @@ class UiFlow(codeCallback: Code) : LifecycleObserver {
 
     @OnLifecycleEvent(Lifecycle.Event.ON_STOP)
     fun stop() {
-        for (listener in flowListeners) {
+        for (listener in listFlowListeners) {
             listener.unRegister()
         }
 
-        code = null
-        keyList.clear()
-        flowListeners.clear()
+        codeCallback = null
+        listKbListeners.clear()
+        listFlowListeners.clear()
     }
 
+
+    // CLASSES for listeners below
+    // To add a new listener create class below
+
     // LIST_ITEM_SELECT
-    private inner class SpinnerItemSelectListener internal constructor(
-        view: View,
-        iAction: Int,
-        localCallback: UiCallback? = null
-    ) : UiFlowListener(view, iAction, localCallback) {
+    private inner class SpinnerItemSelectListener(view: View, iAction: Int, localCallback: UiCallback? = null) :
+        UiFlowListener(view, iAction, localCallback) {
         override fun register(): UiFlowListener {
             (view as Spinner).onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-                override fun onItemSelected(
-                    parent: AdapterView<*>,
-                    view: View,
-                    position: Int,
-                    id: Long
-                ) {
+                override fun onItemSelected(parent: AdapterView<*>, view: View, position: Int, id: Long) {
                     onEvent(iAction, true, position, view)
                 }
 
@@ -229,19 +163,16 @@ class UiFlow(codeCallback: Code) : LifecycleObserver {
 
         override fun onEvent(iAction: Int, bSuccess: Boolean, iExtra: Int, data: Any?) {
             if (localCallback != null) {
-                localCallback.invoke(bSuccess)
+                localCallback.invoke(UiAction(iAction, bSuccess, iExtra, data))
             } else {
-                code?.onAction(iAction, bSuccess, iExtra, data!!)
+                codeCallback?.onAction(iAction, bSuccess, iExtra, data!!)
             }
         }
     }
 
     // TOUCH
-    private inner class TouchListener internal constructor(
-        view: View,
-        iAction: Int,
-        localCallback: UiCallback? = null
-    ) : UiFlowListener(view, iAction, localCallback) {
+    private inner class TouchListener(view: View, iAction: Int, localCallback: UiCallback? = null) :
+        UiFlowListener(view, iAction, localCallback) {
         @SuppressLint("ClickableViewAccessibility")
         override fun register(): UiFlowListener {
             view.setOnTouchListener { v, event ->
@@ -257,15 +188,15 @@ class UiFlow(codeCallback: Code) : LifecycleObserver {
 
         override fun onEvent(iAction: Int, bSuccess: Boolean, iExtra: Int, data: Any?) {
             if (localCallback != null) {
-                localCallback.invoke(bSuccess)
+                localCallback.invoke(UiAction(iAction, bSuccess, iExtra, data))
             } else {
-                code?.onAction(iAction, bSuccess, iExtra, data!!)
+                codeCallback?.onAction(iAction, bSuccess, iExtra, data!!)
             }
         }
     }
 
     // CHECK_BOX_STATE
-    private inner class CompoundButtonListener internal constructor(
+    private inner class CompoundButtonListener(
         view: View,
         iAction: Int,
         localCallback: UiCallback? = null
@@ -283,15 +214,15 @@ class UiFlow(codeCallback: Code) : LifecycleObserver {
 
         override fun onEvent(iAction: Int, bSuccess: Boolean, iExtra: Int, data: Any?) {
             if (localCallback != null) {
-                localCallback.invoke(bSuccess)
+                localCallback.invoke(UiAction(iAction, bSuccess, iExtra, data))
             } else {
-                code?.onAction(iAction, bSuccess, iExtra, data!!)
+                codeCallback?.onAction(iAction, bSuccess, iExtra, data!!)
             }
         }
     }
 
     // LIST_ITEM_SELECT
-    private inner class ListItemSelectListener internal constructor(
+    private inner class ListItemSelectListener(
         view: View,
         iAction: Int,
         localCallback: UiCallback? = null
@@ -309,15 +240,15 @@ class UiFlow(codeCallback: Code) : LifecycleObserver {
 
         override fun onEvent(iAction: Int, bSuccess: Boolean, iExtra: Int, data: Any?) {
             if (localCallback != null) {
-                localCallback.invoke(bSuccess)
+                localCallback.invoke(UiAction(iAction, bSuccess, iExtra, data))
             } else {
-                code?.onAction(iAction, bSuccess, iExtra, data!!)
+                codeCallback?.onAction(iAction, bSuccess, iExtra, data!!)
             }
         }
     }
 
     // TEXT_ENTERED
-    private inner class TextChangedListener constructor(
+    private inner class TextChangedListener(
         view: View,
         iAction: Int,
         localCallback: UiCallback? = null
@@ -351,15 +282,15 @@ class UiFlow(codeCallback: Code) : LifecycleObserver {
 
         override fun onEvent(iAction: Int, bSuccess: Boolean, iExtra: Int, data: Any?) {
             if (localCallback != null) {
-                localCallback.invoke(bSuccess)
+                localCallback.invoke(UiAction(iAction, bSuccess, iExtra, data))
             } else {
-                code?.onAction(iAction, bSuccess, iExtra, data!!)
+                codeCallback?.onAction(iAction, bSuccess, iExtra, data!!)
             }
         }
     }
 
     // TEXT_ENTERED
-    private inner class TextEnteredListener constructor(
+    private inner class TextEnteredListener(
         view: View,
         iAction: Int,
         localCallback: UiCallback? = null
@@ -400,26 +331,26 @@ class UiFlow(codeCallback: Code) : LifecycleObserver {
 
         override fun onEvent(iAction: Int, bSuccess: Boolean, iExtra: Int, data: Any?) {
             if (localCallback != null) {
-                localCallback.invoke(bSuccess)
+                localCallback.invoke(UiAction(iAction, bSuccess, iExtra, data))
             } else {
-                code?.onAction(iAction, bSuccess, iExtra, data!!)
+                codeCallback?.onAction(iAction, bSuccess, iExtra, data!!)
             }
         }
 
         private fun addKeyboardListener(keyListener: KeyboardState) {
-            keyList.add(keyListener)
+            listKbListeners.add(keyListener)
         }
     }
 
     // LOAD_LAYOUT
-    private inner class LoadLayoutListener internal constructor(
+    private inner class LoadLayoutListener(
         view: View,
         iAction: Int,
         localCallback: UiCallback? = null
     ) : UiFlowListener(view, iAction, localCallback) {
         private lateinit var listener: View.OnLayoutChangeListener
 
-        public override fun register(): UiFlowListener {
+        override fun register(): UiFlowListener {
             listener = object : View.OnLayoutChangeListener {
                 override fun onLayoutChange(
                     view: View,
@@ -442,21 +373,21 @@ class UiFlow(codeCallback: Code) : LifecycleObserver {
             return this
         }
 
-        public override fun unRegister() {
+        override fun unRegister() {
             view.removeOnLayoutChangeListener(listener)
         }
 
         override fun onEvent(iAction: Int, bSuccess: Boolean, iExtra: Int, data: Any?) {
             if (localCallback != null) {
-                localCallback.invoke(bSuccess)
+                localCallback.invoke(UiAction(iAction, bSuccess, iExtra, data))
             } else {
-                code?.onAction(iAction, bSuccess, iExtra, data!!)
+                codeCallback?.onAction(iAction, bSuccess, iExtra, data!!)
             }
         }
     }
 
     // ON_CLICK
-    private inner class OnClickListener internal constructor(
+    private inner class OnClickListener(
         view: View,
         iAction: Int,
         localCallback: UiCallback? = null
@@ -490,15 +421,15 @@ class UiFlow(codeCallback: Code) : LifecycleObserver {
 
         override fun onEvent(iAction: Int, bSuccess: Boolean, iExtra: Int, data: Any?) {
             if (localCallback != null) {
-                localCallback.invoke(bSuccess)
+                localCallback.invoke(UiAction(iAction, bSuccess, iExtra, data))
             } else {
-                code?.onAction(iAction, bSuccess, iExtra, data!!)
+                codeCallback?.onAction(iAction, bSuccess, iExtra, data!!)
             }
         }
     }
 
     // LOAD_LAYOUT
-    private inner class KeyboardStateChangeListener internal constructor(
+    private inner class KeyboardStateChangeListener(
         view: View,
         iAction: Int,
         localCallback: UiCallback? = null
@@ -526,9 +457,9 @@ class UiFlow(codeCallback: Code) : LifecycleObserver {
 
         override fun onEvent(iAction: Int, bSuccess: Boolean, iExtra: Int, data: Any?) {
             if (localCallback != null) {
-                localCallback.invoke(bSuccess)
+                localCallback.invoke(UiAction(iAction, bSuccess, iExtra, data))
             } else {
-                code?.onAction(iAction, bSuccess, iExtra, data!!)
+                codeCallback?.onAction(iAction, bSuccess, iExtra, data!!)
             }
         }
 
@@ -543,7 +474,7 @@ class UiFlow(codeCallback: Code) : LifecycleObserver {
                 window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN)
             lastPosition = Rect() // set a new rect for storing screen state
             viewActRoot = view.rootView
-            keyList.add(keyListener)
+            listKbListeners.add(keyListener)
             view.viewTreeObserver.addOnGlobalLayoutListener(keybListener)
         }
 
@@ -569,14 +500,14 @@ class UiFlow(codeCallback: Code) : LifecycleObserver {
                 if (!bKeybVisible) { // if its not already set set it
                     bKeybVisible = true
                     lastPosition = rCur
-                    for (listener in keyList)
+                    for (listener in listKbListeners)
                         listener.onStateChange(true)
                 }
             } else if ((rCur.bottom - lastPosition.bottom) > 200) {
                 if (bKeybVisible) {
                     bKeybVisible = false
                     lastPosition = rCur
-                    for (listener in keyList)
+                    for (listener in listKbListeners)
                         listener.onStateChange(false)
                 }
             }

@@ -32,10 +32,6 @@ typealias SingleCallback = (action: Flow.Action) -> Unit
 //  @override fun onAction(int iAction, boolean bSuccess, int iExtra, Object data){
 //  when(iAction) {
 //       1 ->   // this code will run in first example when all events are triggered as true
-//       3 ->   // this will run when ever run(3) is called
-//       4 ->   // this will run on ui thread whenever runOnUi(4) is called
-//       5 ->   // this will run on delayed by 4 secs
-//       6(NOT CALLED) ->   this wont be called as local callback is provided
 // }  }
 
 // Example :  flow.runOnUi(){}          runs code on ui thread
@@ -48,7 +44,7 @@ typealias SingleCallback = (action: Flow.Action) -> Unit
 // Example :  action.getWaitingEvent()  returns first event that is stopping the action being fired, either its not fired or fired with false
 
 
-open class Flow<EventType> @JvmOverloads constructor(val tag: String = "", codeBlock: ExecuteCode? = null) : LifecycleObserver {
+open class Flow<EventType> @JvmOverloads constructor(tag: String = "", codeBlock: ExecuteCode? = null) : LifecycleObserver {
 
     enum class EventStatus {
         WAITING, SUCCESS, FAILURE
@@ -58,7 +54,7 @@ open class Flow<EventType> @JvmOverloads constructor(val tag: String = "", codeB
     private var autoIndex = -1
     private var bRunning = true
     private var hThread: HThread
-    private val LOG_TAG = "Flow:$tag"
+    private val LOG_TAG = "Flow: $tag"
     private var listActions = ArrayList<_Action>() // List of registered actions
     private var globalCallback: ExecuteCode? = null // Call back for onAction to be executed
 
