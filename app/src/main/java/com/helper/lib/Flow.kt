@@ -8,8 +8,8 @@ import android.util.Log
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleObserver
 import androidx.lifecycle.OnLifecycleEvent
-import java.util.*
-import kotlin.collections.ArrayList
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.locks.ReentrantLock
 
 typealias SingleCallback = (action: Flow.Action) -> Unit
 
@@ -57,7 +57,7 @@ open class Flow<EventType> @JvmOverloads constructor(tag: String = "", codeBlock
     private var bRunning = true
     private var hThread: HThread
     private val LOG_TAG = "Flow: $tag"
-    private val lock = Any()   // used for synchronization
+    private val mutex = ReentrantLock(true)   // used for synchronization
     private var listActions = ArrayList<_Action>() // List of registered actions
     private var globalCallback: ExecuteCode? = null // Call back for onAction to be executed
 
@@ -212,19 +212,19 @@ open class Flow<EventType> @JvmOverloads constructor(tag: String = "", codeBlock
     }
 
     fun cancelAction(iAction: Int) {
-        synchronized(lock) {
-            listActions.firstOrNull { it.iAction == iAction }?.run {
-                _cancelAction(this)
-                loge(1, "CANCEL: Action($iAction), removed  ")
-            }
+        listActions.firstOrNull { it.iAction == iAction }?.run {
+            _cancelAction(this)
+            loge(1, "CANCEL: Action($iAction), removed  ")
         }
     }
 
     private fun _cancelAction(action: _Action) {
+        mutex.tryLock(50, TimeUnit.MILLISECONDS)
         hThread.mHandler.removeMessages(action.iAction)
         hThread.mUiHandler.removeMessages(action.iAction)
         action.recycle()
         listActions.remove(action)
+        mutex.unlock()
     }
 
     private fun _registerAction(iAction: Int, bUiThread: Boolean, bRunOnce: Boolean, bSequence: Boolean, bRepeat: Boolean, events: List<*>, actionCallback: SingleCallback? = null): _Action {
@@ -253,20 +253,16 @@ open class Flow<EventType> @JvmOverloads constructor(tag: String = "", codeBlock
 
         var eventFired = false
 
-        synchronized(lock) {
-            log(2, "EVENT:  $sEvent $bSuccess")
+        mutex.tryLock(50, TimeUnit.MILLISECONDS)
+        log(2, "EVENT:  $sEvent $bSuccess")
 
-            for (action in listActions) {
-                if (action.onEvent(sEvent, bSuccess, iExtra, obj)) {
-                    eventFired = true
+        for (action in listActions) {
+            if (action.onEvent(sEvent, bSuccess, iExtra, obj)) {
+                eventFired = true
 
-                    if (action.getFlag(FLAG_RUNONCE)) {
-                        loge(2, "REMOVING: Action(${action.iAction}, runOnce) as its executed")
-                        _cancelAction(action) // Recycle if its flagged for it
-                    }
-                }
             }
         }
+        mutex.unlock()
 
         return eventFired
     }
@@ -561,6 +557,11 @@ open class Flow<EventType> @JvmOverloads constructor(tag: String = "", codeBlock
 
                 if (!action.execute()) { // if there is no specific callback for action, call generic call back
                     globalCallback?.onAction(msg.what, msg.arg2 == ACTION_SUCCESS, msg.arg1, msg.obj as Flow.Action)
+                }
+
+                if (action.getFlag(FLAG_RUNONCE)) {
+                    loge(2, "REMOVING: Action(${action.iAction}, runOnce) as its executed")
+                    _cancelAction(action) // Recycle if its flagged for it
                 }
             }
 
