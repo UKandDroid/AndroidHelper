@@ -8,6 +8,8 @@ import android.util.Log
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleObserver
 import androidx.lifecycle.OnLifecycleEvent
+import java.util.*
+import kotlin.collections.ArrayList
 
 typealias SingleCallback = (action: Flow.Action) -> Unit
 
@@ -55,6 +57,7 @@ open class Flow<EventType> @JvmOverloads constructor(tag: String = "", codeBlock
     private var bRunning = true
     private var hThread: HThread
     private val LOG_TAG = "Flow: $tag"
+    private val lock = Any()   // used for synchronization
     private var listActions = ArrayList<_Action>() // List of registered actions
     private var globalCallback: ExecuteCode? = null // Call back for onAction to be executed
 
@@ -209,10 +212,11 @@ open class Flow<EventType> @JvmOverloads constructor(tag: String = "", codeBlock
     }
 
     fun cancelAction(iAction: Int) {
-        val copyList = ArrayList(listActions) // to avoid deleting of event issues while going through list
-        copyList.firstOrNull { it.iAction == iAction }?.run {
-            _cancelAction(this)
-            loge(1, "CANCEL: Action($iAction), removed  ")
+        synchronized(lock) {
+            listActions.firstOrNull { it.iAction == iAction }?.run {
+                _cancelAction(this)
+                loge(1, "CANCEL: Action($iAction), removed  ")
+            }
         }
     }
 
@@ -242,7 +246,6 @@ open class Flow<EventType> @JvmOverloads constructor(tag: String = "", codeBlock
     }
 
     // METHODS to send event
-    @Synchronized
     @JvmOverloads
     fun event(sEvent: Any, bSuccess: Boolean = true, iExtra: Int = 0, obj: Any? = null): Boolean {
         if (!bRunning)
@@ -250,12 +253,10 @@ open class Flow<EventType> @JvmOverloads constructor(tag: String = "", codeBlock
 
         var eventFired = false
 
-        log(2, "EVENT:  $sEvent $bSuccess")
+        synchronized(lock) {
+            log(2, "EVENT:  $sEvent $bSuccess")
 
-        val copyList = ArrayList(listActions) // to avoid deleting of event issues while going through list
-
-        try {
-            for (action in copyList) {
+            for (action in listActions) {
                 if (action.onEvent(sEvent, bSuccess, iExtra, obj)) {
                     eventFired = true
 
@@ -265,10 +266,6 @@ open class Flow<EventType> @JvmOverloads constructor(tag: String = "", codeBlock
                     }
                 }
             }
-        } catch (e: IndexOutOfBoundsException) {
-            loge(e.toString())
-        } catch (e: NullPointerException) {
-            logw(2, "event() - null pointer exception")
         }
 
         return eventFired
@@ -511,7 +508,7 @@ open class Flow<EventType> @JvmOverloads constructor(tag: String = "", codeBlock
 
 
     // CLASS for thread handler
-    private inner class HThread: Handler.Callback {
+    private inner class HThread : Handler.Callback {
         val mHandler: Handler
         val mUiHandler: Handler
         var ACTION_FAIL = 0
