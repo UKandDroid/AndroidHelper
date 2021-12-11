@@ -57,8 +57,8 @@ open class Flow<EventType> @JvmOverloads constructor(tag: String = "", codeBlock
     private var bRunning = true
     private var hThread: HThread
     private val LOG_TAG = "Flow: $tag"
-    private val mutex = ReentrantLock(true)   // used for synchronization
-    private var listActions = ArrayList<_Action>() // List of registered actions
+    private val mutex = ReentrantLock()             // used for securely accessing listActions
+    private var listActions = ArrayList<_Action>()  // List of registered actions
     private var globalCallback: ExecuteCode? = null // Call back for onAction to be executed
 
     // INTERFACE for code execution
@@ -220,17 +220,19 @@ open class Flow<EventType> @JvmOverloads constructor(tag: String = "", codeBlock
 
     private fun _cancelAction(action: _Action) {
         mutex.tryLock(50, TimeUnit.MILLISECONDS)
-        hThread.mHandler.removeMessages(action.iAction)
-        hThread.mUiHandler.removeMessages(action.iAction)
-        action.recycle()
-        listActions.remove(action)
-        mutex.unlock()
+        try {
+            hThread.mHandler.removeMessages(action.iAction)
+            hThread.mUiHandler.removeMessages(action.iAction)
+            action.recycle()
+            listActions.remove(action)
+        } finally {
+            mutex.unlock()
+        }
     }
 
-    private fun _registerAction(iAction: Int, bUiThread: Boolean, bRunOnce: Boolean, bSequence: Boolean, bRepeat: Boolean, events: List<*>, actionCallback: SingleCallback? = null): _Action {
+    private fun _registerAction(iAction: Int, bUiThread: Boolean, bRunOnce: Boolean, bSequence: Boolean, bRepeat: Boolean, events: Array<*>, actionCallback: SingleCallback? = null): _Action {
         cancelAction(iAction)           // to stop duplication, remove if the action already exists
-        val actionFlags =
-            setActionFlags(runOnUI = bUiThread, runOnce = bRunOnce, eventSequence = bSequence, repeatAction = bRepeat)
+        val actionFlags = setActionFlags(runOnUI = bUiThread, runOnce = bRunOnce, eventSequence = bSequence, repeatAction = bRepeat)
         val aAction = _Action(iAction, actionFlags, events, actionCallback)
         listActions.add(aAction)
 
@@ -254,16 +256,17 @@ open class Flow<EventType> @JvmOverloads constructor(tag: String = "", codeBlock
         var eventFired = false
 
         mutex.tryLock(50, TimeUnit.MILLISECONDS)
-        log(2, "EVENT:  $sEvent $bSuccess")
+        try {
+            log(2, "EVENT:  $sEvent $bSuccess")
 
-        for (action in listActions) {
-            if (action.onEvent(sEvent, bSuccess, iExtra, obj)) {
-                eventFired = true
-
+            for (action in listActions) {
+                if (action.onEvent(sEvent, bSuccess, iExtra, obj)) {
+                    eventFired = true
+                }
             }
+        } finally {
+            mutex.unlock()
         }
-        mutex.unlock()
-
         return eventFired
     }
 
