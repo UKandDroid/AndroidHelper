@@ -230,7 +230,7 @@ open class Flow<EventType> @JvmOverloads constructor(tag: String = "", codeBlock
         }
     }
 
-    private fun _registerAction(iAction: Int, bUiThread: Boolean, bRunOnce: Boolean, bSequence: Boolean, bRepeat: Boolean, events: Array<*>, actionCallback: SingleCallback? = null): _Action {
+    private fun _registerAction(iAction: Int, bUiThread: Boolean, bRunOnce: Boolean, bSequence: Boolean, bRepeat: Boolean, events: List<*>, actionCallback: SingleCallback? = null): _Action {
         cancelAction(iAction)           // to stop duplication, remove if the action already exists
         val actionFlags = setActionFlags(runOnUI = bUiThread, runOnce = bRunOnce, eventSequence = bSequence, repeatAction = bRepeat)
         val aAction = _Action(iAction, actionFlags, events, actionCallback)
@@ -568,6 +568,7 @@ open class Flow<EventType> @JvmOverloads constructor(tag: String = "", codeBlock
                 }
             }
 
+            msg.recycle()
             return true
         }
 
